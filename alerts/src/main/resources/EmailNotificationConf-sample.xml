@@ -3,6 +3,9 @@
 <!-- If there are any conflict, for example, app1's default recipient is 1, level1's default recipient is 2, 
   When receive message( app=1, level=1 ), both the recipient 1 and 2 should receive email.
   Basically, app1's default recipient is 1 means receipt 1 care all the message from app1, no matter what level it is -->
+<!-- overwritable: both the item section( emailContext, emailRecipient, emailMessage ) and refs have overwritable, 
+overwritable if none of them is false -->  
+
 <conf>
   <emailContext id="1">
     <smtpServer>localhost</smtpServer>
@@ -10,6 +13,7 @@
     <sender>sender</sender>
     <password>password</password>
     <enableTls>true</enableTls>
+    <overwritable>true</overwritable>  <!-- default is false -->
   </emailContext>
 
   <emailContext id="2">
@@ -27,6 +31,7 @@
     <cc>cc2</cc>
     <bcc>bcc1</bcc>
     <bcc>bcc2</bcc>
+    <overwritable>false</overwritable>  <!-- default is true -->
   </emailRecipient>
 
   <emailRecipient id="2">
@@ -41,6 +46,7 @@
   <emailMessage id="1">
     <subject>subject1</subject>
     <content>content1</content>
+    <overwritable>false</overwritable>  <!-- default is true -->
   </emailMessage>
 
   <emailMessage id="2">
@@ -49,9 +55,9 @@
   </emailMessage>
 
   <criteria>
-    <emailContextRef>1</emailContextRef>
-    <emailRecipientRef>1</emailRecipientRef>
-    <emailMessageRef>1</emailMessageRef>
+    <emailContextRef overwritable="true">1</emailContextRef>
+    <emailRecipientRef overwritable="false">1</emailRecipientRef>
+    <emailMessageRef overwritable="false">1</emailMessageRef>
   </criteria>
 
   <criteria>

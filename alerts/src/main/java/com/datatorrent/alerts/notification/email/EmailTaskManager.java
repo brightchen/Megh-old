@@ -44,7 +44,7 @@ public class EmailTaskManager {
       ei.ccs = tuple.ccs;
       ei.bccs = tuple.bccs;
       ei.subject = tuple.subject;
-      ei.content = tuple.content;
+      ei.body = tuple.content;
       
       return ei;
     }

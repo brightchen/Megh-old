@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * This class all the information to send an email
@@ -22,7 +24,7 @@ public class EmailInfo {
   protected Collection<String> bccs;
   
   protected String subject;
-  protected String content;
+  protected String body;
   
   public void verifyEnoughInfoForSendEmail() throws LackInfoException
   {
@@ -39,7 +41,7 @@ public class EmailInfo {
   public boolean isComplete()
   {
     return ( smtpServer != null && !smtpServer.isEmpty() && smtpPort != 0 && sender != null && !sender.isEmpty() 
-        && hasValidEntry( tos ) && ( subject != null && !subject.isEmpty() ) && ( content != null && !content.isEmpty() ) );
+        && hasValidEntry( tos ) && ( subject != null && !subject.isEmpty() ) );
   }
   
   public static boolean hasValidEntry( Collection<String> collection )
@@ -71,11 +73,16 @@ public class EmailInfo {
     if(bccs != null)
       newObj.bccs = new ArrayList<String>(bccs);
     newObj.subject = subject;
-    newObj.content = content;
+    newObj.body = body;
     
     return newObj;
   }
   
+  /**
+   * merge the configuration according the merge policy
+   * @param conf
+   * @return
+   */
   public EmailInfo mergeWith(EmailConf conf)
   {
     if(conf == null)
@@ -83,30 +90,30 @@ public class EmailInfo {
     
     if(conf.context != null)
     {
-      if(smtpServer==null || smtpServer.isEmpty())
-      {
-        smtpServer = conf.context.smtpServer;
-        smtpPort = conf.context.smtpPort;
-      }
-      if(sender==null || sender.isEmpty())
-      {
-        sender = conf.context.sender;
-        password = conf.context.password;
-      }
-      enableTls = conf.context.enableTls;
+      smtpServer = conf.context.mergePolicy.merge(conf.context.entity.smtpServer, smtpServer);
+      smtpPort = Integer.parseInt( conf.context.mergePolicy.merge(conf.context.entity.smtpPort+"", smtpPort+"") );
+      sender = conf.context.mergePolicy.merge(conf.context.entity.sender, sender);
+      enableTls = Boolean.valueOf(conf.context.mergePolicy.merge(String.valueOf(conf.context.entity.enableTls), String.valueOf(enableTls)));
     }
-    if((tos==null||tos.isEmpty()) && conf != null && conf.recipient != null)
+    if((tos==null||tos.isEmpty()) && conf != null && conf.recipients != null)
     {
-      tos = conf.recipient.tos;
-      ccs = conf.recipient.ccs;
-      bccs = conf.recipient.bccs;
+      Set<String> newTos = new HashSet<String>();
+      Set<String> newCcs = new HashSet<String>();
+      Set<String> newBccs = new HashSet<String>();
+      for(MergableEntity<EmailRecipient> recipient : conf.recipients)
+      {
+        newTos.addAll(recipient.mergePolicy.merge(recipient.entity.tos, tos));
+        newCcs.addAll(recipient.mergePolicy.merge(recipient.entity.ccs, ccs));
+        newBccs.addAll(recipient.mergePolicy.merge(recipient.entity.bccs, bccs));
+      }
+      tos = newTos;
+      ccs = newCcs;
+      bccs = newBccs;
     }
-    if(conf.message != null)
+    if(conf.content != null)
     {
-      if(subject==null || subject.isEmpty())
-        subject = conf.message.subject;
-      if(content==null || content.isEmpty())
-        content = conf.message.content;
+      subject = conf.content.mergePolicy.merge(conf.content.entity.subject, subject);
+      body = conf.content.mergePolicy.merge(conf.content.entity.body, body);
     }
     return this;
   }

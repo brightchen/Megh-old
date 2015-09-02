@@ -80,7 +80,7 @@ public class EmailDeliver {
         }
       }
       mimeMsg.setSubject(emailInfo.subject);
-      mimeMsg.setText(emailInfo.content);
+      mimeMsg.setText(emailInfo.body);
       Transport.send(mimeMsg);
     } catch (MessagingException me) {
       //how to handle exception? resent or log?

@@ -3,49 +3,83 @@
     <xs:annotation>
       <xs:documentation>The more specific criteria will override the more general one  If there are any conflict, for example, app1's default recipient is 1, level1's default recipient is 2, 
   When receive message( app=1, level=1 ), both the recipient 1 and 2 should receive email.
-  Basically, app1's default recipient is 1 means receipt 1 care all the message from app1, no matter what level it is</xs:documentation>
+  Basically, app1's default recipient is 1 means receipt 1 care all the message from app1, no matter what level it is  merge policy specify how to handle when both admin configured and client application send same field. the policy could be:
+appOnly( use app, if app is empty, result is empty), configOnly, combine, appOverConfig(if both are not empty, use app; else use the none empty one), configOverApp
+The merge policy in the entity is the default merge policy, the merge policy in criteria could overwrite the default merge policy.
+The default merge policy for all entities are "configOnly"</xs:documentation>
     </xs:annotation>
     <xs:complexType>
       <xs:sequence>
         <xs:element name="emailContext" maxOccurs="unbounded" minOccurs="0">
           <xs:complexType>
             <xs:sequence>
+              <xs:element type="xs:string" name="id"/>
               <xs:element type="xs:string" name="smtpServer"/>
               <xs:element type="xs:int" name="smtpPort"/>
               <xs:element type="xs:string" name="sender"/>
               <xs:element type="xs:string" name="password"/>
               <xs:element type="xs:boolean" name="enableTls"/>
+              <xs:element type="xs:string" name="mergePolicy" minOccurs="0"/>
             </xs:sequence>
-            <xs:attribute type="xs:int" name="id" use="optional"/>
           </xs:complexType>
         </xs:element>
         <xs:element name="emailRecipient" maxOccurs="unbounded" minOccurs="0">
           <xs:complexType>
             <xs:sequence>
+              <xs:element type="xs:string" name="id"/>
               <xs:element type="xs:string" name="to" maxOccurs="unbounded" minOccurs="0"/>
               <xs:element type="xs:string" name="cc" maxOccurs="unbounded" minOccurs="0"/>
               <xs:element type="xs:string" name="bcc" maxOccurs="unbounded" minOccurs="0"/>
+              <xs:element type="xs:string" name="mergePolicy" minOccurs="0"/>
             </xs:sequence>
-            <xs:attribute type="xs:int" name="id" use="optional"/>
           </xs:complexType>
         </xs:element>
-        <xs:element name="emailMessage" maxOccurs="unbounded" minOccurs="0">
+        <xs:element name="emailContent" maxOccurs="unbounded" minOccurs="0">
           <xs:complexType>
             <xs:sequence>
+              <xs:element type="xs:string" name="id"/>
               <xs:element type="xs:string" name="subject"/>
-              <xs:element type="xs:string" name="content"/>
+              <xs:element type="xs:string" name="body"/>
+              <xs:element type="xs:string" name="mergePolicy" minOccurs="0"/>
             </xs:sequence>
-            <xs:attribute type="xs:int" name="id" use="optional"/>
           </xs:complexType>
         </xs:element>
         <xs:element name="criteria" maxOccurs="unbounded" minOccurs="0">
+          <xs:annotation>
+            <xs:documentation>for each criteria, only one ref to emailContext and emailContent, but support multiple ref to emailRecipient.
+  and each emailRecipientRef support different merge policy</xs:documentation>
+          </xs:annotation>
           <xs:complexType>
             <xs:sequence>
-              <xs:element type="xs:int" name="emailContextRef" minOccurs="0"/>
+              <xs:element name="emailContextRef" minOccurs="0">
+                <xs:complexType>
+                  <xs:simpleContent>
+                    <xs:extension base="xs:string">
+                      <xs:attribute type="xs:string" name="mergePolicy"/>
+                    </xs:extension>
+                  </xs:simpleContent>
+                </xs:complexType>
+              </xs:element>
               <xs:element type="xs:string" name="app" maxOccurs="unbounded" minOccurs="0"/>
               <xs:element type="xs:int" name="level" maxOccurs="unbounded" minOccurs="0"/>
-              <xs:element type="xs:int" name="emailRecipientRef" maxOccurs="unbounded" minOccurs="0"/>
-              <xs:element type="xs:int" name="emailMessageRef" minOccurs="0"/>
+              <xs:element name="emailRecipientRef" maxOccurs="unbounded" minOccurs="0">
+                <xs:complexType>
+                  <xs:simpleContent>
+                    <xs:extension base="xs:string">
+                      <xs:attribute type="xs:string" name="mergePolicy" use="optional"/>
+                    </xs:extension>
+                  </xs:simpleContent>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="emailContentRef" minOccurs="0">
+                <xs:complexType>
+                  <xs:simpleContent>
+                    <xs:extension base="xs:string">
+                      <xs:attribute type="xs:string" name="mergePolicy"/>
+                    </xs:extension>
+                  </xs:simpleContent>
+                </xs:complexType>
+              </xs:element>
             </xs:sequence>
           </xs:complexType>
         </xs:element>

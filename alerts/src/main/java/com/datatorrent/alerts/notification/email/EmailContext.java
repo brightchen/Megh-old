@@ -6,14 +6,21 @@ public final class EmailContext{
   protected final String sender;
   protected final char[] password;    //set password to null if support anonymous
   protected final boolean enableTls;
+  protected final MergePolicy mergePolicy;
   
-  public EmailContext( String smtpServer, int smtpPort, String sender, char[] password, boolean enableTls )
+  public EmailContext( String smtpServer, int smtpPort, String sender, char[] password, boolean enableTls, String mergePolicy )
+  {
+    this(smtpServer, smtpPort, sender, password, enableTls, MergePolicy.fromValue(mergePolicy));
+  }
+  
+  public EmailContext( String smtpServer, int smtpPort, String sender, char[] password, boolean enableTls, MergePolicy mergePolicy )
   {
     this.smtpServer = smtpServer;
     this.smtpPort = smtpPort;
     this.sender = sender;
     this.password = password;
     this.enableTls = enableTls;
+    this.mergePolicy = mergePolicy;
   }
   
   @Override

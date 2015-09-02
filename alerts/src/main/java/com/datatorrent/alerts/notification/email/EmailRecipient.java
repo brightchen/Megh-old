@@ -11,6 +11,7 @@ public class EmailRecipient {
   protected final Collection<String> tos;
   protected final Collection<String> ccs;
   protected final Collection<String> bccs;
+  protected final boolean overwritable = true;
   
   public static EmailRecipient mergeAll( List<EmailRecipient> recipients )
   {

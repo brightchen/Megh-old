@@ -2,6 +2,7 @@ package com.datatorrent.alerts.conf;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,8 +21,9 @@ import com.datatorrent.alerts.conf.EmailConfigRepo.EmailConfigCondition;
 import com.datatorrent.alerts.conf.xmlbind.Conf;
 import com.datatorrent.alerts.notification.email.EmailConf;
 import com.datatorrent.alerts.notification.email.EmailContext;
-import com.datatorrent.alerts.notification.email.EmailMessage;
+import com.datatorrent.alerts.notification.email.EmailContent;
 import com.datatorrent.alerts.notification.email.EmailRecipient;
+import com.datatorrent.alerts.notification.email.MergableEntity;
 import com.google.common.collect.Lists;
 
 public class DefaultEmailConfigRepo extends EmailConfigRepo {
@@ -79,8 +81,8 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
       FSDataInputStream inputStream = fs.open(filePath);
       
       //set support classes
-      JAXBContext context = JAXBContext.newInstance(Conf.class, Conf.EmailContext.class, Conf.EmailMessage.class, Conf.EmailRecipient.class, Conf.Criteria.class);
-      //JAXBContext context = JAXBContext.newInstance(EmailContextMutable.class, EmailMessageMutable.class, EmailRecipientMutable.class);
+      JAXBContext context = JAXBContext.newInstance(Conf.class, Conf.EmailContext.class, Conf.EmailContent.class, Conf.EmailRecipient.class, Conf.Criteria.class);
+      //JAXBContext context = JAXBContext.newInstance(EmailContextMutable.class, EmailContentMutable.class, EmailRecipientMutable.class);
       
       Unmarshaller unmarshaller = context.createUnmarshaller();
       Conf conf = (Conf)unmarshaller.unmarshal(inputStream);
@@ -102,7 +104,7 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
     if( criterias == null || criterias.isEmpty() )
       return;
     
-    Map<Integer, EmailContext> contextMap = new HashMap<Integer, EmailContext>();
+    Map<String, EmailContext> contextMap = new HashMap<String, EmailContext>();
     {
       List<Conf.EmailContext> contexts = conf.getEmailContext();
       if(contexts != null)
@@ -114,19 +116,19 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
       }
     }
     
-    Map<Integer, EmailMessage> messageMap = new HashMap<Integer, EmailMessage>();
+    Map<String, EmailContent> contentMap = new HashMap<String, EmailContent>();
     {
-      List<Conf.EmailMessage> messages = conf.getEmailMessage();
-      if(messages != null)
+      List<Conf.EmailContent> contents = conf.getEmailContent();
+      if(contents != null)
       {
-        for(Conf.EmailMessage message : messages )
+        for(Conf.EmailContent content : contents )
         {
-          messageMap.put(message.getId(), getEmailMessage(message) );
+          contentMap.put(content.getId(), getEmailContent(content) );
         }
       }
     }
     
-    Map<Integer, EmailRecipient> recipientMap = new HashMap<Integer, EmailRecipient>();
+    Map<String, EmailRecipient> recipientMap = new HashMap<String, EmailRecipient>();
     {
       List<Conf.EmailRecipient> recipients = conf.getEmailRecipient();
       if(recipients != null)
@@ -147,26 +149,25 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
 
       for( EmailConfigCondition condition : conditions )
       {
-        EmailContext context = null;
+        MergableEntity<EmailContext> context = null;
         if( contextMap != null && !contextMap.isEmpty() && criteria.getEmailContextRef() != null )
-          context = contextMap.get(criteria.getEmailContextRef());
+          context = new MergableEntity<EmailContext>(contextMap.get(criteria.getEmailContextRef().getValue()), criteria.getEmailContextRef().getMergePolicy() );
         
-        //it is possible there are multiple recipient for each criteria, merge them
-        EmailRecipient recipient = null;
+        //it is possible there are multiple recipient for each criteria
+        List<MergableEntity<EmailRecipient>> recipients = Lists.newArrayList();
         if( recipientMap != null && !recipientMap.isEmpty() && criteria.getEmailRecipientRef() !=null )
         {
-          List<EmailRecipient> subRecipients = Lists.newArrayList();
-          for(Integer recipientRef : criteria.getEmailRecipientRef())
+          for(Conf.Criteria.EmailRecipientRef recipientRef : criteria.getEmailRecipientRef())
           {
-            subRecipients.add(recipientMap.get(recipientRef));
+            String recipientId = recipientRef.getValue();
+            recipients.add(new MergableEntity<EmailRecipient>(recipientMap.get(recipientId), recipientRef.getMergePolicy()));
           }
-          recipient = EmailRecipient.mergeAll(subRecipients);
         }
-        EmailMessage message = null;
-        if( messageMap != null && !messageMap.isEmpty() && criteria.getEmailMessageRef() !=null )
-          message = messageMap.get(criteria.getEmailMessageRef());
+        MergableEntity<EmailContent> content = null;
+        if( contentMap != null && !contentMap.isEmpty() && criteria.getEmailContentRef() !=null )
+          content = new MergableEntity<EmailContent>(contentMap.get(criteria.getEmailContentRef()), criteria.getEmailContentRef().getMergePolicy());
         
-        mergeConfig( emailConfMap, condition, context, recipient, message);
+        mergeConfig( emailConfMap, condition, context, recipients, content);
       }
     }
     
@@ -186,7 +187,7 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
   }
  
   protected static void mergeConfig(Map<EmailConfigCondition, EmailConf> emailConfMap, EmailConfigCondition condition,
-      EmailContext context, EmailRecipient recipient, EmailMessage message )
+      MergableEntity<EmailContext> context, Collection<MergableEntity<EmailRecipient>> recipients, MergableEntity<EmailContent> content )
   {
 
     EmailConf conf = emailConfMap.get(condition);
@@ -196,7 +197,7 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
       emailConfMap.put(condition, conf);
     }
     // merge in fact is override
-    conf.setValue(context, recipient, message);
+    conf.setValue(context, recipients, content);
   }
   
   protected static List<EmailConfigCondition> getConditions( List<String> apps, List<Integer> levels )
@@ -228,12 +229,12 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
   protected static EmailContext getEmailContext(Conf.EmailContext confContext)
   {
     return new EmailContext(confContext.getSmtpServer(), confContext.getSmtpPort(), confContext.getSender(), 
-        confContext.getPassword()==null ? null : confContext.getPassword().toCharArray(), confContext.isEnableTls() );
+        confContext.getPassword()==null ? null : confContext.getPassword().toCharArray(), confContext.isEnableTls(), confContext.getMergePolicy() );
   }
   
-  protected static EmailMessage getEmailMessage(Conf.EmailMessage confMessage)
+  protected static EmailContent getEmailContent(Conf.EmailContent confContent)
   {
-    return new EmailMessage(confMessage.getSubject(), confMessage.getContent());
+    return new EmailContent(confContent.getSubject(), confContent.getBody(), confContent.getMergePolicy());
   }
   
   protected static EmailRecipient getEmailRecipient(Conf.EmailRecipient confRecipient)

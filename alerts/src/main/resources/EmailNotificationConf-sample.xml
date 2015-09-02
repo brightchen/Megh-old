@@ -3,20 +3,25 @@
 <!-- If there are any conflict, for example, app1's default recipient is 1, level1's default recipient is 2, 
   When receive message( app=1, level=1 ), both the recipient 1 and 2 should receive email.
   Basically, app1's default recipient is 1 means receipt 1 care all the message from app1, no matter what level it is -->
-<!-- overwritable: both the item section( emailContext, emailRecipient, emailMessage ) and refs have overwritable, 
-overwritable if none of them is false -->  
+<!-- merge policy specify how to handle when both admin configured and client application send same field. the policy could be:
+appOnly( use app, if app is empty, result is empty), configOnly, combine, appOverConfig(if both are not empty, use app; else use the none empty one), configOverApp
+The merge policy in the entity is the default merge policy, the merge policy in criteria could overwrite the default merge policy.
+The default merge policy for all entities are "configOnly" -->  
+
 
 <conf>
-  <emailContext id="1">
-    <smtpServer>localhost</smtpServer>
-    <smtpPort>25</smtpPort>
-    <sender>sender</sender>
+  <emailContext>
+    <id>gmail</id>
+    <smtpServer>smtp.gmail.com</smtpServer>
+    <smtpPort>587</smtpPort>  
+    <sender>datatorrent.alerts@gmail.com</sender>
     <password>password</password>
     <enableTls>true</enableTls>
-    <overwritable>true</overwritable>  <!-- default is false -->
+    <mergePolicy>configOnly</mergePolicy>
   </emailContext>
 
-  <emailContext id="2">
+  <emailContext>
+    <id>mailserver2</id>
     <smtpServer>server2</smtpServer>
     <smtpPort>25</smtpPort>
     <sender>sender2</sender>
@@ -24,17 +29,19 @@ overwritable if none of them is false -->
     <enableTls>true</enableTls>
   </emailContext>
 
-  <emailRecipient id="1">
+  <emailRecipient>
+    <id>alladmin</id>
     <to>to1</to>
     <to>to2</to>
     <cc>cc1</cc>
     <cc>cc2</cc>
     <bcc>bcc1</bcc>
     <bcc>bcc2</bcc>
-    <overwritable>false</overwritable>  <!-- default is true -->
+    <mergePolicy>combine</mergePolicy>
   </emailRecipient>
 
-  <emailRecipient id="2">
+  <emailRecipient>
+    <id>others</id>
     <to>to1</to>
     <to>to2</to>
     <cc>cc1</cc>
@@ -43,31 +50,36 @@ overwritable if none of them is false -->
     <bcc>bcc2</bcc>
   </emailRecipient>
 
-  <emailMessage id="1">
+  <emailContent>
+    <id>simplenotify</id>
     <subject>subject1</subject>
-    <content>content1</content>
-    <overwritable>false</overwritable>  <!-- default is true -->
-  </emailMessage>
+    <boby>body1</body>
+    <mergePolicy>appOnly</mergePolicy>
+  </emailContent>
 
-  <emailMessage id="2">
+  <emailContent>
+    <id>2</id>
     <subject>subject2</subject>
-    <content>content2</content>
-  </emailMessage>
+    <body>body2</body>
+  </emailContent>
 
+  <!-- for each criteria, only one ref to emailContext and emailContent, but support multiple ref to emailRecipient.
+  and each emailRecipientRef support different merge policy -->
   <criteria>
-    <emailContextRef overwritable="true">1</emailContextRef>
-    <emailRecipientRef overwritable="false">1</emailRecipientRef>
-    <emailMessageRef overwritable="false">1</emailMessageRef>
+    <emailContextRef mergePolicy="configOnly">gmail</emailContextRef>
+    <emailRecipientRef mergePolicy="configOnly">alladmin</emailRecipientRef>
+    <emailRecipientRef mergePolicy="appOverConf">others</emailRecipientRef>
+    <emailContentRef mergePolicy="appOverConf">simplenotify</emailContentRef>
   </criteria>
 
   <criteria>
     <app>app1</app>
-    <emailRecipientRef>2</emailRecipientRef>
+    <emailRecipientRef>others</emailRecipientRef>
   </criteria>
 
   <criteria>
     <level>1</level>
-    <emailRecipientRef>1</emailRecipientRef>
+    <emailRecipientRef>others</emailRecipientRef>
   </criteria>
 
   <criteria>
@@ -75,7 +87,6 @@ overwritable if none of them is false -->
     <app>app2</app>
     <level>1</level>
     <level>2</level>
-    <emailRecipientRef>1</emailRecipientRef>
-    <emailRecipientRef>2</emailRecipientRef>
+    <emailRecipientRef>alladmin</emailRecipientRef>
   </criteria>
 </conf>

@@ -1,6 +1,5 @@
 package com.datatorrent.alerts.conf;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +23,7 @@ public abstract class EmailConfigRepo {
     public static final MatchLevel[] ordedValues = { MATCH_ALL, MATCH_ANY, MATCH_NONE};
   }
 
+  
   public static class EmailConfigCondition {
     public static EmailConfigCondition DEFAULT = new EmailConfigCondition();
 

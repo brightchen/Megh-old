@@ -14,4 +14,10 @@ public class MergableEntity<T> {
   {
     this( entity, MergePolicy.fromValue(mergePolicy) );
   }
+  
+  @Override
+  public String toString()
+  {
+    return String.format("entity: %s; mergePolicy: %s", entity, mergePolicy);
+  }
 }

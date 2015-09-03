@@ -53,7 +53,7 @@ The default merge policy for all entities are "configOnly" -->
   <emailContent>
     <id>simplenotify</id>
     <subject>subject1</subject>
-    <boby>body1</body>
+    <body>body1</body>
     <mergePolicy>appOnly</mergePolicy>
   </emailContent>
 

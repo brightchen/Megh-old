@@ -3,27 +3,29 @@ package com.datatorrent.alerts.conf;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.datatorrent.alerts.notification.email.EmailConf;
 import com.datatorrent.alerts.notification.email.EmailInfo;
 import com.google.common.collect.Lists;
 
 /**
- * make sure the loadConfig() only execute in one thread, and all other
- * operations are read-only to avoid lock/unlock
+ * 
+ * @author bright
+ * 
+ * This class don't provide concurrency control mechanism. 
+ * it's concrete class's duty to control concurrency.
+ *
  */
 public abstract class EmailConfigRepo {
-  
-  public static enum MatchLevel
-  {
-    MATCH_ALL,
-    MATCH_ANY,
-    MATCH_NONE;
-    
-    public static final MatchLevel[] ordedValues = { MATCH_ALL, MATCH_ANY, MATCH_NONE};
+
+  public static enum MatchLevel {
+    MATCH_ALL, MATCH_ANY, MATCH_NONE;
+
+    public static final MatchLevel[] ordedValues = { MATCH_ALL, MATCH_ANY, MATCH_NONE };
   }
 
-  
   public static class EmailConfigCondition {
     public static EmailConfigCondition DEFAULT = new EmailConfigCondition();
 
@@ -78,32 +80,42 @@ public abstract class EmailConfigRepo {
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
       return String.format("app: %s, level: %d", app, level);
     }
   }
 
-  //public static final String ANY_APP = "";
-  // public static final String ANY_TOPIC = "";
-  //public static final int ANY_LEVEL = -1;
 
-  protected final Map<EmailConfigCondition, EmailConf> emailConfMap = new HashMap<EmailConfigCondition, EmailConf>();
+  private Map<EmailConfigCondition, EmailConf> emailConfMap = new HashMap<EmailConfigCondition, EmailConf>();
   protected boolean defaultEmailConfCached = false;
   protected List<EmailConf> defaultEmailConf;
 
-  public abstract void loadConfig();
+  /**
+   * shallow clone
+   * 
+   * @param other
+   */
+  protected void cloneTo(EmailConfigRepo other) {
+    other.emailConfMap = emailConfMap;
+    other.defaultEmailConfCached = defaultEmailConfCached;
+    other.defaultEmailConf = defaultEmailConf;
+  }
 
-  public List<EmailConf> getEmailConfig(String appName, int level, MatchLevel matchLevel) {
+  protected final Map<EmailConfigCondition, EmailConf> getEmailConfMap() {
+    return emailConfMap;
+  }
+
+  protected abstract void loadConfig();
+
+  protected List<EmailConf> getEmailConfig(String appName, int level, MatchLevel matchLevel) {
     if (emailConfMap == null)
       throw new AlertsConfigException("Email Config Map is null, initialize first.");
 
-    switch( matchLevel )
-    {
+    switch (matchLevel) {
     case MATCH_ALL:
       EmailConf conf = emailConfMap.get(new EmailConfigCondition(appName, level));
       return (conf != null) ? Lists.newArrayList(conf) : null;
-    
+
     case MATCH_ANY:
       EmailConf conf1 = emailConfMap.get(new EmailConfigCondition(appName));
       EmailConf conf2 = emailConfMap.get(new EmailConfigCondition(level));
@@ -115,7 +127,7 @@ public abstract class EmailConfigRepo {
     throw new IllegalArgumentException("Supported match level.");
   }
 
-  public List<EmailConf> getDefaultEmailConfig() {
+  protected List<EmailConf> getDefaultEmailConfig() {
     if (!defaultEmailConfCached) {
       synchronized (this) {
         if (!defaultEmailConfCached) {
@@ -127,58 +139,56 @@ public abstract class EmailConfigRepo {
 
     return defaultEmailConf;
   }
-  
+
   /**
-   * criteria:
-   *   - go to the next level of less matcher only there there don't have any complete email info for this level
-   *   - if there are any email info which is complete is one level, will not go to the next level of less match. discard the incompleted match in this level
-   *   - the info which fetch from the better matcher should by pass the one from the less matcher.
-   *   
+   * criteria: - go to the next level of less matcher only there there don't
+   * have any complete email info for this level - if there are any email info
+   * which is complete is one level, will not go to the next level of less
+   * match. discard the incompleted match in this level - the info which fetch
+   * from the better matcher should by pass the one from the less matcher.
+   * 
    * @param appName
    * @param level
    * @param inputEmailInfo
    * @return
    */
-  public List<EmailInfo> fillEmailInfo(String appName, int level, EmailInfo inputEmailInfo)
-  {
-    if( inputEmailInfo.isComplete() )
-      return Lists.newArrayList( inputEmailInfo );
-   
-    List<EmailInfo> preEmailInfos = Lists.newArrayList(inputEmailInfo);
-    for(MatchLevel matchLevel : MatchLevel.ordedValues)
-    {
-      List<EmailConf> emailConfs = getEmailConfig(appName, level, matchLevel);
-      if(emailConfs == null || emailConfs.isEmpty())
-        continue;
-     
-      List<EmailInfo> emailInfos = Lists.newArrayList();
-      for(int confIndex=0; confIndex<emailConfs.size(); ++confIndex)
-      {
-        for(int infoIndex=0; infoIndex<preEmailInfos.size(); ++infoIndex)
-        {
-          EmailInfo preEmailInfo = ( confIndex+1 == emailConfs.size() ) ? preEmailInfos.get(infoIndex) : preEmailInfos.get(infoIndex).clone();
-          emailInfos.add( preEmailInfo.mergeWith(emailConfs.get(confIndex)) );
+  public List<EmailInfo> fillEmailInfo(String appName, int level, EmailInfo inputEmailInfo) {
+    
+      if (inputEmailInfo.isComplete())
+        return Lists.newArrayList(inputEmailInfo);
+
+      List<EmailInfo> preEmailInfos = Lists.newArrayList(inputEmailInfo);
+      for (MatchLevel matchLevel : MatchLevel.ordedValues) {
+        List<EmailConf> emailConfs = getEmailConfig(appName, level, matchLevel);
+        if (emailConfs == null || emailConfs.isEmpty())
+          continue;
+
+        List<EmailInfo> emailInfos = Lists.newArrayList();
+        for (int confIndex = 0; confIndex < emailConfs.size(); ++confIndex) {
+          for (int infoIndex = 0; infoIndex < preEmailInfos.size(); ++infoIndex) {
+            EmailInfo preEmailInfo = (confIndex + 1 == emailConfs.size()) ? preEmailInfos.get(infoIndex)
+                : preEmailInfos.get(infoIndex).clone();
+            emailInfos.add(preEmailInfo.mergeWith(emailConfs.get(confIndex)));
+          }
         }
-      }
-      
-      //check if any complete info
-      List<EmailInfo> completeEmailInfos = null;
-      for(EmailInfo emailInfo : emailInfos)
-      {
-        if( emailInfo.isComplete() )
-        {
-          if( completeEmailInfos == null )
-            completeEmailInfos = Lists.newArrayList( emailInfo );
-          else
-            completeEmailInfos.add(emailInfo);
+
+        // check if any complete info
+        List<EmailInfo> completeEmailInfos = null;
+        for (EmailInfo emailInfo : emailInfos) {
+          if (emailInfo.isComplete()) {
+            if (completeEmailInfos == null)
+              completeEmailInfos = Lists.newArrayList(emailInfo);
+            else
+              completeEmailInfos.add(emailInfo);
+          }
         }
+        if (completeEmailInfos != null)
+          return completeEmailInfos;
+
+        preEmailInfos = emailInfos;
       }
-      if(completeEmailInfos != null)
-        return completeEmailInfos;
-      
-      preEmailInfos = emailInfos;
-    }
-   
-    return null;
+
+      return null;
+
   }
 }

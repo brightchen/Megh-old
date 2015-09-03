@@ -1,15 +1,19 @@
 package com.datatorrent.alerts.conf;
 
 import java.io.File;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Unmarshaller;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -21,16 +25,25 @@ import com.datatorrent.alerts.conf.EmailConfigRepo.EmailConfigCondition;
 import com.datatorrent.alerts.conf.xmlbind.Conf;
 import com.datatorrent.alerts.notification.email.EmailConf;
 import com.datatorrent.alerts.notification.email.EmailContext;
+import com.datatorrent.alerts.notification.email.EmailInfo;
 import com.datatorrent.alerts.notification.email.EmailContent;
 import com.datatorrent.alerts.notification.email.EmailRecipient;
 import com.datatorrent.alerts.notification.email.MergableEntity;
 import com.google.common.collect.Lists;
 
+/**
+ * 
+ * @author bright
+ * DefaultEmailConfigRepo load configuration from HDFS file.
+ * 
+ */
 public class DefaultEmailConfigRepo extends EmailConfigRepo {
 
   private static final Logger logger = LoggerFactory.getLogger(DefaultEmailConfigRepo.class);
       
   public static final String PROP_ALERTS_EMAIL_CONF_FILE = "alerts.email.conf.file";
+  
+  private static final ReadWriteLock rwLock = new ReentrantReadWriteLock();
   private static DefaultEmailConfigRepo instance = null;
   
   private final Configuration conf = new Configuration();
@@ -51,6 +64,32 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
     return instance;
   }
   
+  /**
+   * when refresh, create a new instance instead of use old instance 
+   * to avoid block the system and avoid lock.
+   * TODO: should break a previous fresh if a new refresh was asked before previous still doing.
+   */
+  public void refresh()
+  {
+    DefaultEmailConfigRepo newInstance = new DefaultEmailConfigRepo();
+    newInstance.loadConfig();
+    
+    rwLock.writeLock().lock();
+    try
+    {
+      newInstance.cloneTo(this);
+    }
+    finally
+    {
+      rwLock.writeLock().unlock();
+    }
+  }
+  
+  protected void cloneTo(DefaultEmailConfigRepo other)
+  {
+    super.cloneTo(other);
+  }
+  
   protected String getConfigFile()
   {
     //get from system properties first
@@ -69,17 +108,33 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
   }
   
   @Override
-  public void loadConfig() {
+  protected void loadConfig() {
     //read from hdfs 
     String fileName = getConfigFile();
     File file = new File(fileName);
     logger.info("absolute file path: {}", file.getAbsolutePath() );
     logger.info("Email configure file path: {}", fileName);
     Path filePath = new Path(fileName);
-    try {
+    FSDataInputStream inputStream = null;
+    try
+    {
       FileSystem fs = FileSystem.get(conf);
-      FSDataInputStream inputStream = fs.open(filePath);
-      
+      inputStream = fs.open(filePath);
+      loadConfig(inputStream);
+    }
+    catch(Exception e)
+    {
+      logger.error("Get or parse configure file exception.", e);
+    }
+    finally
+    {
+      IOUtils.closeQuietly(inputStream);
+    }
+  }
+  
+  protected void loadConfig(InputStream inputStream)
+  {
+    try {
       //set support classes
       JAXBContext context = JAXBContext.newInstance(Conf.class, Conf.EmailContext.class, Conf.EmailContent.class, Conf.EmailRecipient.class, Conf.Criteria.class);
       //JAXBContext context = JAXBContext.newInstance(EmailContextMutable.class, EmailContentMutable.class, EmailRecipientMutable.class);
@@ -90,12 +145,10 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
       
       if(conf != null)
         loadConfig(conf);
-
       
     } catch (Exception e) {
       logger.error("Get or parse configure file exception.", e);
     }
-    logger.info("Load configuration done.");
   }
 
   protected void loadConfig(Conf conf)
@@ -167,19 +220,31 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
         if( contentMap != null && !contentMap.isEmpty() && criteria.getEmailContentRef() !=null )
           content = new MergableEntity<EmailContent>(contentMap.get(criteria.getEmailContentRef()), criteria.getEmailContentRef().getMergePolicy());
         
-        mergeConfig( emailConfMap, condition, context, recipients, content);
+        mergeConfig( getEmailConfMap(), condition, context, recipients, content);
       }
     }
     
     dumpEmailConf();
+    
+    logger.info("Load configuration done.");
   }
   
-  public void dumpEmailConf()
+  public List<EmailInfo> fillEmailInfo(String appName, int level, EmailInfo inputEmailInfo) 
   {
-    if(emailConfMap == null || emailConfMap.isEmpty())
+    rwLock.readLock().lock();
+    try {
+      return super.fillEmailInfo(appName, level, inputEmailInfo);
+    } finally {
+      rwLock.readLock().unlock();
+    }
+  }
+  
+  protected void dumpEmailConf()
+  {
+    if(getEmailConfMap() == null || getEmailConfMap().isEmpty())
       logger.info("email config is empty.");
     StringBuilder sb = new StringBuilder();
-    for(Map.Entry<EmailConfigCondition, EmailConf> entry : emailConfMap.entrySet())
+    for(Map.Entry<EmailConfigCondition, EmailConf> entry : getEmailConfMap().entrySet())
     {
       sb.append(String.format("(%s) ==> (%s)\n", entry.getKey(), entry.getValue()));
     }

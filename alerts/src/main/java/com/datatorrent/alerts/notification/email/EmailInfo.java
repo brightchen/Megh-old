@@ -13,6 +13,8 @@ import java.util.Set;
  *
  */
 public class EmailInfo {
+  public static final EmailInfo EMPTY = new EmailInfo();
+  
   protected String smtpServer;
   protected int smtpPort;
   protected String sender;
@@ -117,4 +119,46 @@ public class EmailInfo {
     }
     return this;
   }
+
+  public void setSmtpServer(String smtpServer) {
+    this.smtpServer = smtpServer;
+  }
+
+  public void setSmtpPort(int smtpPort) {
+    this.smtpPort = smtpPort;
+  }
+
+  public void setSender(String sender) {
+    this.sender = sender;
+  }
+
+  public void setPassword(char[] password) {
+    this.password = password;
+  }
+
+  public void setEnableTls(boolean enableTls) {
+    this.enableTls = enableTls;
+  }
+
+  public void setTos(Collection<String> tos) {
+    this.tos = tos;
+  }
+
+  public void setCcs(Collection<String> ccs) {
+    this.ccs = ccs;
+  }
+
+  public void setBccs(Collection<String> bccs) {
+    this.bccs = bccs;
+  }
+
+  public void setSubject(String subject) {
+    this.subject = subject;
+  }
+
+  public void setBody(String body) {
+    this.body = body;
+  }
+  
+  
 }

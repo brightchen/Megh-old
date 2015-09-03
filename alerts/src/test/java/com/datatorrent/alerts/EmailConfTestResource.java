@@ -1,29 +1,22 @@
 package com.datatorrent.alerts;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import org.junit.Test;
-
+import com.datatorrent.alerts.conf.EmailConfigRepo;
+import com.datatorrent.alerts.conf.EmailConfigRepo.EmailConfigCondition;
 import com.datatorrent.alerts.notification.email.EmailInfo;
-import com.google.common.collect.Lists;
 
 /**
  * The resource to test send email.
  * @author bright
  *
  */
-public class SendEmailTestResource {
+public class EmailConfTestResource {
   
-  public static final String[] emailContexts =
+  public static final String[] contexts =
     {
         "<emailContext>" +
         "<id>gmail</id>" +
@@ -131,7 +124,8 @@ public class SendEmailTestResource {
   //xml is composed by different sections;
   //public static final List<Map<Section, int[]>> xmls = new ArrayList<Map<Section, int[]>>();
   //one xml file map a map of input EmailInfo to output EmailInfo
-  public static final Map<Map<Section, int[]>, Map<EmailInfo, EmailInfo>> results = new HashMap<Map<Section, int[]>, Map<EmailInfo, EmailInfo>>();
+  public static final Map<Map<Section, int[]>, Map<EmailInfo, Map<EmailConfigCondition,EmailInfo>>> testDatas 
+    = new HashMap<Map<Section, int[]>, Map<EmailInfo, Map<EmailConfigCondition,EmailInfo>>>();
   static
   {
     Map<Section, int[]> xml0 = new EnumMap<Section, int[]>(Section.class);
@@ -141,7 +135,7 @@ public class SendEmailTestResource {
     xml0.put(Section.criteria, new int[]{0});
     //xmls.add(xml0);
     
-    Map<EmailInfo, EmailInfo> resultsPerXml = new HashMap<EmailInfo, EmailInfo>();
+    Map<EmailInfo, Map<EmailConfigCondition,EmailInfo>> resultsPerXml = new HashMap<EmailInfo, Map<EmailConfigCondition,EmailInfo>>();
     EmailInfo expected = new EmailInfo();
 
     expected.setSmtpServer("smtp.gmail.com");
@@ -154,21 +148,46 @@ public class SendEmailTestResource {
     expected.setBccs(Arrays.asList("bcc1", "bcc2"));
     expected.setSubject("subject1");
     expected.setBody("body1");
-    resultsPerXml.put(EmailInfo.EMPTY, expected);
     
-    Map<Section, int[]> xml1 = cloneMap( xml0, new EnumMap<Section, int[]>(Section.class) );
+    Map<EmailConfigCondition,EmailInfo> conditionResult = new HashMap<EmailConfigCondition,EmailInfo>();
+    conditionResult.put(EmailConfigCondition.DEFAULT, expected);
+    resultsPerXml.put(EmailInfo.EMPTY, conditionResult);
+    
+    testDatas.put(xml0, resultsPerXml);
+    
+    //Map<Section, int[]> xml1 = cloneMap( xml0, new EnumMap<Section, int[]>(Section.class) );
   }
   
-  public static String toString(Map<Section, int[]> xmlSections)
+  public static String getXml(Map<Section, int[]> xmlSections)
   {
     StringBuilder sb = new StringBuilder();
-    sb.append("<conf>");
+    sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
+    sb.append("<conf>\n");
     for(Map.Entry<Section, int[]> entry : xmlSections.entrySet())
     {
-      //sb.append(c)
+      for(int index : entry.getValue())
+      {
+        sb.append(getSectionString(entry.getKey(), index));
+      }
     }
-    sb.append("</conf>");
+    sb.append("</conf>\n");
     return sb.toString();
+  }
+  
+  public static String getSectionString(Section section, int index)
+  {
+    switch(section)
+    {
+    case context:
+      return contexts[index];
+    case recipient:
+      return recipients[index];
+    case content:
+      return contents[index];
+    case criteria:
+      return criterias[index];
+    }
+    throw new IllegalArgumentException("Unsupported section: " + section);
   }
   
   public static Map<Section, int[]> cloneMap( Map<Section, int[]> src, Map<Section, int[]> dest )

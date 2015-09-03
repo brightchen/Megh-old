@@ -6,7 +6,7 @@
 <!-- merge policy specify how to handle when both admin configured and client application send same field. the policy could be:
 appOnly( use app, if app is empty, result is empty), configOnly, combine, appOverConfig(if both are not empty, use app; else use the none empty one), configOverApp
 The merge policy in the entity is the default merge policy, the merge policy in criteria could overwrite the default merge policy.
-The default merge policy for all entities are "configOnly" -->  
+The default merge policy for all entities are "configOverApp" -->  
 
 
 <conf>

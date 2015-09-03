@@ -7,31 +7,35 @@ import java.util.Set;
 
 import com.google.common.collect.Sets;
 
-public class EmailRecipient {
+public class EmailRecipient implements MergePolicySupported {
   protected final Collection<String> tos;
   protected final Collection<String> ccs;
   protected final Collection<String> bccs;
-  protected final boolean overwritable = true;
+  protected final MergePolicy mergePolicy;
   
-  public static EmailRecipient mergeAll( List<EmailRecipient> recipients )
+//  public static EmailRecipient mergeAll( List<EmailRecipient> recipients )
+//  {
+//    Set<String> tos = Sets.newHashSet();
+//    Set<String> ccs = Sets.newHashSet();
+//    Set<String> bccs = Sets.newHashSet();
+//    for(EmailRecipient recipient : recipients )
+//    {
+//      tos.addAll(recipient.tos);
+//      ccs.addAll(recipient.ccs);
+//      bccs.addAll(recipient.bccs);
+//    }
+//    return new EmailRecipient(tos, ccs, bccs);
+//  }
+  public EmailRecipient( Collection<String> tos, Collection<String> ccs, Collection<String> bccs, String mergePolicy )
   {
-    Set<String> tos = Sets.newHashSet();
-    Set<String> ccs = Sets.newHashSet();
-    Set<String> bccs = Sets.newHashSet();
-    for(EmailRecipient recipient : recipients )
-    {
-      tos.addAll(recipient.tos);
-      ccs.addAll(recipient.ccs);
-      bccs.addAll(recipient.bccs);
-    }
-    return new EmailRecipient(tos, ccs, bccs);
+    this( tos, ccs, bccs, MergePolicy.fromValue(mergePolicy) );
   }
-  
-  public EmailRecipient( Collection<String> tos, Collection<String> ccs, Collection<String> bccs )
+  public EmailRecipient( Collection<String> tos, Collection<String> ccs, Collection<String> bccs, MergePolicy mergePolicy )
   {
     this.tos = Collections.unmodifiableCollection(tos);
     this.ccs = Collections.unmodifiableCollection(ccs);
     this.bccs = Collections.unmodifiableCollection(bccs);
+    this.mergePolicy = mergePolicy;
   }
   
   @Override
@@ -51,6 +55,11 @@ public class EmailRecipient {
       sb.append(item).append(", ");
     }
     return "{" + sb.toString() + "}";
+  }
+  
+  @Override
+  public MergePolicy getMergePolicy() {
+    return mergePolicy;
   }
   
 }

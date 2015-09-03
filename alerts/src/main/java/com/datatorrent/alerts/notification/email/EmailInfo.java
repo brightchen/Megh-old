@@ -3,7 +3,6 @@ package com.datatorrent.alerts.notification.email;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -92,10 +91,11 @@ public class EmailInfo {
     
     if(conf.context != null)
     {
-      smtpServer = conf.context.mergePolicy.merge(conf.context.entity.smtpServer, smtpServer);
-      smtpPort = Integer.parseInt( conf.context.mergePolicy.merge(conf.context.entity.smtpPort+"", smtpPort+"") );
-      sender = conf.context.mergePolicy.merge(conf.context.entity.sender, sender);
-      enableTls = Boolean.valueOf(conf.context.mergePolicy.merge(String.valueOf(conf.context.entity.enableTls), String.valueOf(enableTls)));
+      final MergePolicy mergePolicy = getMergePolicy(conf.context);
+      smtpServer = mergePolicy.merge(conf.context.entity.smtpServer, smtpServer);
+      smtpPort = Integer.parseInt( mergePolicy.merge(conf.context.entity.smtpPort+"", smtpPort+"") );
+      sender = mergePolicy.merge(conf.context.entity.sender, sender);
+      enableTls = Boolean.valueOf(mergePolicy.merge(String.valueOf(conf.context.entity.enableTls), String.valueOf(enableTls)));
     }
     if((tos==null||tos.isEmpty()) && conf != null && conf.recipients != null)
     {
@@ -114,12 +114,24 @@ public class EmailInfo {
     }
     if(conf.content != null)
     {
-      subject = conf.content.mergePolicy.merge(conf.content.entity.subject, subject);
-      body = conf.content.mergePolicy.merge(conf.content.entity.body, body);
+      final MergePolicy mergePolicy = getMergePolicy(conf.content);
+      subject = mergePolicy.merge(conf.content.entity.subject, subject);
+      body = mergePolicy.merge(conf.content.entity.body, body);
     }
     return this;
   }
-
+  
+  protected MergePolicy getMergePolicy(MergableEntity<?> entity)
+  {
+    if(entity.mergePolicy != null)
+      return entity.mergePolicy;
+    if(entity.entity instanceof MergePolicySupported)
+      return ((MergePolicySupported)entity.entity).getMergePolicy();
+    
+    //use the default;
+    return MergePolicy.configOverApp;
+  }
+  
   public void setSmtpServer(String smtpServer) {
     this.smtpServer = smtpServer;
   }

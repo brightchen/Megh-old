@@ -53,6 +53,15 @@ public abstract class EmailConfigRepo {
         this.app = app.toLowerCase().trim();
     }
 
+    
+    public String getApp() {
+      return app;
+    }
+
+    public Integer getLevel() {
+      return level;
+    }
+
     @Override
     public int hashCode() {
       int hash = 7;

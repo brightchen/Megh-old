@@ -1,5 +1,5 @@
 package com.datatorrent.alerts.notification.email;
 
-public abstract class MergePolicySupported {
-  
+public interface MergePolicySupported {
+  public MergePolicy getMergePolicy();
 }

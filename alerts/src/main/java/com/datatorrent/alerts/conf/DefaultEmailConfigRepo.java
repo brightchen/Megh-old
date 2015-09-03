@@ -109,6 +109,24 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
   
   @Override
   protected void loadConfig() {
+    InputStream inputStream = null;
+    try
+    {
+      inputStream = getConfigInputStream();
+      loadConfig(inputStream);
+    }
+    catch(Exception e)
+    {
+      logger.error("Get or parse configure file exception.", e);
+    }
+    finally
+    {
+      IOUtils.closeQuietly(inputStream);
+    }
+  }
+  
+  protected InputStream getConfigInputStream()
+  {
     //read from hdfs 
     String fileName = getConfigFile();
     File file = new File(fileName);
@@ -119,16 +137,12 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
     try
     {
       FileSystem fs = FileSystem.get(conf);
-      inputStream = fs.open(filePath);
-      loadConfig(inputStream);
+      return fs.open(filePath);
     }
     catch(Exception e)
     {
       logger.error("Get or parse configure file exception.", e);
-    }
-    finally
-    {
-      IOUtils.closeQuietly(inputStream);
+      return null;
     }
   }
   
@@ -218,7 +232,7 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
         }
         MergableEntity<EmailContent> content = null;
         if( contentMap != null && !contentMap.isEmpty() && criteria.getEmailContentRef() !=null )
-          content = new MergableEntity<EmailContent>(contentMap.get(criteria.getEmailContentRef()), criteria.getEmailContentRef().getMergePolicy());
+          content = new MergableEntity<EmailContent>(contentMap.get(criteria.getEmailContentRef().getValue()), criteria.getEmailContentRef().getMergePolicy());
         
         mergeConfig( getEmailConfMap(), condition, context, recipients, content);
       }
@@ -304,6 +318,6 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
   
   protected static EmailRecipient getEmailRecipient(Conf.EmailRecipient confRecipient)
   {
-    return new EmailRecipient(confRecipient.getTo(), confRecipient.getCc(), confRecipient.getBcc());
+    return new EmailRecipient(confRecipient.getTo(), confRecipient.getCc(), confRecipient.getBcc(), confRecipient.getMergePolicy());
   }
 }

@@ -1,6 +1,6 @@
 package com.datatorrent.alerts.notification.email;
 
-public final class EmailContent {
+public final class EmailContent implements MergePolicySupported {
   protected final String subject;
   protected final String body;
   protected final MergePolicy mergePolicy;
@@ -19,5 +19,10 @@ public final class EmailContent {
   public String toString()
   {
     return String.format("subject: %s\nbody: %s\n", subject, body);
+  }
+  
+  @Override
+  public MergePolicy getMergePolicy() {
+    return mergePolicy;
   }
 }

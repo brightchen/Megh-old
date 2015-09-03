@@ -1,6 +1,6 @@
 package com.datatorrent.alerts.notification.email;
 
-public final class EmailContext{
+public final class EmailContext implements MergePolicySupported{
   protected final String smtpServer;
   protected final int smtpPort;
   protected final String sender;
@@ -28,5 +28,10 @@ public final class EmailContext{
   {
     return String.format("smtpServer: %s; smtpPort: %d; sender: %s; has Password: %b; enableTls: %b", 
         smtpServer, smtpPort, sender, Boolean.valueOf(password!=null), Boolean.valueOf(enableTls));
+  }
+
+  @Override
+  public MergePolicy getMergePolicy() {
+    return mergePolicy;
   }
 }

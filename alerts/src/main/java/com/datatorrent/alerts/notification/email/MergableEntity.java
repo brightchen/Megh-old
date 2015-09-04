@@ -1,8 +1,8 @@
 package com.datatorrent.alerts.notification.email;
 
 public class MergableEntity<T> {
-  protected T entity;
-  protected MergePolicy mergePolicy;
+  protected final T entity;
+  protected final MergePolicy mergePolicy;
 
   public MergableEntity(T entity, MergePolicy mergePolicy)
   {

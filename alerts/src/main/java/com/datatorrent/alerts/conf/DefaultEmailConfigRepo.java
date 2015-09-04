@@ -21,12 +21,11 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datatorrent.alerts.conf.EmailConfigRepo.EmailConfigCondition;
 import com.datatorrent.alerts.conf.xmlbind.Conf;
 import com.datatorrent.alerts.notification.email.EmailConf;
+import com.datatorrent.alerts.notification.email.EmailContent;
 import com.datatorrent.alerts.notification.email.EmailContext;
 import com.datatorrent.alerts.notification.email.EmailInfo;
-import com.datatorrent.alerts.notification.email.EmailContent;
 import com.datatorrent.alerts.notification.email.EmailRecipient;
 import com.datatorrent.alerts.notification.email.MergableEntity;
 import com.google.common.collect.Lists;
@@ -39,6 +38,35 @@ import com.google.common.collect.Lists;
  */
 public class DefaultEmailConfigRepo extends EmailConfigRepo {
 
+  public static class MutableEmailConf {
+    protected MergableEntity<EmailContext> context;
+    protected Collection<MergableEntity<EmailRecipient>> recipients;
+    protected MergableEntity<EmailContent> content;
+    
+    public MutableEmailConf(){}
+
+    public MutableEmailConf(MergableEntity<EmailContext> context, Collection<MergableEntity<EmailRecipient>> recipients, 
+        MergableEntity<EmailContent> content) 
+    {
+      setValue(context, recipients, content);
+    }
+    
+    public void setValue(MergableEntity<EmailContext> context, Collection<MergableEntity<EmailRecipient>> recipients, 
+        MergableEntity<EmailContent> content) {
+      this.context = context;
+      this.recipients = recipients;
+      this.content = content;
+  
+    }
+    
+    @Override
+    public String toString()
+    {
+      return String.format("context:{%s}\n recipients:{%s}\n content: {%s}\n", context, recipients, content);
+    }
+  }
+
+  
   private static final Logger logger = LoggerFactory.getLogger(DefaultEmailConfigRepo.class);
       
   public static final String PROP_ALERTS_EMAIL_CONF_FILE = "alerts.email.conf.file";
@@ -47,6 +75,7 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
   private static DefaultEmailConfigRepo instance = null;
   
   private final Configuration conf = new Configuration();
+  private Map<EmailConfigCondition, MutableEmailConf> mutableEmailConfMap = new HashMap<EmailConfigCondition, MutableEmailConf>();
   
   public static DefaultEmailConfigRepo instance()
   {
@@ -234,13 +263,29 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
         if( contentMap != null && !contentMap.isEmpty() && criteria.getEmailContentRef() !=null )
           content = new MergableEntity<EmailContent>(contentMap.get(criteria.getEmailContentRef().getValue()), criteria.getEmailContentRef().getMergePolicy());
         
-        mergeConfig( getEmailConfMap(), condition, context, recipients, content);
+        mergeConfig( mutableEmailConfMap, condition, context, recipients, content);
       }
     }
     
+    immutableConfig();
     dumpEmailConf();
     
     logger.info("Load configuration done.");
+  }
+  
+  protected void immutableConfig()
+  {
+    Map<EmailConfigCondition, EmailConf> emailConfMap = getEmailConfMap();
+    emailConfMap.clear();
+    for( Map.Entry<EmailConfigCondition, MutableEmailConf> entry : mutableEmailConfMap.entrySet() )
+    {
+      emailConfMap.put(entry.getKey(), createEmailConf(entry.getValue()));
+    }
+  }
+  
+  protected static EmailConf createEmailConf(MutableEmailConf mutableEmailConf)
+  {
+    return new EmailConf(mutableEmailConf.context, mutableEmailConf.recipients, mutableEmailConf.content);
   }
   
   public List<EmailInfo> fillEmailInfo(String appName, int level, EmailInfo inputEmailInfo) 
@@ -265,15 +310,15 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
     logger.info("email configure:\n{}\n\n", sb); 
   }
  
-  protected static void mergeConfig(Map<EmailConfigCondition, EmailConf> emailConfMap, EmailConfigCondition condition,
+  protected static void mergeConfig(Map<EmailConfigCondition, MutableEmailConf> mutableEmailConfMap, EmailConfigCondition condition,
       MergableEntity<EmailContext> context, Collection<MergableEntity<EmailRecipient>> recipients, MergableEntity<EmailContent> content )
   {
 
-    EmailConf conf = emailConfMap.get(condition);
+    MutableEmailConf conf = mutableEmailConfMap.get(condition);
     if(conf == null)
     {
-      conf = new EmailConf();
-      emailConfMap.put(condition, conf);
+      conf = new MutableEmailConf();
+      mutableEmailConfMap.put(condition, conf);
     }
     // merge in fact is override
     conf.setValue(context, recipients, content);

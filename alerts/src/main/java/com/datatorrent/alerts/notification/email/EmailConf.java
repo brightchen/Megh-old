@@ -2,25 +2,30 @@ package com.datatorrent.alerts.notification.email;
 
 import java.util.Collection;
 
+import com.google.common.collect.ImmutableList;
+
 public final class EmailConf {
-  protected MergableEntity<EmailContext> context;
-  protected Collection<MergableEntity<EmailRecipient>> recipients;
-  protected MergableEntity<EmailContent> content;
+  protected final MergableEntity<EmailContext> context;
+  protected final ImmutableList<MergableEntity<EmailRecipient>> recipients;
+  protected final MergableEntity<EmailContent> content;
   
-  public EmailConf() {
-  }
+
   public EmailConf(MergableEntity<EmailContext> context, Collection<MergableEntity<EmailRecipient>> recipients, 
-      MergableEntity<EmailContent> message) 
+      MergableEntity<EmailContent> content) 
   {
-    setValue(context, recipients, message);
-  }
-  
-  public void setValue(MergableEntity<EmailContext> context, Collection<MergableEntity<EmailRecipient>> recipients, 
-      MergableEntity<EmailContent> content) {
+    
     this.context = context;
-    this.recipients = recipients;
+    this.recipients = ImmutableList.copyOf(recipients);
     this.content = content;
   }
+  
+//  public void setValue(MergableEntity<EmailContext> context, Collection<MergableEntity<EmailRecipient>> recipients, 
+//      MergableEntity<EmailContent> content) {
+//    this.context = context;
+//    this.recipients = recipients;
+//    this.content = content;
+//
+//  }
   
   @Override
   public String toString()

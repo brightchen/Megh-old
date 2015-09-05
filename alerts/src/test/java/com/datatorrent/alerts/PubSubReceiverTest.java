@@ -33,7 +33,6 @@ public class PubSubReceiverTest
     public AlertDataPushThread()
     {
       publisher = new AlertMessageGenerator();
-      publisher.configureAlertPublishing();
     }
 
     @Override
@@ -56,63 +55,8 @@ public class PubSubReceiverTest
 
   }
 
-  private final class AlertMessageGenerator implements PublisherInterface
+  private final class AlertMessageGenerator
   {
-    private SharedPubSubWebSocketClient wsClient;
-    private WebsocketAppDataPusher appDataPusher;
-
-    public boolean configureAlertPublishing()
-    {
-      try {
-        // Establish web socket connection
-        String gatewayAddress = "node0.morado.com:9292";
-        wsClient = new SharedPubSubWebSocketClient("ws://" + gatewayAddress + "/pubsub", 1500);
-        wsClient.setLoginUrl("http://" + gatewayAddress + StreamingContainerManager.GATEWAY_LOGIN_URL_PATH);
-        wsClient.setUserName("isha");
-        wsClient.setPassword("isha");
-        wsClient.setup();
-
-        appDataPusher = new WebsocketAppDataPusher(wsClient, "alerts");
-
-      } catch (Exception e) {
-        DTThrowable.wrapIfChecked(e);
-      }
-
-      return true;
-    }
-
-    @Override
-    public boolean publishAlert(Message alert)
-    {
-      System.out.println("Publishing alert");
-
-      ObjectMapper mapper = new ObjectMapper();
-
-      try {
-        // Send message to alert gateway API
-        String alertMessage = mapper.writeValueAsString(alert);
-        JSONObject json = new JSONObject(alertMessage);
-        appDataPusher.push(json);
-
-      } catch (IOException e) {
-        DTThrowable.wrapIfChecked(e);
-      } catch (JSONException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
-
-      return false;
-    }
-
-    public void teardown()
-    {
-      try {
-        // Close all the connections
-      } catch (Exception e) {
-        DTThrowable.wrapIfChecked(e);
-      }
-    }
-
     public void publishAlertMessages(int eventId)
     {
       Message message = new Message();
@@ -122,7 +66,7 @@ public class PubSubReceiverTest
       message.setCurrentLevel(1);
       message.setAppId("Dummy_application");
 
-      publishAlert(message);
+      Publisher.getInstance().publishAlert(message);
     }
 
   }

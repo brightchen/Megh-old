@@ -6,13 +6,16 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.datatorrent.alerts.conf.EmailConfigRepo.EmailConfigCondition;
+
 /**
  * This class all the information to send an email
  * @author bright
  *
  */
 public class EmailInfo {
-  public static final EmailInfo EMPTY = new EmailInfo();
+  //The EMPTY is not safe, make sure don't change its property value
+  protected static final EmailInfo EMPTY = new EmailInfo();
   
   protected String smtpServer;
   protected int smtpPort;
@@ -130,6 +133,58 @@ public class EmailInfo {
     
     //use the default;
     return MergePolicy.configOverApp;
+  }
+  
+  @Override
+  public int hashCode() {
+    int hash = 7;
+    hash = 41 * hash + (smtpServer != null ? smtpServer.hashCode() : 0);
+    hash = 41 * hash + (sender != null ? sender.hashCode() : 0);
+    hash = 41 * hash + (tos != null ? tos.hashCode() : 0);
+    hash = 41 * hash + (subject != null ? subject.hashCode() : 0);
+    return hash;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    final EmailInfo other = (EmailInfo) obj;
+    if (this.smtpServer != other.smtpServer && (this.smtpServer == null || !this.smtpServer.equals(other.smtpServer))) {
+      return false;
+    }
+    if (this.smtpPort != other.smtpPort ) {
+      return false;
+    }
+    if (this.sender != other.sender && (this.sender == null || !this.sender.equals(other.sender))) {
+      return false;
+    }
+    if (this.password != other.password && (this.password == null || !this.password.equals(other.password))) {
+      return false;
+    }
+    if (this.enableTls != other.enableTls) {
+      return false;
+    }
+    if (this.tos != other.tos && (this.tos == null || !this.tos.equals(other.tos))) {
+      return false;
+    }
+    if (this.ccs != other.ccs && (this.ccs == null || !this.ccs.equals(other.ccs))) {
+      return false;
+    }
+    if (this.bccs != other.bccs && (this.bccs == null || !this.bccs.equals(other.bccs))) {
+      return false;
+    }
+    if (this.subject != other.subject && (this.subject == null || !this.subject.equals(other.subject))) {
+      return false;
+    }
+    if (this.body != other.body && (this.body == null || !this.body.equals(other.body))) {
+      return false;
+    }
+    return true;
   }
   
   public void setSmtpServer(String smtpServer) {

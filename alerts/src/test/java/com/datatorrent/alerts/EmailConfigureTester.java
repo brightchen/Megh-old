@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import com.datatorrent.alerts.EmailConfTestResource.Section;
@@ -52,10 +53,16 @@ public class EmailConfigureTester {
         for(Map.Entry<EmailConfigCondition,EmailInfo> conditionMap : resultEntry.getValue().entrySet())
         {
           EmailConfigCondition condition = conditionMap.getKey();
+          EmailInfo input = resultEntry.getKey().clone();
           List<EmailInfo> actualResults = repo.fillEmailInfo(condition.getApp()==null?"":condition.getApp(), 
-              condition.getLevel()==null?0:condition.getLevel(), resultEntry.getKey());
-          assert(actualResults.size()==1);
-          assert(actualResults.get(0).equals(conditionMap.getValue()));
+              condition.getLevel()==null?0:condition.getLevel(), input);
+          if(conditionMap.getValue().isComplete())
+          {
+            Assert.assertTrue(actualResults.size()==1);
+            Assert.assertTrue(actualResults.get(0).equals(conditionMap.getValue()));
+          }
+          else
+            Assert.assertTrue(actualResults==null);
         }
         
       }

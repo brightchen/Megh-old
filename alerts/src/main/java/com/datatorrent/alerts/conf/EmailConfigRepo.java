@@ -3,8 +3,6 @@ package com.datatorrent.alerts.conf;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.datatorrent.alerts.notification.email.EmailConf;
 import com.datatorrent.alerts.notification.email.EmailInfo;
@@ -27,7 +25,14 @@ public abstract class EmailConfigRepo {
   }
 
   public static class EmailConfigCondition {
-    public static EmailConfigCondition DEFAULT = new EmailConfigCondition();
+    public static final EmailConfigCondition DEFAULT = new EmailConfigCondition()
+        {
+          @Override
+          public void setApp(String app)
+          {
+            throw new UnsupportedOperationException("DEFAULT EmailConfigCondition is immutable.");
+          }
+        };
 
     private String app;
     private Integer level;

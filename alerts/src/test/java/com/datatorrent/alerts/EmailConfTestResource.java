@@ -5,7 +5,6 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.datatorrent.alerts.conf.EmailConfigRepo;
 import com.datatorrent.alerts.conf.EmailConfigRepo.EmailConfigCondition;
 import com.datatorrent.alerts.notification.email.EmailInfo;
 
@@ -15,6 +14,7 @@ import com.datatorrent.alerts.notification.email.EmailInfo;
  *
  */
 public class EmailConfTestResource {
+  private final static EmailInfo EI_EMPTY = new EmailInfo();
   
   public static final String[] contexts =
     {
@@ -128,6 +128,14 @@ public class EmailConfTestResource {
     = new HashMap<Map<Section, int[]>, Map<EmailInfo, Map<EmailConfigCondition,EmailInfo>>>();
   static
   {
+    /**
+     * criteria
+     * "<criteria>" +
+        "<emailContextRef mergePolicy=\"configOnly\">gmail</emailContextRef>" +
+        "<emailRecipientRef mergePolicy=\"configOnly\">alladmin</emailRecipientRef>" +
+        "<emailContentRef mergePolicy=\"appOverConf\">simplenotify</emailContentRef>" +
+        "</criteria>",
+     */
     Map<Section, int[]> xml0 = new EnumMap<Section, int[]>(Section.class);
     xml0.put(Section.context, new int[]{0});
     xml0.put(Section.recipient, new int[]{0});
@@ -136,24 +144,64 @@ public class EmailConfTestResource {
     //xmls.add(xml0);
     
     Map<EmailInfo, Map<EmailConfigCondition,EmailInfo>> resultsPerXml = new HashMap<EmailInfo, Map<EmailConfigCondition,EmailInfo>>();
-    EmailInfo expected = new EmailInfo();
-
-    expected.setSmtpServer("smtp.gmail.com");
-    expected.setSmtpPort(587);
-    expected.setSender("datatorrent.alerts@gmail.com");
-    expected.setPassword("password".toCharArray());
-    expected.setEnableTls(true);
-    expected.setTos(Arrays.asList("to1", "to2"));
-    expected.setCcs(Arrays.asList("cc1", "cc2"));
-    expected.setBccs(Arrays.asList("bcc1", "bcc2"));
-    expected.setSubject("subject1");
-    expected.setBody("body1");
-    
-    Map<EmailConfigCondition,EmailInfo> conditionResult = new HashMap<EmailConfigCondition,EmailInfo>();
-    conditionResult.put(EmailConfigCondition.DEFAULT, expected);
-    resultsPerXml.put(EmailInfo.EMPTY, conditionResult);
-    
     testDatas.put(xml0, resultsPerXml);
+    
+    /**
+     * test app don't have any data
+     */
+    if(false)
+    {
+      EmailInfo expected = new EmailInfo();
+  
+      expected.setSmtpServer("smtp.gmail.com");
+      expected.setSmtpPort(587);
+      expected.setSender("datatorrent.alerts@gmail.com");
+      expected.setPassword("password".toCharArray());
+      expected.setEnableTls(true);
+      expected.setTos(Arrays.asList("to1", "to2"));
+      expected.setCcs(Arrays.asList("cc1", "cc2"));
+      expected.setBccs(Arrays.asList("bcc1", "bcc2"));
+      expected.setSubject(null);
+      expected.setBody(null);
+      
+      Map<EmailConfigCondition,EmailInfo> conditionResult = new HashMap<EmailConfigCondition,EmailInfo>();
+      conditionResult.put(EmailConfigCondition.DEFAULT, expected);
+      resultsPerXml.put(EI_EMPTY, conditionResult);
+    }
+    
+    /*
+     * app have data, test overwrite policy
+     */
+    
+    {
+      EmailInfo input = new EmailInfo();
+      input.setSmtpServer("appSmtpServer");
+      input.setSmtpPort(25);
+      input.setSender("appSender@gmail.com");
+      input.setPassword("appPassword".toCharArray());
+      input.setEnableTls(true);
+      input.setTos(Arrays.asList("to1", "to2", "appto1", "appto2"));
+      input.setBccs(Arrays.asList("bcc1" ));
+      input.setSubject("appSubject");
+      input.setBody("appBody");
+      
+      EmailInfo expected = new EmailInfo();
+      
+      expected.setSmtpServer("smtp.gmail.com");
+      expected.setSmtpPort(587);
+      expected.setSender("datatorrent.alerts@gmail.com");
+      expected.setPassword("password".toCharArray());
+      expected.setEnableTls(true);
+      expected.setTos(Arrays.asList("to1", "to2"));
+      expected.setCcs(Arrays.asList("cc1", "cc2"));
+      expected.setBccs(Arrays.asList("bcc1", "bcc2"));
+      expected.setSubject("appSubject");
+      expected.setBody("appBody");
+      
+      Map<EmailConfigCondition,EmailInfo> conditionResult = new HashMap<EmailConfigCondition,EmailInfo>();
+      conditionResult.put(EmailConfigCondition.DEFAULT, expected);
+      resultsPerXml.put(input, conditionResult);
+    }
     
     //Map<Section, int[]> xml1 = cloneMap( xml0, new EnumMap<Section, int[]>(Section.class) );
   }

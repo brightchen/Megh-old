@@ -185,6 +185,7 @@ public class EmailConfTestResource {
       input.setSubject("appSubject");
       input.setBody("appBody");
       
+      
       EmailInfo expected = new EmailInfo();
       
       expected.setSmtpServer("smtp.gmail.com");

@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import com.datatorrent.alerts.conf.EmailConfigRepo.EmailConfigCondition;
+import com.google.common.collect.Sets;
 
 /**
  * This class all the information to send an email
@@ -23,9 +24,9 @@ public class EmailInfo {
   protected char[] password;    //set password to null if support anonymous
   protected boolean enableTls;  //default is false
   
-  protected Collection<String> tos;
-  protected Collection<String> ccs;
-  protected Collection<String> bccs;
+  protected Set<String> tos;
+  protected Set<String> ccs;
+  protected Set<String> bccs;
   
   protected String subject;
   protected String body;
@@ -71,11 +72,11 @@ public class EmailInfo {
       newObj.password = Arrays.copyOf(password, password.length);
     newObj.enableTls = enableTls;
     if(tos != null)
-      newObj.tos = new ArrayList<String>(tos);
+      newObj.tos = new HashSet<String>(tos);
     if(ccs != null)
-      newObj.ccs = new ArrayList<String>(ccs);
+      newObj.ccs = new HashSet<String>(ccs);
     if(bccs != null)
-      newObj.bccs = new ArrayList<String>(bccs);
+      newObj.bccs = new HashSet<String>(bccs);
     newObj.subject = subject;
     newObj.body = body;
     
@@ -98,13 +99,14 @@ public class EmailInfo {
       smtpServer = mergePolicy.merge(conf.context.entity.smtpServer, smtpServer);
       smtpPort = Integer.parseInt( mergePolicy.merge(conf.context.entity.smtpPort+"", smtpPort+"") );
       sender = mergePolicy.merge(conf.context.entity.sender, sender);
+      password = mergePolicy.merge(String.valueOf(conf.context.entity.password), String.valueOf(password)).toCharArray();
       enableTls = Boolean.valueOf(mergePolicy.merge(String.valueOf(conf.context.entity.enableTls), String.valueOf(enableTls)));
     }
-    if((tos==null||tos.isEmpty()) && conf != null && conf.recipients != null)
+    if(conf != null && conf.recipients != null)
     {
-      Set<String> newTos = new HashSet<String>();
-      Set<String> newCcs = new HashSet<String>();
-      Set<String> newBccs = new HashSet<String>();
+      Set<String> newTos = Sets.newHashSet();
+      Set<String> newCcs = Sets.newHashSet();
+      Set<String> newBccs = Sets.newHashSet();
       for(MergableEntity<EmailRecipient> recipient : conf.recipients)
       {
         newTos.addAll(recipient.mergePolicy.merge(recipient.entity.tos, tos));
@@ -163,7 +165,7 @@ public class EmailInfo {
     if (this.sender != other.sender && (this.sender == null || !this.sender.equals(other.sender))) {
       return false;
     }
-    if (this.password != other.password && (this.password == null || !this.password.equals(other.password))) {
+    if (this.password != other.password && (this.password == null || !Arrays.equals(this.password, other.password))) {
       return false;
     }
     if (this.enableTls != other.enableTls) {
@@ -207,16 +209,31 @@ public class EmailInfo {
     this.enableTls = enableTls;
   }
 
-  public void setTos(Collection<String> tos) {
-    this.tos = tos;
+  public void setTos(final Collection<String> tos) {
+    if(tos == null)
+      return;
+    if(tos instanceof Set)
+      this.tos = (Set<String>)tos;
+    this.tos = Sets.newHashSet();
+    this.tos.addAll(tos);
   }
 
   public void setCcs(Collection<String> ccs) {
-    this.ccs = ccs;
+    if(ccs == null)
+      return;
+    if(ccs instanceof Set)
+      this.ccs = (Set<String>)ccs;
+    this.ccs = Sets.newHashSet();
+    this.ccs.addAll(ccs);
   }
 
   public void setBccs(Collection<String> bccs) {
-    this.bccs = bccs;
+    if(bccs == null)
+      return;
+    if(bccs instanceof Set)
+      this.bccs = (Set<String>)bccs;
+    this.bccs = Sets.newHashSet();
+    this.bccs.addAll(bccs);
   }
 
   public void setSubject(String subject) {

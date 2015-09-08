@@ -40,9 +40,10 @@ public class EmailTaskManager {
     protected EmailInfo getEmailInfo( EmailNotificationTuple tuple )
     {
       EmailInfo ei = new EmailInfo();
-      ei.tos = tuple.tos;
-      ei.ccs = tuple.ccs;
-      ei.bccs = tuple.bccs;
+      ei.setTos(tuple.tos);
+      ei.setCcs(tuple.ccs);
+      ei.setBccs(tuple.bccs);
+      
       ei.subject = tuple.subject;
       ei.body = tuple.content;
       

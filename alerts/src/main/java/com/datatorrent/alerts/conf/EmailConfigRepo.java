@@ -12,8 +12,8 @@ import com.google.common.collect.Lists;
  * 
  * @author bright
  * 
- * This class don't provide concurrency control mechanism. 
- * it's concrete class's duty to control concurrency.
+ *         This class don't provide concurrency control mechanism. it's concrete
+ *         class's duty to control concurrency.
  *
  */
 public abstract class EmailConfigRepo {
@@ -25,14 +25,12 @@ public abstract class EmailConfigRepo {
   }
 
   public static class EmailConfigCondition {
-    public static final EmailConfigCondition DEFAULT = new EmailConfigCondition()
-        {
-          @Override
-          public void setApp(String app)
-          {
-            throw new UnsupportedOperationException("DEFAULT EmailConfigCondition is immutable.");
-          }
-        };
+    public static final EmailConfigCondition DEFAULT = new EmailConfigCondition() {
+      @Override
+      public void setApp(String app) {
+        throw new UnsupportedOperationException("DEFAULT EmailConfigCondition is immutable.");
+      }
+    };
 
     private String app;
     private Integer level;
@@ -58,7 +56,6 @@ public abstract class EmailConfigRepo {
         this.app = app.toLowerCase().trim();
     }
 
-    
     public String getApp() {
       return app;
     }
@@ -98,7 +95,6 @@ public abstract class EmailConfigRepo {
       return String.format("app: %s, level: %d", app, level);
     }
   }
-
 
   private Map<EmailConfigCondition, EmailConf> emailConfMap = new HashMap<EmailConfigCondition, EmailConf>();
   protected boolean defaultEmailConfCached = false;
@@ -167,42 +163,38 @@ public abstract class EmailConfigRepo {
    * @return
    */
   public List<EmailInfo> fillEmailInfo(String appName, int level, EmailInfo inputEmailInfo) {
-    
-      if (inputEmailInfo.isComplete())
-        return Lists.newArrayList(inputEmailInfo);
+    List<EmailInfo> preEmailInfos = Lists.newArrayList(inputEmailInfo);
+    for (MatchLevel matchLevel : MatchLevel.ordedValues) {
+      List<EmailConf> emailConfs = getEmailConfig(appName, level, matchLevel);
+      if (emailConfs == null || emailConfs.isEmpty())
+        continue;
 
-      List<EmailInfo> preEmailInfos = Lists.newArrayList(inputEmailInfo);
-      for (MatchLevel matchLevel : MatchLevel.ordedValues) {
-        List<EmailConf> emailConfs = getEmailConfig(appName, level, matchLevel);
-        if (emailConfs == null || emailConfs.isEmpty())
-          continue;
-
-        List<EmailInfo> emailInfos = Lists.newArrayList();
-        for (int confIndex = 0; confIndex < emailConfs.size(); ++confIndex) {
-          for (int infoIndex = 0; infoIndex < preEmailInfos.size(); ++infoIndex) {
-            EmailInfo preEmailInfo = (confIndex + 1 == emailConfs.size()) ? preEmailInfos.get(infoIndex)
-                : preEmailInfos.get(infoIndex).clone();
-            emailInfos.add(preEmailInfo.mergeWith(emailConfs.get(confIndex)));
-          }
+      List<EmailInfo> emailInfos = Lists.newArrayList();
+      for (int confIndex = 0; confIndex < emailConfs.size(); ++confIndex) {
+        for (int infoIndex = 0; infoIndex < preEmailInfos.size(); ++infoIndex) {
+          EmailInfo preEmailInfo = (confIndex + 1 == emailConfs.size()) ? preEmailInfos.get(infoIndex)
+              : preEmailInfos.get(infoIndex).clone();
+          emailInfos.add(preEmailInfo.mergeWith(emailConfs.get(confIndex)));
         }
-
-        // check if any complete info
-        List<EmailInfo> completeEmailInfos = null;
-        for (EmailInfo emailInfo : emailInfos) {
-          if (emailInfo.isComplete()) {
-            if (completeEmailInfos == null)
-              completeEmailInfos = Lists.newArrayList(emailInfo);
-            else
-              completeEmailInfos.add(emailInfo);
-          }
-        }
-        if (completeEmailInfos != null)
-          return completeEmailInfos;
-
-        preEmailInfos = emailInfos;
       }
 
-      return null;
+      // check if any complete info
+      List<EmailInfo> completeEmailInfos = null;
+      for (EmailInfo emailInfo : emailInfos) {
+        if (emailInfo.isComplete()) {
+          if (completeEmailInfos == null)
+            completeEmailInfos = Lists.newArrayList(emailInfo);
+          else
+            completeEmailInfos.add(emailInfo);
+        }
+      }
+      if (completeEmailInfos != null)
+        return completeEmailInfos;
+
+      preEmailInfos = emailInfos;
+    }
+
+    return null;
 
   }
 }

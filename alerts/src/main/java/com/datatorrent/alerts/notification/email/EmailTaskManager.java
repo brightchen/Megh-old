@@ -29,7 +29,7 @@ public class EmailTaskManager {
       List<EmailInfo> emailInfos = DefaultEmailConfigRepo.instance().fillEmailInfo(tuple.getAppName(), tuple.getLevel(), emailInfo);
       if(emailInfos == null || emailInfos.isEmpty())
       {
-        logger.warn("Can't send email for action tuple: {}", tuple);
+        logger.warn("No valid email info. Can't send email for tuple: {}.", tuple);
         return;
       }
       

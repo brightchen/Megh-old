@@ -4,10 +4,12 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.Sets;
 
 public enum MergePolicy {
-  
   appOnly( new Merger(){
     public String merge(String confValue, String appValue)
     {
@@ -72,6 +74,7 @@ public enum MergePolicy {
     public Collection<String> merge(Collection<String> confValues, Collection<String> appValues);
   }
 
+  private static final Logger logger = LoggerFactory.getLogger(MergePolicy.class);
   private Merger merger;
   
   private MergePolicy( Merger merger )
@@ -96,6 +99,7 @@ public enum MergePolicy {
     }
     catch(Exception e)
     {
+      logger.warn("Invalid merge policy {}. Ignore it", value);
       return null;
     }
   }

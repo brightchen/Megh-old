@@ -1,0 +1,34 @@
+<conf>
+  <emailContext>
+    <id>localhost</id>
+    <smtpServer>localhost</smtpServer>
+    <smtpPort>10025</smtpPort>
+    <sender>datatorrent.alerts@gmail.com</sender>
+    <password>password</password>
+    <enableTls>true</enableTls>
+    <mergePolicy>configOnly</mergePolicy>
+  </emailContext>
+
+  <emailRecipient>
+    <id>alladmin</id>
+    <to>to1</to>
+    <to>to2</to>
+    <cc>cc1</cc>
+    <cc>cc2</cc>
+    <bcc>bcc1</bcc>
+    <bcc>bcc2</bcc>
+    <mergePolicy>combine</mergePolicy>
+  </emailRecipient>
+
+  <emailContent>
+    <id>simplenotify</id>
+    <subject>subject1</subject>
+    <body>body1</body>
+    <mergePolicy>appOnly</mergePolicy>
+  </emailContent>
+  <criteria>
+    <emailContextRef mergePolicy="configOnly">localhost</emailContextRef>
+    <emailRecipientRef>alladmin</emailRecipientRef>
+    <emailContentRef mergePolicy="appOverConfig">simplenotify</emailContentRef>
+  </criteria>
+</conf>

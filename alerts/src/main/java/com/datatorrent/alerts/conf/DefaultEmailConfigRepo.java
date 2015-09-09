@@ -2,6 +2,7 @@ package com.datatorrent.alerts.conf;
 
 import java.io.File;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -70,6 +71,7 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
   private static final Logger logger = LoggerFactory.getLogger(DefaultEmailConfigRepo.class);
       
   public static final String PROP_ALERTS_EMAIL_CONF_FILE = "alerts.email.conf.file";
+  public static final String DEFAULT_EMAIL_CONF_FILE = "EmailNotificationConf.xml";
   
   private static final ReadWriteLock rwLock = new ReentrantReadWriteLock();
   private static DefaultEmailConfigRepo instance = null;
@@ -130,9 +132,18 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
     }
     if( filePath == null || filePath.isEmpty() )
     {
-      logger.info("Can not get email configure file informaiton from system property and alerts configuration. use default.");
+      //load default conf file;
+      logger.warn("Can not get email configure file informaiton from system property or alerts configuration. try to load config file from class path.");
+      URL fileUrl = Thread.currentThread().getContextClassLoader().getResource(DEFAULT_EMAIL_CONF_FILE);
+      if(fileUrl != null)
+        filePath = fileUrl.getPath();
+    }
+    if( filePath == null || filePath.isEmpty() )
+    {
+      logger.warn("Can not get email configure file informaiton from system property, alerts configuration or class path. use default.");
       filePath = "EmailNotificationConf.xml";
     }
+    logger.info("Email Notification Config file path: {}", filePath);
     return filePath;
   }
   

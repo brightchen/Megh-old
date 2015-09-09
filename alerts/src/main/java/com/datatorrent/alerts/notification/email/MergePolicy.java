@@ -4,6 +4,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.google.common.collect.Sets;
+
 public enum MergePolicy {
   
   appOnly( new Merger(){
@@ -35,9 +37,11 @@ public enum MergePolicy {
     }
     public Collection<String> merge(Collection<String> confValues, Collection<String> appValues)
     {
-      Set<String> values = new HashSet<String>();
-      values.addAll(confValues);
-      values.addAll(appValues);
+      Set<String> values = Sets.newHashSet();
+      if(confValues != null && !confValues.isEmpty())
+        values.addAll(confValues);
+      if(appValues != null && !appValues.isEmpty())
+        values.addAll(appValues);
       return values;
     }
   }), 

@@ -4,6 +4,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.datatorrent.alerts.conf.EmailConfigRepo.EmailConfigCondition;
 import com.datatorrent.alerts.notification.email.EmailConf;
 import com.datatorrent.alerts.notification.email.EmailInfo;
 import com.google.common.collect.Lists;
@@ -96,6 +100,7 @@ public abstract class EmailConfigRepo {
     }
   }
 
+  private static final Logger logger = LoggerFactory.getLogger(EmailConfigRepo.class);
   private Map<EmailConfigCondition, EmailConf> emailConfMap = new HashMap<EmailConfigCondition, EmailConf>();
   protected boolean defaultEmailConfCached = false;
   protected List<EmailConf> defaultEmailConf;
@@ -172,9 +177,9 @@ public abstract class EmailConfigRepo {
       List<EmailInfo> emailInfos = Lists.newArrayList();
       for (int confIndex = 0; confIndex < emailConfs.size(); ++confIndex) {
         for (int infoIndex = 0; infoIndex < preEmailInfos.size(); ++infoIndex) {
-          EmailInfo preEmailInfo = (confIndex + 1 == emailConfs.size()) ? preEmailInfos.get(infoIndex)
+          EmailInfo emailInfo = (confIndex + 1 == emailConfs.size()) ? preEmailInfos.get(infoIndex)
               : preEmailInfos.get(infoIndex).clone();
-          emailInfos.add(preEmailInfo.mergeWith(emailConfs.get(confIndex)));
+          emailInfos.add(emailInfo.mergeWith(emailConfs.get(confIndex)));
         }
       }
 
@@ -196,5 +201,18 @@ public abstract class EmailConfigRepo {
 
     return null;
 
+  }
+  
+
+  protected void dumpEmailConf()
+  {
+    if(getEmailConfMap() == null || getEmailConfMap().isEmpty())
+      logger.info("email config is empty.");
+    StringBuilder sb = new StringBuilder();
+    for(Map.Entry<EmailConfigCondition, EmailConf> entry : getEmailConfMap().entrySet())
+    {
+      sb.append(String.format("(%s)\n ==> (%s)\n\n", entry.getKey(), entry.getValue()));
+    }
+    logger.info("email configure:\n{}\n\n", sb); 
   }
 }

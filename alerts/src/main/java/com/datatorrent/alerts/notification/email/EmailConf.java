@@ -30,6 +30,6 @@ public final class EmailConf {
   @Override
   public String toString()
   {
-    return String.format("context:{%s}\n recipients:{%s}\n content: {%s}\n", context, recipients, content);
+    return String.format("context: {%s}\n recipients: {%s}\n content: {%s}\n", context, recipients, content);
   }
 }

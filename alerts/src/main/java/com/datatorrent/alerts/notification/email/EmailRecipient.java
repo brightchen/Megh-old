@@ -13,19 +13,6 @@ public class EmailRecipient implements MergePolicySupported {
   protected final Collection<String> bccs;
   protected final MergePolicy mergePolicy;
   
-//  public static EmailRecipient mergeAll( List<EmailRecipient> recipients )
-//  {
-//    Set<String> tos = Sets.newHashSet();
-//    Set<String> ccs = Sets.newHashSet();
-//    Set<String> bccs = Sets.newHashSet();
-//    for(EmailRecipient recipient : recipients )
-//    {
-//      tos.addAll(recipient.tos);
-//      ccs.addAll(recipient.ccs);
-//      bccs.addAll(recipient.bccs);
-//    }
-//    return new EmailRecipient(tos, ccs, bccs);
-//  }
   public EmailRecipient( Collection<String> tos, Collection<String> ccs, Collection<String> bccs, String mergePolicy )
   {
     this( tos, ccs, bccs, MergePolicy.fromValue(mergePolicy) );
@@ -41,7 +28,7 @@ public class EmailRecipient implements MergePolicySupported {
   @Override
   public String toString()
   {
-    return String.format("tos: %s\nccs: %s\nbccs: %s\n", toString(tos), toString(ccs), toString(bccs));
+    return String.format("tos: %s; ccs: %s; bccs: %s; mergePolicy: %s", toString(tos), toString(ccs), toString(bccs), mergePolicy);
   }
 
   public static String toString( Collection<String> collection)
@@ -54,6 +41,9 @@ public class EmailRecipient implements MergePolicySupported {
     {
       sb.append(item).append(", ");
     }
+    final int len = sb.length();
+    if( len >= 2)
+      sb.delete(len-2, len);
     return "{" + sb.toString() + "}";
   }
   

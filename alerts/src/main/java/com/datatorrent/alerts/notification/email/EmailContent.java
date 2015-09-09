@@ -18,7 +18,7 @@ public final class EmailContent implements MergePolicySupported {
   @Override
   public String toString()
   {
-    return String.format("subject: %s\nbody: %s\n", subject, body);
+    return String.format("subject: %s; body: %s; mergePolicy %s", subject, body, mergePolicy);
   }
   
   @Override

@@ -247,7 +247,13 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
       {
         MergableEntity<EmailContext> context = null;
         if( contextMap != null && !contextMap.isEmpty() && criteria.getEmailContextRef() != null )
-          context = new MergableEntity<EmailContext>(contextMap.get(criteria.getEmailContextRef().getValue()), criteria.getEmailContextRef().getMergePolicy() );
+        {
+          EmailContext contextValue = contextMap.get(criteria.getEmailContextRef().getValue());
+          if(contextValue == null)
+            logger.warn("The email context ref {} is invalid.", criteria.getEmailContextRef());
+          else
+            context = new MergableEntity<EmailContext>(contextValue, criteria.getEmailContextRef().getMergePolicy() );
+        }
         
         //it is possible there are multiple recipient for each criteria
         List<MergableEntity<EmailRecipient>> recipients = Lists.newArrayList();
@@ -261,9 +267,15 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
         }
         MergableEntity<EmailContent> content = null;
         if( contentMap != null && !contentMap.isEmpty() && criteria.getEmailContentRef() !=null )
-          content = new MergableEntity<EmailContent>(contentMap.get(criteria.getEmailContentRef().getValue()), criteria.getEmailContentRef().getMergePolicy());
+        {
+          final EmailContent contentValue = contentMap.get(criteria.getEmailContentRef().getValue());
+          if(contentValue == null)
+            logger.warn("The email content ref {} is invalid.", criteria.getEmailContentRef());
+          else
+            content = new MergableEntity<EmailContent>(contentValue, criteria.getEmailContentRef().getMergePolicy());
+        }
         
-        mergeConfig( mutableEmailConfMap, condition, context, recipients, content);
+        mergeConfig(mutableEmailConfMap, condition, context, recipients, content);
       }
     }
     
@@ -298,17 +310,6 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
     }
   }
   
-  protected void dumpEmailConf()
-  {
-    if(getEmailConfMap() == null || getEmailConfMap().isEmpty())
-      logger.info("email config is empty.");
-    StringBuilder sb = new StringBuilder();
-    for(Map.Entry<EmailConfigCondition, EmailConf> entry : getEmailConfMap().entrySet())
-    {
-      sb.append(String.format("(%s) ==> (%s)\n", entry.getKey(), entry.getValue()));
-    }
-    logger.info("email configure:\n{}\n\n", sb); 
-  }
  
   protected static void mergeConfig(Map<EmailConfigCondition, MutableEmailConf> mutableEmailConfMap, EmailConfigCondition condition,
       MergableEntity<EmailContext> context, Collection<MergableEntity<EmailRecipient>> recipients, MergableEntity<EmailContent> content )

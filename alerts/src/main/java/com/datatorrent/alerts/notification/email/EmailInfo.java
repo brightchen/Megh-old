@@ -99,7 +99,8 @@ public class EmailInfo {
       smtpServer = mergePolicy.merge(conf.context.entity.smtpServer, smtpServer);
       smtpPort = Integer.parseInt( mergePolicy.merge(conf.context.entity.smtpPort+"", smtpPort+"") );
       sender = mergePolicy.merge(conf.context.entity.sender, sender);
-      password = mergePolicy.merge(String.valueOf(conf.context.entity.password), String.valueOf(password)).toCharArray();
+      password = mergePolicy.merge(conf.context.entity.password == null ? null : String.valueOf(conf.context.entity.password), 
+          password == null ? null : String.valueOf(password)).toCharArray();
       enableTls = Boolean.valueOf(mergePolicy.merge(String.valueOf(conf.context.entity.enableTls), String.valueOf(enableTls)));
     }
     if(conf != null && conf.recipients != null)
@@ -109,9 +110,10 @@ public class EmailInfo {
       Set<String> newBccs = Sets.newHashSet();
       for(MergableEntity<EmailRecipient> recipient : conf.recipients)
       {
-        newTos.addAll(recipient.mergePolicy.merge(recipient.entity.tos, tos));
-        newCcs.addAll(recipient.mergePolicy.merge(recipient.entity.ccs, ccs));
-        newBccs.addAll(recipient.mergePolicy.merge(recipient.entity.bccs, bccs));
+        final MergePolicy mergePolicy = getMergePolicy(recipient);
+        newTos.addAll(mergePolicy.merge(recipient.entity.tos, tos));
+        newCcs.addAll(mergePolicy.merge(recipient.entity.ccs, ccs));
+        newBccs.addAll(mergePolicy.merge(recipient.entity.bccs, bccs));
       }
       tos = newTos;
       ccs = newCcs;
@@ -130,11 +132,13 @@ public class EmailInfo {
   {
     if(entity.mergePolicy != null)
       return entity.mergePolicy;
+    
+    MergePolicy mergePolicy = null;
     if(entity.entity instanceof MergePolicySupported)
-      return ((MergePolicySupported)entity.entity).getMergePolicy();
+      mergePolicy = ((MergePolicySupported)entity.entity).getMergePolicy();
     
     //use the default;
-    return MergePolicy.configOverApp;
+    return mergePolicy == null ? MergePolicy.configOverApp : mergePolicy;
   }
   
   @Override
@@ -244,5 +248,21 @@ public class EmailInfo {
     this.body = body;
   }
   
-  
+  @Override
+  public String toString()
+  {
+    StringBuilder sb = new StringBuilder();
+    sb.append("smtpServer: ").append(smtpServer).append("; ");
+    sb.append("smtpPort: ").append(smtpPort).append("; ");
+    sb.append("sender: ").append(sender).append("; ");
+    sb.append("password: ").append(password).append("; ");
+    sb.append("enableTls: ").append(enableTls).append("; ");
+    sb.append("tos: ").append(tos).append("; ");
+    sb.append("ccs: ").append(ccs).append("; ");
+    sb.append("bccs: ").append(bccs).append("; ");
+    sb.append("subject: ").append(subject).append("; ");
+    sb.append("body: ").append(body).append("; ");
+    
+    return sb.toString();
+  }
 }

@@ -6,6 +6,8 @@ public class MergableEntity<T> {
 
   public MergableEntity(T entity, MergePolicy mergePolicy)
   {
+    if(entity == null)
+      throw new IllegalArgumentException("Entity should not null.");
     this.entity = entity;
     this.mergePolicy = mergePolicy;
   }

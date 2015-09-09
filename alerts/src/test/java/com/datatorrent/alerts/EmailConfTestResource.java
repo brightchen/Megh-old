@@ -3,16 +3,21 @@ package com.datatorrent.alerts;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import com.datatorrent.alerts.conf.EmailConfigRepo.EmailConfigCondition;
 import com.datatorrent.alerts.notification.email.EmailInfo;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 /**
  * The resource to test send email.
  * @author bright
  *
  */
+@SuppressWarnings({ "rawtypes", "unchecked" })
 public class EmailConfTestResource {
   private final static EmailInfo EI_EMPTY = new EmailInfo();
   
@@ -53,55 +58,69 @@ public class EmailConfTestResource {
 
         "<emailRecipient>" +
         "<id>others</id>" +
-        "<to>to1</to>" +
-        "<to>to2</to>" +
-        "<cc>cc1</cc>" +
-        "<cc>cc2</cc>" +
-        "<bcc>bcc1</bcc>" +
-        "<bcc>bcc2</bcc>" +
+        "<to>others_to1</to>" +
+        "<to>others_to2</to>" +
+        "<cc>others_cc1</cc>" +
+        "<cc>others_cc2</cc>" +
+        "<bcc>others_bcc1</bcc>" +
+        "<bcc>others_bcc2</bcc>" +
         "</emailRecipient>"
     };
   
   public static final String[] contents =
     {
         "<emailContent>" +
-        "<id>simplenotify</id>" +
+        "<id>defaultnotify</id>" +
         "<subject>subject1</subject>" +
         "<body>body1</body>" +
         "<mergePolicy>appOnly</mergePolicy>" +
         "</emailContent>",
 
         "<emailContent>" +
-        "<id>2</id>" +
-        "<subject>subject2</subject>" +
-        "<body>body2</body>" +
+        "<id>app1</id>" +
+        "<subject>subjectForApp1</subject>" +
+        "<body>bodyForApp1</body>" +
+        "</emailContent>",
+        
+        "<emailContent>" +
+        "<id>level1</id>" +
+        "<subject>subjectForLevel1</subject>" +
+        "<body>bodyForLevel1</body>" +
         "</emailContent>"
     };
   
   public static final String[] criterias =
     {
+        //overwrite default policy
         "<criteria>" +
         "<emailContextRef mergePolicy=\"configOnly\">gmail</emailContextRef>" +
         "<emailRecipientRef mergePolicy=\"configOnly\">alladmin</emailRecipientRef>" +
-        "<emailContentRef mergePolicy=\"appOverConf\">simplenotify</emailContentRef>" +
+        "<emailContentRef mergePolicy=\"appOverConf\">defaultnotify</emailContentRef>" +
         "</criteria>",
 
+        //use default policy
+        "<criteria>" +
+        "<emailContextRef>gmail</emailContextRef>" +
+        "<emailRecipientRef>alladmin</emailRecipientRef>" +
+        "<emailContentRef>defaultnotify</emailContentRef>" +
+        "</criteria>",
+            
         "<criteria>" +
         "<emailContextRef mergePolicy=\"configOnly\">gmail</emailContextRef>" +
         "<emailRecipientRef mergePolicy=\"configOnly\">alladmin</emailRecipientRef>" +
         "<emailRecipientRef mergePolicy=\"appOverConf\">others</emailRecipientRef>" +
-        "<emailContentRef mergePolicy=\"appOverConf\">simplenotify</emailContentRef>" +
+        "<emailContentRef mergePolicy=\"appOverConf\">defaultnotify</emailContentRef>" +
         "</criteria>",
 
         
         "<criteria>" +
         "<app>app1</app>" +
-        "<emailRecipientRef>others</emailRecipientRef>" +
+        "<emailContentRef>app1</emailContentRef>" +
         "</criteria>",
 
         "<criteria>" +
         "<level>1</level>" +
-        "<emailRecipientRef>others</emailRecipientRef>" +
+        "<emailContentRef>level1</emailContentRef>" +
         "</criteria>",
 
         "<criteria>" +
@@ -121,11 +140,21 @@ public class EmailConfTestResource {
     criteria
   }
   
+  public static Set<EmailInfo> getResultSet( EmailInfo ... results )
+  {
+    if(results == null || results.length == 0 )
+      return null;
+    Set<EmailInfo> resultSet = Sets.newHashSet();
+    for( EmailInfo ei : results )
+      if( ei.isComplete() )
+        resultSet.add(ei);
+    return resultSet;
+  }
+  
   //xml is composed by different sections;
   //public static final List<Map<Section, int[]>> xmls = new ArrayList<Map<Section, int[]>>();
   //one xml file map a map of input EmailInfo to output EmailInfo
-  public static final Map<Map<Section, int[]>, Map<EmailInfo, Map<EmailConfigCondition,EmailInfo>>> testDatas 
-    = new HashMap<Map<Section, int[]>, Map<EmailInfo, Map<EmailConfigCondition,EmailInfo>>>();
+  public static final Map<Map<Section, int[]>, Map<EmailInfo, Map<EmailConfigCondition,Set<EmailInfo>>>> testDatas = Maps.newHashMap();
   static
   {
     /**
@@ -133,7 +162,7 @@ public class EmailConfTestResource {
      * "<criteria>" +
         "<emailContextRef mergePolicy=\"configOnly\">gmail</emailContextRef>" +
         "<emailRecipientRef mergePolicy=\"configOnly\">alladmin</emailRecipientRef>" +
-        "<emailContentRef mergePolicy=\"appOverConf\">simplenotify</emailContentRef>" +
+        "<emailContentRef mergePolicy=\"appOverConf\">defaultnotify</emailContentRef>" +
         "</criteria>",
      */
     Map<Section, int[]> xml0 = new EnumMap<Section, int[]>(Section.class);
@@ -141,16 +170,15 @@ public class EmailConfTestResource {
     xml0.put(Section.recipient, new int[]{0});
     xml0.put(Section.content, new int[]{0});
     xml0.put(Section.criteria, new int[]{0});
-    //xmls.add(xml0);
     
-    Map<EmailInfo, Map<EmailConfigCondition,EmailInfo>> resultsPerXml = new HashMap<EmailInfo, Map<EmailConfigCondition,EmailInfo>>();
-    testDatas.put(xml0, resultsPerXml);
+    Map<EmailInfo, Map<EmailConfigCondition,Set<EmailInfo>>> resultsXml0 = Maps.newHashMap();
+    testDatas.put(xml0, resultsXml0);
     
     /**
      * test app don't have any data
      */
-    if(false)
     {
+      
       EmailInfo expected = new EmailInfo();
   
       expected.setSmtpServer("smtp.gmail.com");
@@ -164,15 +192,14 @@ public class EmailConfTestResource {
       expected.setSubject(null);
       expected.setBody(null);
       
-      Map<EmailConfigCondition,EmailInfo> conditionResult = new HashMap<EmailConfigCondition,EmailInfo>();
-      conditionResult.put(EmailConfigCondition.DEFAULT, expected);
-      resultsPerXml.put(EI_EMPTY, conditionResult);
+      Map<EmailConfigCondition,Set<EmailInfo>> conditionResult = Maps.newHashMap();
+      conditionResult.put(EmailConfigCondition.DEFAULT, getResultSet(expected));
+      resultsXml0.put(EI_EMPTY, conditionResult);
     }
     
     /*
      * app have data, test overwrite policy
      */
-    
     {
       EmailInfo input = new EmailInfo();
       input.setSmtpServer("appSmtpServer");
@@ -199,12 +226,245 @@ public class EmailConfTestResource {
       expected.setSubject("appSubject");
       expected.setBody("appBody");
       
-      Map<EmailConfigCondition,EmailInfo> conditionResult = new HashMap<EmailConfigCondition,EmailInfo>();
-      conditionResult.put(EmailConfigCondition.DEFAULT, expected);
-      resultsPerXml.put(input, conditionResult);
+      Map<EmailConfigCondition,Set<EmailInfo>> conditionResult = Maps.newHashMap();
+      conditionResult.put(EmailConfigCondition.DEFAULT, getResultSet(expected));
+      resultsXml0.put(input, conditionResult);
+    }
+
+    /**
+    "<emailContext>" +
+    "<id>gmail</id>" +
+    "<smtpServer>smtp.gmail.com</smtpServer>" +
+    "<smtpPort>587</smtpPort>" +
+    "<sender>datatorrent.alerts@gmail.com</sender>" +
+    "<password>password</password>" +
+    "<enableTls>true</enableTls>" +
+    "<mergePolicy>configOnly</mergePolicy>" +
+    "</emailContext>",
+    
+       "<emailRecipient>" +
+        "<id>alladmin</id>" +
+        "<to>to1</to>" +
+        "<to>to2</to>" +
+        "<cc>cc1</cc>" +
+        "<cc>cc2</cc>" +
+        "<bcc>bcc1</bcc>" +
+        "<bcc>bcc2</bcc>" +
+        "<mergePolicy>combine</mergePolicy>" +
+        "</emailRecipient>",
+        
+        "<emailContent>" +
+        "<id>defaultnotify</id>" +
+        "<subject>subject1</subject>" +
+        "<body>body1</body>" +
+        "<mergePolicy>appOnly</mergePolicy>" +
+        "</emailContent>",
+    
+    */
+    Map<Section, int[]> xml1 = new EnumMap<Section, int[]>(Section.class);
+    xml1.put(Section.context, new int[]{0});
+    xml1.put(Section.recipient, new int[]{0});
+    xml1.put(Section.content, new int[]{0});
+    xml1.put(Section.criteria, new int[]{1});   //default overwrite policy
+    
+    Map<EmailInfo, Map<EmailConfigCondition,Set<EmailInfo>>> resultsXml1 = Maps.newHashMap();
+    testDatas.put(xml1, resultsXml1);
+    {
+      EmailInfo input = new EmailInfo();
+      input.setSmtpServer("appSmtpServer");
+      input.setSmtpPort(25);
+      input.setSender("appSender@gmail.com");
+      input.setPassword("appPassword".toCharArray());
+      input.setEnableTls(true);
+      input.setTos(Arrays.asList("to1", "to2", "appto1", "appto2"));
+      input.setBccs(Arrays.asList("bcc1" ));
+      input.setSubject("appSubject");
+      input.setBody("appBody");
+      
+      
+      EmailInfo expected = new EmailInfo();
+      
+      expected.setSmtpServer("smtp.gmail.com");
+      expected.setSmtpPort(587);
+      expected.setSender("datatorrent.alerts@gmail.com");
+      expected.setPassword("password".toCharArray());
+      expected.setEnableTls(true);
+      
+      expected.setTos(Arrays.asList("to1", "to2", "appto1", "appto2"));
+      expected.setCcs(Arrays.asList("cc1", "cc2"));
+      expected.setBccs(Arrays.asList("bcc1", "bcc2"));
+      
+      expected.setSubject("appSubject");
+      expected.setBody("appBody");
+      
+      Map<EmailConfigCondition,Set<EmailInfo>> conditionResult = Maps.newHashMap();
+      conditionResult.put(EmailConfigCondition.DEFAULT, getResultSet(expected));
+      resultsXml1.put(input, conditionResult);
     }
     
-    //Map<Section, int[]> xml1 = cloneMap( xml0, new EnumMap<Section, int[]>(Section.class) );
+    /** recipient has two groups
+    "<criteria>" +
+    "<emailContextRef mergePolicy=\"configOnly\">gmail</emailContextRef>" +
+    "<emailRecipientRef mergePolicy=\"configOnly\">alladmin</emailRecipientRef>" +
+    "<emailRecipientRef mergePolicy=\"appOverConf\">others</emailRecipientRef>" +
+    "<emailContentRef mergePolicy=\"appOverConf\">defaultnotify</emailContentRef>" +
+    "</criteria>",
+    */
+    Map<Section, int[]> xml2 = new EnumMap<Section, int[]>(Section.class);
+    xml2.put(Section.context, new int[]{0});
+    xml2.put(Section.recipient, new int[]{0});
+    xml2.put(Section.content, new int[]{0});
+    xml2.put(Section.criteria, new int[]{1});   //default overwrite policy
+    
+    Map<EmailInfo, Map<EmailConfigCondition,Set<EmailInfo>>> resultsXml2 = Maps.newHashMap();
+    testDatas.put(xml2, resultsXml2);
+    
+    {
+      EmailInfo input = new EmailInfo();
+      input.setSmtpServer("appSmtpServer");
+      input.setSmtpPort(25);
+      input.setSender("appSender@gmail.com");
+      input.setPassword("appPassword".toCharArray());
+      input.setEnableTls(true);
+      input.setTos(Arrays.asList("to1", "to2", "appto1", "appto2"));
+      input.setBccs(Arrays.asList("appbcc1"));
+      input.setSubject("appSubject");
+      input.setBody("appBody");
+      
+      
+      EmailInfo expected = new EmailInfo();
+      
+      expected.setSmtpServer("smtp.gmail.com");
+      expected.setSmtpPort(587);
+      expected.setSender("datatorrent.alerts@gmail.com");
+      expected.setPassword("password".toCharArray());
+      expected.setEnableTls(true);
+      
+      expected.setTos(Arrays.asList("to1", "to2", "appto1", "appto2"));
+      expected.setCcs(Arrays.asList("cc1", "cc2"));
+      expected.setBccs(Arrays.asList("bcc1", "bcc2","appbcc1"));
+      
+      expected.setSubject("appSubject");
+      expected.setBody("appBody");
+      
+      Map<EmailConfigCondition,Set<EmailInfo>> conditionResult = Maps.newHashMap();
+      conditionResult.put(EmailConfigCondition.DEFAULT, getResultSet(expected));
+      resultsXml2.put(input, conditionResult);
+    }
+    
+    /**
+        //overwrite default policy
+        "<criteria>" +
+        "<emailContextRef mergePolicy=\"configOnly\">gmail</emailContextRef>" +
+        "<emailRecipientRef mergePolicy=\"configOnly\">alladmin</emailRecipientRef>" +
+        "<emailContentRef mergePolicy=\"appOverConf\">defaultnotify</emailContentRef>" +
+        "</criteria>",
+
+        //use default policy
+        "<criteria>" +
+        "<emailContextRef>gmail</emailContextRef>" +
+        "<emailRecipientRef>alladmin</emailRecipientRef>" +
+        "<emailContentRef>defaultnotify</emailContentRef>" +
+        "</criteria>",
+            
+        "<criteria>" +
+        "<emailContextRef mergePolicy=\"configOnly\">gmail</emailContextRef>" +
+        "<emailRecipientRef mergePolicy=\"configOnly\">alladmin</emailRecipientRef>" +
+        "<emailRecipientRef mergePolicy=\"appOverConf\">others</emailRecipientRef>" +
+        "<emailContentRef mergePolicy=\"appOverConf\">defaultnotify</emailContentRef>" +
+        "</criteria>",
+
+        
+        "<criteria>" +
+        "<app>app1</app>" +
+        "<emailContentRef>app1</emailContentRef>" +
+        "</criteria>",
+
+        "<criteria>" +
+        "<level>1</level>" +
+        "<emailContentRef>level1</emailContentRef>" +
+        "</criteria>",
+
+        "<criteria>" +
+        "<app>app1</app>" +
+        "<app>app2</app>" +
+        "<level>1</level>" +
+        "<level>2</level>" +
+        "<emailRecipientRef>alladmin</emailRecipientRef>" +
+        "</criteria>"
+     */
+    Map<Section, int[]> xmlAll = new EnumMap<Section, int[]>(Section.class);
+    xmlAll.put(Section.context, new int[]{0,1});
+    xmlAll.put(Section.recipient, new int[]{0,1});
+    xmlAll.put(Section.content, new int[]{0,1,2});
+    xmlAll.put(Section.criteria, new int[]{0,1,2,3,4,5});   //default overwrite policy
+    
+    Map<EmailInfo, Map<EmailConfigCondition,Set<EmailInfo>>> resultsXmlAll = Maps.newHashMap();
+    testDatas.put(xmlAll, resultsXmlAll);
+    
+    {
+      EmailInfo input = new EmailInfo();
+      input.setSmtpServer("appSmtpServer");
+      input.setSmtpPort(25);
+      input.setSender("appSender@gmail.com");
+      input.setPassword("appPassword".toCharArray());
+      input.setEnableTls(true);
+      input.setTos(Arrays.asList("to2", "appto1", "appto2"));
+      input.setBccs(Arrays.asList("appbcc1"));
+      input.setSubject("appSubject");
+      input.setBody("appBody");
+      
+      //check (app1,2) only, as criteria (app1,2)'s merge policy is default ConfigOverApp, 
+      //so the app information will be merged and information is complete and will not check the (app1,null) and (null,2) etc
+      final EmailConfigCondition condition = new EmailConfigCondition("app1", 2);
+      
+      EmailInfo expected = new EmailInfo();
+      
+      expected.setSmtpServer("appSmtpServer");
+      expected.setSmtpPort(25);
+      expected.setSender("appSender@gmail.com");
+      expected.setPassword("appPassword".toCharArray());
+      expected.setEnableTls(true);
+      
+      expected.setTos(Arrays.asList("to1", "to2", "appto1", "appto2"));
+      expected.setCcs(Arrays.asList("cc1", "cc2"));
+      expected.setBccs(Arrays.asList("bcc1", "bcc2","appbcc1"));
+      
+      expected.setSubject("appSubject");
+      expected.setBody("appBody");
+      
+      Map<EmailConfigCondition,Set<EmailInfo>> conditionResult = Maps.newHashMap();
+      conditionResult.put(condition, getResultSet(expected));
+      resultsXmlAll.put(input, conditionResult);
+    }
+    
+    {
+      //(app1,1) =>(app1) || (1)=> ()
+      final EmailConfigCondition condition = new EmailConfigCondition("app1", 1);
+      
+      EmailInfo expected1 = new EmailInfo();
+      
+      expected1.setSmtpServer("smtp.gmail.com");
+      expected1.setSmtpPort(587);
+      expected1.setSender("datatorrent.alerts@gmail.com");
+      expected1.setPassword("password".toCharArray());
+      expected1.setEnableTls(true);
+      
+      expected1.setTos(Arrays.asList("to1", "to2", "others_to1", "others_to2"));
+      expected1.setCcs(Arrays.asList("cc1", "cc2", "others_cc1", "others_cc2"));
+      expected1.setBccs(Arrays.asList("bcc1", "bcc2", "others_bcc1", "others_bcc2"));
+      
+      expected1.setSubject("subjectForApp1");
+      expected1.setBody("bodyForApp1");
+      
+      EmailInfo expected2 = expected1.clone();
+      expected2.setSubject("subjectForLevel1");
+      expected2.setBody("bodyForLevel1");
+      
+      Map<EmailConfigCondition,Set<EmailInfo>> conditionResult = Maps.newHashMap();
+      conditionResult.put(condition, getResultSet(expected1, expected2));
+      resultsXmlAll.put(EI_EMPTY, conditionResult);
+    }
   }
   
   public static String getXml(Map<Section, int[]> xmlSections)

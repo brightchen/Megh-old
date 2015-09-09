@@ -26,8 +26,8 @@ public final class EmailContext implements MergePolicySupported{
   @Override
   public String toString()
   {
-    return String.format("smtpServer: %s; smtpPort: %d; sender: %s; has Password: %b; enableTls: %b", 
-        smtpServer, smtpPort, sender, Boolean.valueOf(password!=null), Boolean.valueOf(enableTls));
+    return String.format("smtpServer: %s; smtpPort: %d; sender: %s; has Password: %b; enableTls: %b; mergePolicy: %s", 
+        smtpServer, smtpPort, sender, Boolean.valueOf(password!=null), Boolean.valueOf(enableTls), mergePolicy);
   }
 
   @Override

@@ -195,7 +195,6 @@
       <groupId>com.datatorrent</groupId>
       <artifactId>dt-engine</artifactId>
       <version>${datatorrent.version}</version>
-      <scope>test</scope>
     </dependency>
   </dependencies>
 

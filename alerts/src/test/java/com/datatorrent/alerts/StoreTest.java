@@ -1,6 +1,6 @@
 package com.datatorrent.alerts;
 
-import com.datatorrent.alerts.Store.AlertsStore;
+import com.datatorrent.alerts.Store.Store;
 import java.util.*;
 
 import com.datatorrent.alerts.Store.DoublyLinkedList;
@@ -11,35 +11,35 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 
-public class AlertsStoreTest {
+public class StoreTest {
 
     private TestStore store ;
-    private ArrayList<AlertMessage> messageList ;
+    private ArrayList<Message> messageList ;
     private int len = 500 ;
 
     public class LevelChange implements LevelChangeNotifier {
 
         @Override
-        public void OnChange( AlertMessage message ) {
+        public void OnChange( Message message ) {
 
             // System.out.println("Change Notifier " + message.getId());
         }
     }
 
-    public static class TestStore extends AlertsStore {
+    public static class TestStore extends Store {
 
-        public TestStore(LevelChangeNotifier levelChangeNotifier, Config config) {
+        public TestStore(LevelChangeNotifier levelChangeNotifier, Integer DefaultWaitTime) {
 
-            super(levelChangeNotifier, config) ;
+            super(levelChangeNotifier, DefaultWaitTime) ;
         }
 
         public synchronized boolean allSorted() {
 
-            Iterator<Map.Entry<Long,DoublyLinkedList>> it = alertsWithSameTimeout.entrySet().iterator() ;
+            Iterator<Map.Entry<Integer,DoublyLinkedList>> it = alertsWithSameTimeout.entrySet().iterator() ;
 
             while ( it.hasNext() ) {
 
-                Map.Entry<Long,DoublyLinkedList> entry = it.next();
+                Map.Entry<Integer,DoublyLinkedList> entry = it.next();
                 DoublyLinkedList list = entry.getValue();
 
                 Node curr = list.head.next;
@@ -59,11 +59,11 @@ public class AlertsStoreTest {
         }
     }
 
-    private AlertMessage generator(Integer id, Integer level) {
-        AlertMessage message = new AlertMessage() ;
+    private Message generator(Integer id, Integer level) {
+        Message message = new Message() ;
         message.setFlag(true);
-        message.setEventId(id);
-        message.setLevel(1) ;
+        message.setEventId(id.toString());
+        message.setCurrentLevel(1); ;
         message.setAppId(id.toString());
 
         return message ;
@@ -72,15 +72,15 @@ public class AlertsStoreTest {
     @Before
     public void Init() {
 
-        store = new TestStore(new LevelChange(), new ConfigImpl());
+        store = new TestStore(new LevelChange(), 10000);
         messageList = new ArrayList<>() ;
 
         for ( int i = 0 ; i < len ; ++i ) {
 
-            AlertMessage message = generator(i, 1) ;
+            Message message = generator(i, 1) ;
 
             Random rnd = new Random() ;
-            Long n =(long) rnd.nextInt(100) + 1 ;
+            Integer n = rnd.nextInt(100) + 1 ;
             store.put(n, 1, message);
             messageList.add(message) ;
         }
@@ -95,7 +95,7 @@ public class AlertsStoreTest {
             assertTrue ( " Message present ", store.isPresent(messageList.get(i)) ) ;
         }
 
-        for ( AlertMessage message: messageList) {
+        for ( Message message: messageList) {
 
             store.remove(message);
         }
@@ -105,7 +105,7 @@ public class AlertsStoreTest {
             assertFalse(" Message not present ", store.isPresent(messageList.get(i)));
         }
 
-        for ( AlertMessage message: messageList) {
+        for ( Message message: messageList) {
 
             store.remove(message);
         }

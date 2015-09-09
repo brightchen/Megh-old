@@ -1,8 +1,7 @@
 package com.datatorrent.alerts.Store;
 
-import com.datatorrent.alerts.AlertMessage;
-import com.datatorrent.alerts.Config;
 import com.datatorrent.alerts.LevelChangeNotifier;
+import com.datatorrent.alerts.Message;
 
 import java.util.*;
 
@@ -14,28 +13,27 @@ import java.util.*;
 *
 * "messageToNode" - Helps to quickly find the message for various purposes like removing the messages.
 *
+* Assumption : EscalationPolicy needs to be present in the message.
 * */
 
 /*
 *  TODO : Add Idempotent manager support, Which timestamp to use, old ones ?
 * */
-public class AlertsStore {
+public class Store {
 
-    protected HashMap<Long, DoublyLinkedList> alertsWithSameTimeout;
-    private HashMap<AlertMessage, Node> messageToNode ;
-    private volatile int timeToSleep = 10000 ;
+    protected HashMap<Integer, DoublyLinkedList> alertsWithSameTimeout;
+    private HashMap<Message, Node> messageToNode ;
+    private volatile int timeToSleep ;
     private LevelChangeNotifier levelChangeNotifier ;
-    private Config config ;
     private Thread timer ;
 
-    public AlertsStore(LevelChangeNotifier levelChangeNotifier, Config config) {
+    public Store(LevelChangeNotifier levelChangeNotifier, Integer defaultTimeout) {
 
         alertsWithSameTimeout = new HashMap<>() ;
         messageToNode = new HashMap<>() ;
 
         this.levelChangeNotifier = levelChangeNotifier ;
-        this.config = config ;
-        this.timeToSleep = config.WaitTimeForEscalation(0) ;
+        this.timeToSleep = defaultTimeout ;
 
         timer = new Thread(new Runnable() {
             @Override
@@ -56,9 +54,11 @@ public class AlertsStore {
       timer.start();
     }
 
-    public synchronized void put(Long key, Integer level, AlertMessage value) {
+    public synchronized void put(Integer key, Integer level, Message value) {
 
         //TODO: If message already exists what to do ?
+        //TODO : Verify message has escalation policy.
+
         Node node = new Node(value, level) ;
         messageToNode.put(value, node) ;
 
@@ -70,21 +70,21 @@ public class AlertsStore {
         alertsWithSameTimeout.get(key).append(node);
     }
 
-    public synchronized boolean isPresent( AlertMessage message ) {
+    public synchronized boolean isPresent( Message message ) {
 
         return messageToNode.containsKey(message) ;
     }
 
-    // TODO : Time specified by the user
+    // TODO : Time specified by the user ?
     //      : Keep track that the message was snoozed and make it a part of the message.
-    public synchronized void setSnooze( AlertMessage message, boolean set ) {
+    public synchronized void setSnooze( Message message, boolean set ) {
 
         if ( isPresent(message) ) {
             messageToNode.get(message).snooze = set ;
         }
     }
 
-    public synchronized void remove( AlertMessage value ) {
+    public synchronized void remove( Message value ) {
 
         if ( messageToNode.containsKey(value) ) {
 
@@ -100,14 +100,13 @@ public class AlertsStore {
      protected synchronized void isItTimeToEscalate() {
 
          Date now = new Date() ;
-         timeToSleep = config.WaitTimeForEscalation(0);
 
-         Iterator<Map.Entry<Long,DoublyLinkedList>> it = alertsWithSameTimeout.entrySet().iterator() ;
+         Iterator<Map.Entry<Integer,DoublyLinkedList>> it = alertsWithSameTimeout.entrySet().iterator() ;
          ArrayList<Node> goingToNewLevel = new ArrayList<>() ;
 
          while ( it.hasNext() ) {
 
-             Map.Entry<Long,DoublyLinkedList> entry = it.next();
+             Map.Entry<Integer,DoublyLinkedList> entry = it.next();
 
              DoublyLinkedList list = entry.getValue();
              DoublyLinkedList notifiedList = new DoublyLinkedList() ;
@@ -128,11 +127,11 @@ public class AlertsStore {
                      curr = next ; continue;
                  }
 
-                 if (timeDiff >= config.WaitTimeForEscalation(curr.level)) {
+                 if ( timeDiff >= curr.val.timeOutForCurrLevel() ) {
 
                      curr.lastNotified = now;
 
-                     if ( curr.level < config.MaxLevel() ) {
+                     if ( curr.level < curr.val.getEscalationPolicy().size() ) {
                          curr.level++;
 
                          goingToNewLevel.add(curr) ;
@@ -157,8 +156,8 @@ public class AlertsStore {
 
          for ( Node node : goingToNewLevel ) {
 
-            Long waitTime = (long) config.WaitTimeForEscalation(node.level) ;
-            put(waitTime, node.level, node.val);
+             Integer waitTime = node.val.timeOutForCurrLevel() ;
+             put(waitTime, node.level, node.val);
          }
      }
 }

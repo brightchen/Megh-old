@@ -22,13 +22,13 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datatorrent.alerts.action.email.EmailConf;
+import com.datatorrent.alerts.action.email.EmailContent;
+import com.datatorrent.alerts.action.email.EmailContext;
+import com.datatorrent.alerts.action.email.EmailInfo;
+import com.datatorrent.alerts.action.email.EmailRecipient;
+import com.datatorrent.alerts.action.email.MergableEntity;
 import com.datatorrent.alerts.conf.xmlbind.Conf;
-import com.datatorrent.alerts.notification.email.EmailConf;
-import com.datatorrent.alerts.notification.email.EmailContent;
-import com.datatorrent.alerts.notification.email.EmailContext;
-import com.datatorrent.alerts.notification.email.EmailInfo;
-import com.datatorrent.alerts.notification.email.EmailRecipient;
-import com.datatorrent.alerts.notification.email.MergableEntity;
 import com.google.common.collect.Lists;
 
 /**

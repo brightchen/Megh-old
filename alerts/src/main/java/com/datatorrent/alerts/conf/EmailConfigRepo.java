@@ -7,9 +7,9 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datatorrent.alerts.action.email.EmailConf;
+import com.datatorrent.alerts.action.email.EmailInfo;
 import com.datatorrent.alerts.conf.EmailConfigRepo.EmailConfigCondition;
-import com.datatorrent.alerts.notification.email.EmailConf;
-import com.datatorrent.alerts.notification.email.EmailInfo;
 import com.google.common.collect.Lists;
 
 /**

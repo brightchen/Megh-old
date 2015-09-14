@@ -1,4 +1,4 @@
-package com.datatorrent.alerts.notification.email;
+package com.datatorrent.alerts.action.email;
 
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 

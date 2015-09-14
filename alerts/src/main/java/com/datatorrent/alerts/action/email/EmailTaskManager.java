@@ -1,4 +1,4 @@
-package com.datatorrent.alerts.notification.email;
+package com.datatorrent.alerts.action.email;
 
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;

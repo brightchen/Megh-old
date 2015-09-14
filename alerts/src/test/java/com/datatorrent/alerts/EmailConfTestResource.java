@@ -7,8 +7,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.datatorrent.alerts.action.email.EmailInfo;
 import com.datatorrent.alerts.conf.EmailConfigRepo.EmailConfigCondition;
-import com.datatorrent.alerts.notification.email.EmailInfo;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 

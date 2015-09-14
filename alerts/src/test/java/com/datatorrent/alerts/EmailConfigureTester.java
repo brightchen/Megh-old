@@ -13,9 +13,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datatorrent.alerts.EmailConfTestResource.Section;
+import com.datatorrent.alerts.action.email.EmailInfo;
 import com.datatorrent.alerts.conf.DefaultEmailConfigRepo;
 import com.datatorrent.alerts.conf.EmailConfigRepo.EmailConfigCondition;
-import com.datatorrent.alerts.notification.email.EmailInfo;
 
 public class EmailConfigureTester {
   public static class TestEmailConfigRepo extends DefaultEmailConfigRepo

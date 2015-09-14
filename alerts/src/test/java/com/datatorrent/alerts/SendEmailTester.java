@@ -2,8 +2,8 @@ package com.datatorrent.alerts;
 
 import org.junit.Test;
 
-import com.datatorrent.alerts.notification.email.EmailNotificationHandler;
-import com.datatorrent.alerts.notification.email.EmailNotificationTuple;
+import com.datatorrent.alerts.action.email.EmailNotificationHandler;
+import com.datatorrent.alerts.action.email.EmailNotificationTuple;
 
 public class SendEmailTester {
   

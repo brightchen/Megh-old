@@ -1,4 +1,4 @@
-package com.datatorrent.alerts.notification.email;
+package com.datatorrent.alerts.action.email;
 
 public class MergableEntity<T> {
   protected final T entity;

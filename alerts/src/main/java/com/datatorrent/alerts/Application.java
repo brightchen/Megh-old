@@ -1,9 +1,9 @@
 package com.datatorrent.alerts;
 
 
-import com.datatorrent.alerts.notification.email.EmailNotificationOperator;
 import java.net.URI;
 
+import com.datatorrent.alerts.action.email.EmailNotificationOperator;
 import com.datatorrent.api.DAG;
 
 import org.apache.hadoop.conf.Configuration;

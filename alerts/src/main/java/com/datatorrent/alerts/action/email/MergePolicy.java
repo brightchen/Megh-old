@@ -1,4 +1,4 @@
-package com.datatorrent.alerts.notification.email;
+package com.datatorrent.alerts.action.email;
 
 import java.util.Collection;
 import java.util.HashSet;

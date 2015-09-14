@@ -8,9 +8,9 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datatorrent.alerts.notification.email.EmailNotificationOperator;
-import com.datatorrent.alerts.notification.email.EmailNotificationTuple;
 import com.datatorrent.api.Context.OperatorContext;
+import com.datatorrent.alerts.action.email.EmailNotificationOperator;
+import com.datatorrent.alerts.action.email.EmailNotificationTuple;
 import com.datatorrent.api.DAG;
 import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.InputOperator;

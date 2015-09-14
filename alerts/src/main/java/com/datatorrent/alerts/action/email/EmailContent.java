@@ -1,4 +1,4 @@
-package com.datatorrent.alerts.notification.email;
+package com.datatorrent.alerts.action.email;
 
 public final class EmailContent implements MergePolicySupported {
   protected final String subject;

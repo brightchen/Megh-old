@@ -1,9 +1,9 @@
 package com.datatorrent.alerts;
 
  import com.datatorrent.alerts.Store.Store;
- import com.datatorrent.alerts.conf.Config;
- import com.datatorrent.alerts.notification.email.EmailNotificationTuple;
- import com.datatorrent.api.DefaultOutputPort;
+import com.datatorrent.alerts.action.email.EmailNotificationTuple;
+import com.datatorrent.alerts.conf.Config;
+import com.datatorrent.api.DefaultOutputPort;
  import com.datatorrent.common.util.BaseOperator;
  import com.datatorrent.api.Context;
  import com.datatorrent.api.DefaultInputPort;

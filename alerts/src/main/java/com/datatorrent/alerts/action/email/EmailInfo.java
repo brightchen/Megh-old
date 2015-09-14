@@ -6,7 +6,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.datatorrent.alerts.conf.EmailConfigRepo.EmailConfigCondition;
+import com.datatorrent.alerts.action.email.EmailConfigRepo.EmailConfigCondition;
 import com.google.common.collect.Sets;
 
 /**

@@ -6,7 +6,7 @@
 //
 
 
-package com.datatorrent.alerts.conf.xmlbind;
+package com.datatorrent.alerts.action.email.xmlbind;
 
 import javax.xml.bind.annotation.XmlRegistry;
 

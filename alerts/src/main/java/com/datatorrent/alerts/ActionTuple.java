@@ -4,20 +4,21 @@
 package com.datatorrent.alerts;
 
 public class ActionTuple {
-  public static enum Action
+  public static enum ActionType
   {
     NOTIFY_EMAIL,
+    EXECUTE_SCRIPT,
   }
   
-  protected Action action;
+  protected ActionType action;
   protected int level;
   protected String appName;
   
   
-  public Action getAction() {
+  public ActionType getAction() {
     return action;
   }
-  public void setAction(Action action) {
+  public void setAction(ActionType action) {
     this.action = action;
   }
   public int getLevel() {

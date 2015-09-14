@@ -6,11 +6,7 @@ import java.util.List;
 import com.datatorrent.alerts.ActionTuple;
 
 public class EmailNotificationTuple extends ActionTuple{
-  public EmailNotificationTuple()
-  {
-    this.setAction(Action.NOTIFY_EMAIL);
-  }
-  
+
   protected Collection<String> tos;
   protected Collection<String> ccs;
   protected Collection<String> bccs;
@@ -19,6 +15,11 @@ public class EmailNotificationTuple extends ActionTuple{
   protected String content;
   
 
+  public EmailNotificationTuple()
+  {
+    this.setAction(ActionType.NOTIFY_EMAIL);
+  }
+  
   public Collection<String> getTos() {
     return tos;
   }

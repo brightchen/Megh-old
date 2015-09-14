@@ -9,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datatorrent.alerts.ActionTuple;
-import com.datatorrent.alerts.conf.DefaultEmailConfigRepo;
 
 public class EmailTaskManager {
   private static final Logger logger = LoggerFactory.getLogger(EmailTaskManager.class);

@@ -1,4 +1,4 @@
-package com.datatorrent.alerts.conf;
+package com.datatorrent.alerts.action.email;
 
 import java.io.File;
 import java.io.InputStream;
@@ -22,13 +22,8 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datatorrent.alerts.action.email.EmailConf;
-import com.datatorrent.alerts.action.email.EmailContent;
-import com.datatorrent.alerts.action.email.EmailContext;
-import com.datatorrent.alerts.action.email.EmailInfo;
-import com.datatorrent.alerts.action.email.EmailRecipient;
-import com.datatorrent.alerts.action.email.MergableEntity;
-import com.datatorrent.alerts.conf.xmlbind.Conf;
+import com.datatorrent.alerts.action.email.xmlbind.Conf;
+import com.datatorrent.alerts.conf.AlertsProperties;
 import com.google.common.collect.Lists;
 
 /**

@@ -3,7 +3,6 @@ package com.datatorrent.alerts.action.email;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 
 import com.datatorrent.alerts.ActionHandler;
-import com.datatorrent.alerts.conf.DefaultEmailConfigRepo;
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.annotation.InputPortFieldAnnotation;

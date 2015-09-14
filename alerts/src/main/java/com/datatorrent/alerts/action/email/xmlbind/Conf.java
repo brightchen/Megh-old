@@ -6,7 +6,7 @@
 //
 
 
-package com.datatorrent.alerts.conf.xmlbind;
+package com.datatorrent.alerts.action.email.xmlbind;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -136,7 +136,7 @@ public class DefaultEmailConfigRepo extends EmailConfigRepo {
     if( filePath == null || filePath.isEmpty() )
     {
       logger.warn("Can not get email configure file informaiton from system property, alerts configuration or class path. use default.");
-      filePath = "EmailNotificationConf.xml";
+      filePath = DEFAULT_EMAIL_CONF_FILE;
     }
     logger.info("Email Notification Config file path: {}", filePath);
     return filePath;

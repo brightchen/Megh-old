@@ -8,19 +8,16 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datatorrent.api.Context.OperatorContext;
-import com.datatorrent.alerts.action.email.EmailNotificationOperator;
-import com.datatorrent.alerts.action.email.EmailNotificationTuple;
+import com.datatorrent.alerts.action.command.CommandOperator;
+import com.datatorrent.alerts.action.command.ExecuteCommandTuple;
 import com.datatorrent.api.DAG;
-import com.datatorrent.api.DefaultOutputPort;
-import com.datatorrent.api.InputOperator;
 import com.datatorrent.api.LocalMode;
 import com.datatorrent.api.StreamingApplication;
-import com.datatorrent.contrib.util.TupleGenerateCacheOperator;
 
-public class EmailNotificationOperatorTester {
+public class ExecuteCommandOperatorTester {
+  
 
-  private static final Logger logger = LoggerFactory.getLogger(EmailNotificationOperatorTester.class);
+  private static final Logger logger = LoggerFactory.getLogger(ExecuteCommandOperatorTester.class);
 
   @Test
   public void test() throws Exception {
@@ -36,15 +33,15 @@ public class EmailNotificationOperatorTester {
     
     
 
-    TupleGenerator<EmailNotificationTuple> generator = new TupleGenerator<EmailNotificationTuple>();
+    TupleGenerator<ExecuteCommandTuple> generator = new TupleGenerator<ExecuteCommandTuple>();
     generator.setTuplesToEmit(getTuplesToEmit());
     
-    EmailNotificationOperator testingOperator = new EmailNotificationOperator();
+    CommandOperator testingOperator = new CommandOperator();
 
     dag.addOperator("generator", generator);
     dag.addOperator("testingOperator", testingOperator);
 
-    dag.addStream("emailNotificationStream", generator.outputPort, testingOperator.input); // .setLocality(Locality.CONTAINER_LOCAL);
+    dag.addStream("commandStream", generator.outputPort, testingOperator.input); // .setLocality(Locality.CONTAINER_LOCAL);
 
     lma.prepareDAG(app, conf);
 
@@ -60,12 +57,14 @@ public class EmailNotificationOperatorTester {
     
   }
   
-  protected List<EmailNotificationTuple> getTuplesToEmit()
+  public static final String[] commandLines = new String[]{ "ls -l -a", "lla", "dir", "whatever", "date", "echo 'aaa bbb'"};
+  protected List<ExecuteCommandTuple> getTuplesToEmit()
   {
-    EmailNotificationTuple tuple = new EmailNotificationTuple();
-    List<EmailNotificationTuple> tuples = new ArrayList<EmailNotificationTuple>();
-    for(int i=0; i<100; ++i)
+    
+    List<ExecuteCommandTuple> tuples = new ArrayList<ExecuteCommandTuple>();
+    for(int i=0; i<10; ++i)
     {
+      ExecuteCommandTuple tuple = new ExecuteCommandTuple(commandLines[i%commandLines.length]);
       tuples.add(tuple);
     }
     

@@ -7,7 +7,7 @@ public class ActionTuple {
   public static enum ActionType
   {
     NOTIFY_EMAIL,
-    EXECUTE_SCRIPT,
+    EXECUTE_COMMAND,
   }
   
   protected ActionType action;

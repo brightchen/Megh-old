@@ -7,16 +7,18 @@ public class CommandManager {
   private static final Logger logger = LoggerFactory.getLogger(CommandManager.class);
   
   private final PermissionManager permissionManager = createPermissionManager();
+  private final CommandExecutor commandExecutor = createCommandExecutor();
   
   public void executeCommand(String appName, String command, String[] parameters)
   {
     try
     {
       verifyPermission(appName, command);
+      commandExecutor.executeCommand(appName, command, parameters);
     }
     catch(NoPermissionException e)
     {
-      logger.warn("No Permission to execute command {}", command);
+      logger.warn("No Permission to execute command \"{}\"", command);
     }
   }
   
@@ -37,5 +39,10 @@ public class CommandManager {
   protected PermissionManager createPermissionManager()
   {
     return new WhiteListPermissionManager();
+  }
+  
+  protected CommandExecutor createCommandExecutor()
+  {
+    return new DefaultCommandExecutor();
   }
 }

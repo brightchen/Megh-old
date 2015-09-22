@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.commons.lang3.mutable.MutableInt;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 
 import com.datatorrent.lib.appdata.gpo.GPOByteArrayList;
 import com.datatorrent.lib.appdata.gpo.GPOMutable;
@@ -37,7 +38,9 @@ import com.datatorrent.lib.dimensions.aggregator.IncrementalAggregator;
 
 import com.datatorrent.contrib.hdht.AbstractSinglePortHDHTWriter;
 
+import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.annotation.OperatorAnnotation;
+import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
 
 import com.datatorrent.netlet.util.Slice;
 
@@ -45,6 +48,8 @@ import com.datatorrent.netlet.util.Slice;
  * This operator is a base class for dimension store operators. This operator assumes that an
  * upstream {@link DimensionsComputationFlexibleSingleSchema} operator is producing {@link Aggregate}
  * objects which are provided to it as input.
+ * @since 3.1.0
+ *
  */
 @OperatorAnnotation(checkpointableWithinAppWindow=false)
 public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<Aggregate>
@@ -117,6 +122,14 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
    */
   @VisibleForTesting
   protected transient final Map<Long, Long> futureBuckets = Maps.newHashMap();
+
+  @OutputPortFieldAnnotation(optional=true)
+  public final transient DefaultOutputPort<Aggregate> updates = new DefaultOutputPort<>();
+
+  private boolean useSystemTimeForLatestTimeBuckets = false;
+
+  private Long minTimestamp = null;
+  private Long maxTimestamp = null;
 
   private transient final GPOByteArrayList bal = new GPOByteArrayList();
   private transient final GPOByteArrayList tempBal = new GPOByteArrayList();
@@ -411,9 +424,17 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
   @Override
   protected void processEvent(Aggregate gae)
   {
+    LOG.debug("Before event key {}", gae.getEventKey());
+
     int schemaID = gae.getSchemaID();
     int ddID = gae.getDimensionDescriptorID();
     int aggregatorID = gae.getAggregatorID();
+
+    FieldsDescriptor keyFieldsDescriptor = getKeyDescriptor(schemaID, ddID);
+    FieldsDescriptor valueFieldsDescriptor = getValueDescriptor(schemaID, ddID, aggregatorID);
+
+    gae.getKeys().setFieldDescriptor(keyFieldsDescriptor);
+    gae.getAggregates().setFieldDescriptor(valueFieldsDescriptor);
 
     //Skip data for buckets with greater committed window Ids
     if(!futureBuckets.isEmpty()) {
@@ -427,12 +448,6 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
       }
     }
 
-    FieldsDescriptor keyFieldsDescriptor = getKeyDescriptor(schemaID, ddID);
-    FieldsDescriptor valueFieldsDescriptor = getValueDescriptor(schemaID, ddID, aggregatorID);
-
-    gae.getKeys().setFieldDescriptor(keyFieldsDescriptor);
-    gae.getAggregates().setFieldDescriptor(valueFieldsDescriptor);
-
     GPOMutable metaData = gae.getMetaData();
 
     IncrementalAggregator aggregator = getAggregator(gae.getAggregatorID());
@@ -441,6 +456,8 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
       metaData.setFieldDescriptor(aggregator.getMetaDataDescriptor());
       metaData.applyObjectPayloadFix();
     }
+
+    LOG.debug("Event key {}", gae.getEventKey());
 
     Aggregate aggregate = cache.get(gae.getEventKey());
 
@@ -456,6 +473,7 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
       cache.put(gae.getEventKey(), gae);
     }
     else {
+      LOG.debug("Aggregating input");
       aggregator.aggregate(aggregate, gae);
     }
   }
@@ -489,6 +507,8 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
       putGAE(entry.getValue());
     }
 
+    emitUpdates();
+
     if(cacheWindowCount == cacheWindowDuration) {
       //clear the cache if the cache window duration is reached.
       cache.clear();
@@ -496,6 +516,19 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
     }
 
     super.endWindow();
+  }
+
+  /**
+   * This method is called in {@link #endWindow} and emits updated aggregates. Override
+   * this method if you want to control whether or not updates are emitted.
+   */
+  protected void emitUpdates()
+  {
+    if (updates.isConnected()) {
+      for(Map.Entry<EventKey, Aggregate> entry: cache.entrySet()) {
+        updates.emit(entry.getValue());
+      }
+    }
   }
 
   @Override
@@ -521,6 +554,60 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
   public void setCacheWindowDuration(int cacheWindowDuration)
   {
     this.cacheWindowDuration = cacheWindowDuration;
+  }
+
+  /**
+   * @return the minTimestamp
+   */
+  @Unstable
+  public Long getMinTimestamp()
+  {
+    return minTimestamp;
+  }
+
+  /**
+   * @param minTimestamp the minTimestamp to set
+   */
+  @Unstable
+  public void setMinTimestamp(Long minTimestamp)
+  {
+    this.minTimestamp = minTimestamp;
+  }
+
+  /**
+   * @return the maxTimestamp
+   */
+  @Unstable
+  public Long getMaxTimestamp()
+  {
+    return maxTimestamp;
+  }
+
+  /**
+   * @param maxTimestamp the maxTimestamp to set
+   */
+  @Unstable
+  public void setMaxTimestamp(Long maxTimestamp)
+  {
+    this.maxTimestamp = maxTimestamp;
+  }
+
+  /**
+   * @return the useSystemTimeForLatestTimeBuckets
+   */
+  @Unstable
+  public boolean isUseSystemTimeForLatestTimeBuckets()
+  {
+    return useSystemTimeForLatestTimeBuckets;
+  }
+
+  /**
+   * @param useSystemTimeForLatestTimeBuckets the useSystemTimeForLatestTimeBuckets to set
+   */
+  @Unstable
+  public void setUseSystemTimeForLatestTimeBuckets(boolean useSystemTimeForLatestTimeBuckets)
+  {
+    this.useSystemTimeForLatestTimeBuckets = useSystemTimeForLatestTimeBuckets;
   }
 
   /**

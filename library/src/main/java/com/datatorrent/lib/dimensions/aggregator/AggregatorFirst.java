@@ -4,6 +4,7 @@
  */
 package com.datatorrent.lib.dimensions.aggregator;
 
+import com.datatorrent.api.annotation.Name;
 import com.datatorrent.lib.appdata.gpo.GPOUtils;
 import com.datatorrent.lib.appdata.schemas.FieldsDescriptor;
 import com.datatorrent.lib.appdata.schemas.Type;
@@ -19,7 +20,10 @@ import com.datatorrent.lib.dimensions.DimensionsEvent.InputEvent;
  * <b>Note:</b> when aggregates are combined in a unifier it is not possible to tell which came first or last, so
  * one is picked arbitrarily to be the first.
  * </p>
+ * @since 3.1.0
+ *
  */
+@Name("FIRST")
 public class AggregatorFirst extends AbstractIncrementalAggregator
 {
   private static final long serialVersionUID = 20154301646L;

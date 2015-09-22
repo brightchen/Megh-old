@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.commons.lang3.mutable.MutableLong;
 
+import com.datatorrent.lib.appdata.StoreUtils;
 import com.datatorrent.lib.appdata.query.QueryExecutor;
 import com.datatorrent.lib.appdata.query.QueryManagerAsynchronous;
 import com.datatorrent.lib.appdata.query.SimpleQueueManager;
@@ -31,18 +32,22 @@ import com.datatorrent.lib.dimensions.aggregator.AggregatorRegistry;
 import com.datatorrent.lib.dimensions.aggregator.IncrementalAggregator;
 
 import com.datatorrent.api.Context;
+import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.Operator.IdleTimeHandler;
 import com.datatorrent.api.annotation.InputPortFieldAnnotation;
 
 import com.datatorrent.common.experimental.AppData;
+import com.datatorrent.common.experimental.AppData.EmbeddableQueryInfoProvider;
 
 /**
  * This is a base class for App Data enabled Dimensions Stores. This class holds all the template code required
  * for processing AppData queries.
+ * @since 3.1.0
+ *
  */
-public abstract class AbstractAppDataDimensionStoreHDHT extends DimensionsStoreHDHT implements IdleTimeHandler
+public abstract class AbstractAppDataDimensionStoreHDHT extends DimensionsStoreHDHT implements IdleTimeHandler, AppData.Store<String>
 {
   /**
    * This is the result formatter used to format data sent as a result to an App Data query.
@@ -85,10 +90,37 @@ public abstract class AbstractAppDataDimensionStoreHDHT extends DimensionsStoreH
    */
   protected transient MessageSerializerFactory resultSerializerFactory;
   /**
+   * Embeddable Query.
+   */
+  private EmbeddableQueryInfoProvider<String> embeddableQueryInfoProvider;
+
+  /**
+   * Optional unifier for query result port.
+   */
+  private Unifier<String> queryResultUnifier;
+
+  public void setQueryResultUnifier(Unifier<String> queryResultUnifier)
+  {
+    this.queryResultUnifier = queryResultUnifier;
+  }
+
+  /**
    * This is the output port that serialized query results are emitted from.
    */
   @AppData.ResultPort
-  public final transient DefaultOutputPort<String> queryResult = new DefaultOutputPort<String>();
+  public final transient DefaultOutputPort<String> queryResult = new DefaultOutputPort<String>()
+  {
+    @Override
+    public Unifier<String> getUnifier()
+    {
+      if (AbstractAppDataDimensionStoreHDHT.this.queryResultUnifier == null) {
+        return super.getUnifier();
+      } else {
+        return queryResultUnifier;
+      }
+    }
+  };
+
   /**
    * This is the input port from which queries are received.
    */
@@ -134,6 +166,14 @@ public abstract class AbstractAppDataDimensionStoreHDHT extends DimensionsStoreH
     //Do nothing
   }
 
+  @Override
+  public void activate(OperatorContext context)
+  {
+    if (embeddableQueryInfoProvider != null) {
+      embeddableQueryInfoProvider.activate(context);
+    }
+  }
+
   @SuppressWarnings("unchecked")
   @Override
   public void setup(Context.OperatorContext context)
@@ -150,19 +190,19 @@ public abstract class AbstractAppDataDimensionStoreHDHT extends DimensionsStoreH
     queryDeserializerFactory.setContext(DataQueryDimensional.class, schemaRegistry);
 
     dimensionsQueueManager = new DimensionsQueueManager(this, schemaRegistry);
-    queryProcessor =
-    new QueryManagerAsynchronous<DataQueryDimensional, QueryMeta, MutableLong, Result>(queryResult,
-                                                                                       dimensionsQueueManager,
-                                                                                       new DimensionsQueryExecutor(this, schemaRegistry),
-                                                                                       resultSerializerFactory,
-                                                                                       Thread.currentThread());
+    queryProcessor
+            = new QueryManagerAsynchronous<>(queryResult,
+                                             dimensionsQueueManager,
+                                             new DimensionsQueryExecutor(this, schemaRegistry),
+                                             resultSerializerFactory,
+                                             Thread.currentThread());
 
-    schemaQueueManager = new SimpleQueueManager<SchemaQuery, Void, Void>();
-    schemaProcessor = new QueryManagerAsynchronous<SchemaQuery, Void, Void, SchemaResult>(queryResult,
-                                                                                          schemaQueueManager,
-                                                                                          new SchemaQueryExecutor(),
-                                                                                          resultSerializerFactory,
-                                                                                          Thread.currentThread());
+    schemaQueueManager = new SimpleQueueManager<>();
+    schemaProcessor = new QueryManagerAsynchronous<>(queryResult,
+                                                     schemaQueueManager,
+                                                     new SchemaQueryExecutor(),
+                                                     resultSerializerFactory,
+                                                     Thread.currentThread());
 
 
     dimensionsQueueManager.setup(context);
@@ -170,11 +210,23 @@ public abstract class AbstractAppDataDimensionStoreHDHT extends DimensionsStoreH
 
     schemaQueueManager.setup(context);
     schemaProcessor.setup(context);
+
+    if (embeddableQueryInfoProvider != null) {
+      embeddableQueryInfoProvider.enableEmbeddedMode();
+      LOG.info("An embeddable query operator is being used of class {}.", embeddableQueryInfoProvider.getClass().getName());
+      StoreUtils.attachOutputPortToInputPort(embeddableQueryInfoProvider.getOutputPort(),
+                                             query);
+      embeddableQueryInfoProvider.setup(context);
+    }
   }
 
   @Override
   public void beginWindow(long windowId)
   {
+    if (embeddableQueryInfoProvider != null) {
+      embeddableQueryInfoProvider.beginWindow(windowId);
+    }
+
     super.beginWindow(windowId);
 
     schemaQueueManager.beginWindow(windowId);
@@ -187,6 +239,10 @@ public abstract class AbstractAppDataDimensionStoreHDHT extends DimensionsStoreH
   @Override
   public void endWindow()
   {
+    if (embeddableQueryInfoProvider != null) {
+      embeddableQueryInfoProvider.endWindow();
+    }
+
     queryProcessor.endWindow();
     dimensionsQueueManager.endWindow();
 
@@ -199,6 +255,10 @@ public abstract class AbstractAppDataDimensionStoreHDHT extends DimensionsStoreH
   @Override
   public void teardown()
   {
+    if (embeddableQueryInfoProvider != null) {
+      embeddableQueryInfoProvider.teardown();
+    }
+
     queryProcessor.teardown();
     dimensionsQueueManager.teardown();
 
@@ -213,6 +273,14 @@ public abstract class AbstractAppDataDimensionStoreHDHT extends DimensionsStoreH
   {
     schemaProcessor.handleIdleTime();
     queryProcessor.handleIdleTime();
+  }
+
+  @Override
+  public void deactivate()
+  {
+    if (embeddableQueryInfoProvider != null) {
+      embeddableQueryInfoProvider.deactivate();
+    }
   }
 
   /**
@@ -275,6 +343,18 @@ public abstract class AbstractAppDataDimensionStoreHDHT extends DimensionsStoreH
   public void setAggregatorRegistry(@NotNull AggregatorRegistry aggregatorRegistry)
   {
     this.aggregatorRegistry = aggregatorRegistry;
+  }
+
+  @Override
+  public EmbeddableQueryInfoProvider<String> getEmbeddableQueryInfoProvider()
+  {
+    return embeddableQueryInfoProvider;
+  }
+
+  @Override
+  public void setEmbeddableQueryInfoProvider(EmbeddableQueryInfoProvider<String> embeddableQueryInfoProvider)
+  {
+    this.embeddableQueryInfoProvider = embeddableQueryInfoProvider;
   }
 
   /**

@@ -42,6 +42,8 @@ import com.datatorrent.netlet.util.Slice;
  * <b>Note:</b> This {@link QueryExecutor} will work with {@link DimensionStoreHDHT}
  * operators that serve data for single or multiple schemas.
  * </p>
+ * @since 3.1.0
+ *
  */
 public class DimensionsQueueManager extends AppDataWindowEndQueueManager<DataQueryDimensional, QueryMeta> {
   /**
@@ -160,10 +162,20 @@ public class DimensionsQueueManager extends AppDataWindowEndQueueManager<DataQue
       else {
         //the query has lastnumbuckets
 
-        long time = System.currentTimeMillis();
+        long time;
+
+        if (operator.getMaxTimestamp() == null || operator.isUseSystemTimeForLatestTimeBuckets()) {
+          time = System.currentTimeMillis();
+        } else {
+          time = operator.getMaxTimestamp();
+        }
+
         endTime = query.getTimeBucket().roundDown(time);
         startTime = endTime - query.getTimeBucket().getTimeUnit().toMillis(query.getLatestNumBuckets() - 1);
       }
+
+      long startTimeDelta = (query.getSlidingAggregateSize() - 1) * query.getTimeBucket().getTimeUnit().toMillis(1);
+      startTime -= startTimeDelta;
 
       gpoKey.setField(DimensionsDescriptor.DIMENSION_TIME_BUCKET, query.getTimeBucket().ordinal());
 

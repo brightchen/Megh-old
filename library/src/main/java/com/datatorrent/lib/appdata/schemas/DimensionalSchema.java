@@ -42,6 +42,7 @@ import com.datatorrent.lib.dimensions.aggregator.IncrementalAggregator;
  *     "to":382390859384
  *   }
  * }
+ * @since 3.1.0
  */
 public class DimensionalSchema implements Schema
 {
@@ -69,6 +70,10 @@ public class DimensionalSchema implements Schema
    * The JSON key string corresponding to the buckets field.
    */
   public static final String FIELD_TIME_BUCKETS = "buckets";
+  /**
+   * The JSON key string corresponding to the slidingAggregateSupported field.
+   */
+  public static final String FIELD_SLIDING_AGGREGATE_SUPPORTED = "slidingAggregateSupported";
 
   public static final List<Fields> VALID_KEYS = ImmutableList.of(new Fields(Sets.newHashSet(FIELD_TIME)));
   public static final List<Fields> VALID_TIME_KEYS = ImmutableList.of(new Fields(Sets.newHashSet(FIELD_TIME_FROM, FIELD_TIME_TO)));
@@ -353,6 +358,8 @@ public class DimensionalSchema implements Schema
     schema.put(FIELD_TIME, time);
     JSONArray bucketsArray = new JSONArray(configurationSchema.getBucketsString());
     time.put(FIELD_TIME_BUCKETS, bucketsArray);
+
+    time.put(this.FIELD_SLIDING_AGGREGATE_SUPPORTED, true);
 
     //keys
     keys = new JSONArray(configurationSchema.getKeysString());

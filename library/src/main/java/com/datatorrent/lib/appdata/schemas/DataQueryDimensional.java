@@ -20,6 +20,7 @@ import com.datatorrent.lib.dimensions.DimensionsDescriptor;
 
 /**
  * This class represents a data query for the {@link DimensionalSchema}.
+ * @since 3.1.0
  */
 @MessageType(type=DataQueryDimensional.TYPE)
 @MessageDeserializerInfo(clazz=DataQueryDimensionalDeserializer.class)
@@ -67,7 +68,10 @@ public class DataQueryDimensional extends Query
    * JSON key for incompleteResultOK.
    */
   public static final String FIELD_INCOMPLETE_RESULT_OK = "incompleteResultOK";
-
+  /**
+   * JSON key for sliding aggregates.
+   */
+  public static final String FIELD_SLIDING_AGGREGATE_SIZE = "slidingAggregateSize";
   /**
    * The from timestamp.
    */
@@ -109,6 +113,7 @@ public class DataQueryDimensional extends Query
    */
   private DimensionsDescriptor dimensionsDescriptor;
   private FieldsAggregatable fieldsAggregatable;
+  private int slidingAggregateSize = 1;
 
   public DataQueryDimensional(String id,
                               String type,
@@ -450,6 +455,24 @@ public class DataQueryDimensional extends Query
   public FieldsAggregatable getFieldsAggregatable()
   {
     return fieldsAggregatable;
+  }
+
+  /**
+   * @return the slidingAggregateSize
+   */
+  public int getSlidingAggregateSize()
+  {
+    return slidingAggregateSize;
+  }
+
+  /**
+   * @param slidingAggregateSize the slidingAggregateSize to set
+   */
+  public void setSlidingAggregateSize(int slidingAggregateSize)
+  {
+    Preconditions.checkArgument(slidingAggregateSize >= 1,
+                                "The slidingAggregateSize must be greater than or equal to one.");
+    this.slidingAggregateSize = slidingAggregateSize;
   }
 
   @Override

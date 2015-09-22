@@ -4,6 +4,7 @@
  */
 package com.datatorrent.lib.dimensions.aggregator;
 
+import com.datatorrent.api.annotation.Name;
 import com.datatorrent.lib.appdata.gpo.GPOMutable;
 import com.datatorrent.lib.appdata.gpo.GPOUtils;
 import com.datatorrent.lib.appdata.schemas.FieldsDescriptor;
@@ -13,7 +14,10 @@ import com.datatorrent.lib.dimensions.DimensionsEvent.InputEvent;
 
 /**
  * This {@link IncrementalAggregator} takes the min of the fields provided in the {@link InputEvent}.
+ * @since 3.1.0
+ *
  */
+@Name("MIN")
 public class AggregatorMin extends AbstractIncrementalAggregator
 {
   private static final long serialVersionUID = 20154301648L;

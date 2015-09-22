@@ -6,7 +6,7 @@
   <parent>
     <groupId>com.datatorrent</groupId>
     <artifactId>dt-megh</artifactId>
-    <version>3.1.0-SNAPSHOT</version>
+    <version>3.2.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>dt-library</artifactId>
@@ -164,6 +164,11 @@
 
   <dependencies>
     <dependency>
+      <groupId>com.datatorrent</groupId>
+      <artifactId>dt-api</artifactId>
+      <version>${apex.version}</version>
+    </dependency>
+    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
       <version>1.7.5</version>
@@ -177,13 +182,13 @@
     <dependency>
       <groupId>com.datatorrent</groupId>
       <artifactId>malhar-library</artifactId>
-      <version>3.0.0</version>
+      <version>${malhar.version}</version>
       <type>jar</type>
     </dependency>
     <dependency>
       <groupId>com.datatorrent</groupId>
       <artifactId>malhar-library</artifactId>
-      <version>3.0.0</version>
+      <version>${malhar.version}</version>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
@@ -196,7 +201,7 @@
     <dependency>
       <groupId>com.datatorrent</groupId>
       <artifactId>dt-common</artifactId>
-      <version>3.0.0</version>
+      <version>${apex.version}</version>
       <type>jar</type>
     </dependency>
     <dependency>

@@ -4,6 +4,7 @@
  */
 package com.datatorrent.lib.dimensions.aggregator;
 
+import com.datatorrent.api.annotation.Name;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +19,9 @@ import static com.datatorrent.lib.dimensions.aggregator.AbstractIncrementalAggre
 
 /**
  * This {@link IncrementalAggregator} performs a sum operation over the fields in the given {@link InputEvent}.
+ * @since 3.1.0
  */
+@Name("SUM")
 public class AggregatorSum extends AbstractIncrementalAggregator
 {
   private static final long serialVersionUID = 20154301649L;

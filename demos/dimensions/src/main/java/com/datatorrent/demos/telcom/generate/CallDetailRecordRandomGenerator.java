@@ -30,6 +30,14 @@ public class CallDetailRecordRandomGenerator {
     record.setCallType(callTypeGenerator.next());
     record.setCorrespType(correspTypeGenerator.next());
     record.setCorrespIsdn(correspIsdnGenerator.next());
+    if(CallType.MOC.label().equals(record.getCallType()) || CallType.MTC.label().equals(record.getCallType()))
+    {
+      //call
+    }
+    else // data or sms
+    {
+      
+    }
     return record;
   }
 }

@@ -5,10 +5,11 @@ import java.util.Set;
 
 import com.google.common.collect.Sets;
 
-public class CharRandomGenerator {
+public class CharRandomGenerator implements Generator<Character> {
   protected static final Random random = new Random();
   private char[] candidates;
   
+  public CharRandomGenerator(){}
   
   public CharRandomGenerator(CharRange ... ranges)
   {
@@ -46,7 +47,8 @@ public class CharRandomGenerator {
     }
   }
   
-  public char next()
+  @Override
+  public Character next()
   {
     return candidates[random.nextInt(candidates.length)];
   }

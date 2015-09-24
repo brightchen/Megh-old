@@ -1,8 +1,9 @@
 package com.datatorrent.demos.telcom.generate;
 
-public abstract class AbstractStringRandomGenerator {
+public abstract class AbstractStringRandomGenerator implements Generator<String> {
   protected CharRandomGenerator charGenerator;
   
+  @Override
   public String next()
   {
     if(charGenerator == null)

@@ -2,9 +2,11 @@ package com.datatorrent.demos.telcom.generate;
 
 import java.util.Random;
 
-public class EnumStringRandomGenerator {
+public class EnumStringRandomGenerator implements Generator<String>{
   protected static final Random random = new Random();
   protected String[] candidates;
+  
+  public EnumStringRandomGenerator(){}
   
   public EnumStringRandomGenerator(String[] candidates)
   {
@@ -15,6 +17,8 @@ public class EnumStringRandomGenerator {
   
   public String next()
   {
+    if(candidates.length == 1)
+      return candidates[0];
     return candidates[random.nextInt(candidates.length)];
   }
 }

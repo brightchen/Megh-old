@@ -1,5 +1,7 @@
 package com.datatorrent.demos.telcom.generate;
 
+import java.util.Random;
+
 public enum DisconnectReason {
   NoResponse(9, "No Response"),
   CallComplete(10, "Call Complete"),
@@ -8,6 +10,8 @@ public enum DisconnectReason {
   
   private int code;
   private String label;
+  
+  private DisconnectReason(){}
   
   private DisconnectReason(int code, String label)
   {
@@ -23,5 +27,11 @@ public enum DisconnectReason {
     return label;
   }
   
+  private static Random random = new Random();
+  public static DisconnectReason randomDisconnectReason()
+  {
+    final int size = DisconnectReason.values().length;
+    return DisconnectReason.values()[random.nextInt(size)];
+  }
   
 }

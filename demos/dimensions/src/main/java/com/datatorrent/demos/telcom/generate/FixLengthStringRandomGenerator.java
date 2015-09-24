@@ -3,6 +3,8 @@ package com.datatorrent.demos.telcom.generate;
 public class FixLengthStringRandomGenerator extends AbstractStringRandomGenerator{
   protected int length;
   
+  public FixLengthStringRandomGenerator(){}
+  
   public FixLengthStringRandomGenerator(CharRandomGenerator charGenerator, int length)
   {
     if(length <= 0 )

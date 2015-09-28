@@ -19,7 +19,7 @@ public enum DisconnectReason {
     this.label = label;
   }
 
-  public int getCode() {
+  public final int getCode() {
     return code;
   }
 
@@ -34,4 +34,13 @@ public enum DisconnectReason {
     return DisconnectReason.values()[random.nextInt(size)];
   }
   
+  public static DisconnectReason fromCode(int code)
+  {
+    for(DisconnectReason dr : DisconnectReason.values())
+    {
+      if(dr.code == code)
+        return dr;
+    }
+    throw new IllegalArgumentException("Invalid disconnect code: " + code);
+  }
 }

@@ -6,7 +6,14 @@ import com.datatorrent.api.DAG;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.demos.telcom.generate.CallDetailRecordGenerateOperator;
-
+/**
+ * 
+ * This application generate random CallDetailRecord and save to files
+ *   - This application will suspend generate tuples when the file reach to 240 files.
+ * 
+ * @author bright
+ *
+ */
 @ApplicationAnnotation(name="CallDetailRecordGenerateApp")
 public class CallDetailRecordGenerateApp implements StreamingApplication {
   protected String filePath;

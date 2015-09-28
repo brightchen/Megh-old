@@ -16,22 +16,21 @@ MSIDN;       IMSI;           IMEI;        PLAN;CALL_TYPE;CORRESP_TYPE;CORRESP_IS
 065978198280;208100310191699;356008289837;PLAN3;MOC;     CUST1;       0613069656;  82;      ;     10;  33.07818; -96.7944; 12:02:27;01/01/2015 
 065978198280;208100310191699;356008289837;PLAN3;DATA;    CUST1;       0613481951;  0;       150   ;    33.09851; -96.6374; 12:04:41;01/01/2015 
  */
-public class CallDetailRecordRandomGenerator {
-  private Random random = new Random();
-  private CharRandomGenerator digitCharGenerator = new CharRandomGenerator(CharRange.digits);
-  private StringComposeGenerator msidnGenerator = new StringComposeGenerator( new EnumStringRandomGenerator(new String[]{"01"}),  
-      new EnumStringRandomGenerator(new String[]{"408", "650", "510", "415", "925", "707"}), new FixLengthStringRandomGenerator(digitCharGenerator, 7) );
-  private FixLengthStringRandomGenerator imsiGenerator = new FixLengthStringRandomGenerator(digitCharGenerator, 15);
-  private FixLengthStringRandomGenerator imeiGenerator = new FixLengthStringRandomGenerator(digitCharGenerator, 12);
+public class CallDetailRecordRandomGenerator implements Generator<CallDetailRecord> {
+  private static final Random random = new Random();
+  private CharRandomGenerator digitCharGenerator = CharRandomGenerator.digitCharGenerator;
+  private MsisdnGenerator msidnGenerator = new MsisdnGenerator();
+  private ImsiGenerator imsiGenerator = new ImsiGenerator();
+  private ImeiGenerator imeiGenerator = new ImeiGenerator();
   private EnumStringRandomGenerator planGenerator = new EnumStringRandomGenerator(new String[]{"PLAN1", "PLAN2", "PLAN3", "PLAN4"});
   private EnumStringRandomGenerator callTypeGenerator = new EnumStringRandomGenerator(CallType.labels());
   private EnumStringRandomGenerator correspTypeGenerator = new EnumStringRandomGenerator(new String[]{"CUST1", "CUST2", "CUST3"});
   private FixLengthStringRandomGenerator correspIsdnGenerator = new FixLengthStringRandomGenerator(digitCharGenerator, 10);
 
   //initial as yesterday.
-  private transient volatile long recordTime = Calendar.getInstance().getTimeInMillis() - 24*60*60*1000;
+  //private transient volatile long recordTime = Calendar.getInstance().getTimeInMillis() - 24*60*60*1000;
   
-
+  @Override
   public CallDetailRecord next()
   {
     CallDetailRecord record = new CallDetailRecord();
@@ -49,18 +48,13 @@ public class CallDetailRecordRandomGenerator {
       //dr
       record.setDr(DisconnectReason.randomDisconnectReason());
       //duration
-      switch(record.getDr())
-      {
-      case NoResponse:
+      if(DisconnectReason.NoResponse.getCode() == record.getDr())
         record.setDuration(random.nextInt(2)+1);
-        break;
-      case CallComplete:
+      else if(DisconnectReason.CallComplete.getCode() == record.getDr())
         record.setDuration(random.nextInt(298)+2);
-        break;
-      case CallDropped:
+      else if(DisconnectReason.CallDropped.getCode() == record.getDr())
         record.setDuration(random.nextInt(3));
-        break;
-      }
+      
       //bytes: empty
     }
     else  //sms and data
@@ -77,8 +71,9 @@ public class CallDetailRecordRandomGenerator {
     //[-124, -118]
     record.setLon((float)(Math.random()*7-124));
     
-    recordTime += random.nextInt(100);
-    record.setTime(recordTime);
+    //use current time
+    //recordTime += random.nextInt(100);
+    record.setTime(Calendar.getInstance().getTimeInMillis());
     
     return record;
   }

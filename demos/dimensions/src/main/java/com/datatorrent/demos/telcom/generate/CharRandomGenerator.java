@@ -6,7 +6,8 @@ import java.util.Set;
 import com.google.common.collect.Sets;
 
 public class CharRandomGenerator implements Generator<Character> {
-  protected static final Random random = new Random();
+  public static final CharRandomGenerator digitCharGenerator = new CharRandomGenerator(CharRange.digits);
+  
   private char[] candidates;
   
   public CharRandomGenerator(){}

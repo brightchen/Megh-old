@@ -4,10 +4,12 @@ import java.util.Map;
 import java.util.Random;
 
 import com.datatorrent.demos.telcom.model.MNCInfo;
+import com.datatorrent.demos.telcom.model.MNCInfo.Carrier;
 import com.datatorrent.demos.telcom.model.TACInfo;
 import com.google.common.collect.Maps;
 
 public class MNCRepo {
+  
   //MCC to MNC: see https://en.wikipedia.org/wiki/List_of_mobile_network_codes_in_the_United_States
   private static final Random random = new Random();
   private static MNCRepo instance;
@@ -38,31 +40,31 @@ public class MNCRepo {
   protected void init()
   {
     repo.clear();
-    addNewMncInfo(310, 12, "Verizon Wireless");
-    addNewMncInfo(310, 13, "MobileTel");
-    addNewMncInfo(310, 15, "SouthernLINC");
-    addNewMncInfo(310, 16, "Cricket Communications");
-    addNewMncInfo(310, 20, "Union Telephone");
-    addNewMncInfo(310, 26, "T-Mobile USA");
-    addNewMncInfo(310, 30, "Centennial Communications");
-    addNewMncInfo(310, 32, "IT&E");
-    addNewMncInfo(310, 34, "Airpeak");
-    addNewMncInfo(310, 40, "Concho Wireless/ Commnet");
-    addNewMncInfo(310, 50, "Cingular Wireless");
-    addNewMncInfo(310, 60, "Consolidated Telecom");
-    addNewMncInfo(310, 70, "AT&T");
-    addNewMncInfo(310, 80, "Corr Wireless");
-    addNewMncInfo(310, 90, "Cricket Communications");
-    addNewMncInfo(310, 100, "Plateau Wireless");
-    addNewMncInfo(310,110, "IT&E");
-    addNewMncInfo(310,120, "Sprint");
-    addNewMncInfo(310,130, "Cellular One");
-    addNewMncInfo(310,140, "Pulse Mobile (GTA)");
-    addNewMncInfo(310,150, "Aio Wireless");
-    addNewMncInfo(310,160,  "T-Mobile USA");
-    addNewMncInfo(310,170, "T-Mobile USA");
-    addNewMncInfo(310,180, "West Central Wireless");
-    addNewMncInfo(310,190, "Alaska Telecom");
+    addNewMncInfo(310, 12, Carrier.VZN);
+//    addNewMncInfo(310, 13, "MobileTel");
+//    addNewMncInfo(310, 15, "SouthernLINC");
+//    addNewMncInfo(310, 16, "Cricket Communications");
+//    addNewMncInfo(310, 20, "Union Telephone");
+//    addNewMncInfo(310, 26, "T-Mobile USA");
+//    addNewMncInfo(310, 30, "Centennial Communications");
+//    addNewMncInfo(310, 32, "IT&E");
+//    addNewMncInfo(310, 34, "Airpeak");
+//    addNewMncInfo(310, 40, "Concho Wireless/ Commnet");
+//    addNewMncInfo(310, 50, "Cingular Wireless");
+//    addNewMncInfo(310, 60, "Consolidated Telecom");
+    addNewMncInfo(310, 70, Carrier.ATT);
+//    addNewMncInfo(310, 80, "Corr Wireless");
+//    addNewMncInfo(310, 90, "Cricket Communications");
+//    addNewMncInfo(310, 100, "Plateau Wireless");
+//    addNewMncInfo(310,110, "IT&E");
+    addNewMncInfo(310,120, Carrier.SPR);
+//    addNewMncInfo(310,130, "Cellular One");
+//    addNewMncInfo(310,140, "Pulse Mobile (GTA)");
+//    addNewMncInfo(310,150, "Aio Wireless");
+    addNewMncInfo(310,160,  Carrier.TMO);
+    addNewMncInfo(310,170, Carrier.TMO);
+//    addNewMncInfo(310,180, "West Central Wireless");
+//    addNewMncInfo(310,190, "Alaska Telecom");
 
     //others
     
@@ -74,7 +76,7 @@ public class MNCRepo {
     
   }
   
-  public MNCInfo addNewMncInfo(int mcc, int mnc, String carrier)
+  public MNCInfo addNewMncInfo(int mcc, int mnc, Carrier carrier)
   {
     MNCInfo info = getMncInfo(mcc, mnc);
     if(info == null)

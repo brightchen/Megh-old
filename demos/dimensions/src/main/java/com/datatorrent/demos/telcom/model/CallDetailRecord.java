@@ -136,7 +136,8 @@ public class CallDetailRecord {
         Integer.valueOf(hms[1]), Integer.valueOf(hms[2]));
   }
 
-  public String toLine() {
+  @Override
+  public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append(msidn).append(delimiter);
     sb.append(imsi).append(delimiter);
@@ -179,6 +180,10 @@ public class CallDetailRecord {
     record.setFromLine(line);
 
     return record;
+  }
+  
+  public String toLine() {
+    return toString() + "\n";
   }
 
   public void setFromLine(String line) {

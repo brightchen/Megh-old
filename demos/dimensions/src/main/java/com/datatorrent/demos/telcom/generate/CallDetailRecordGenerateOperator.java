@@ -8,7 +8,7 @@ public class CallDetailRecordGenerateOperator implements InputOperator {
   public final transient DefaultOutputPort<byte[]> outputPort = new DefaultOutputPort<byte[]>();
 
   private int batchSize = 10;
-  private CallDetailRecordRandomGenerator generator = new CallDetailRecordRandomGenerator();
+  private CallDetailRecordCustomerInfoGenerator generator = new CallDetailRecordCustomerInfoGenerator();
   
    @Override
   public void beginWindow(long windowId) {

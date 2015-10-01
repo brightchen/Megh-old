@@ -1,4 +1,4 @@
-package com.datatorrent.demos.telcom.hive;
+package com.datatorrent.demos.telcom.generate;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -13,17 +13,16 @@ import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.annotation.InputPortFieldAnnotation;
 import com.datatorrent.common.util.BaseOperator;
+import com.datatorrent.demos.telcom.hive.CustomerEnrichedInfoHiveConfig;
+import com.datatorrent.demos.telcom.hive.DataWarehouseConfig;
+import com.datatorrent.demos.telcom.hive.HiveUtil;
 import com.datatorrent.demos.telcom.model.CustomerEnrichedInfo.SingleRecord;
 
 public class CustomerEnrichedInfoHiveOutputOperator extends BaseOperator{
   private static final transient Logger logger = LoggerFactory.getLogger(CustomerEnrichedInfoHiveOutputOperator.class);
   
-  private String host = "localhost";
-  private int port = 10000;
-  private String userName;
-  private String password;
-  private String database = "telcomdemo";
-  private String tableName = "CustomerEnrichedInfo";
+  private DataWarehouseConfig hiveConfig = CustomerEnrichedInfoHiveConfig.instance;
+  
   private boolean startOver = false;
   
   protected Connection connect;
@@ -48,7 +47,7 @@ public class CustomerEnrichedInfoHiveOutputOperator extends BaseOperator{
     }
     catch(Exception e)
     {
-      logger.error("create table '{}' failed.\n exception: {}", tableName, e.getMessage());
+      logger.error("create table '{}' failed.\n exception: {}", hiveConfig.getTableName(), e.getMessage());
     }
   }
   
@@ -58,8 +57,8 @@ public class CustomerEnrichedInfoHiveOutputOperator extends BaseOperator{
     
     if(connect == null)
     {
-      String url = HiveUtil.getUrl(host, port, database);
-      connect = DriverManager.getConnection(url, userName, password);    
+      String url = HiveUtil.getUrl(hiveConfig.getHost(), hiveConfig.getPort(), hiveConfig.getDatabase());
+      connect = DriverManager.getConnection(url, hiveConfig.getUserName(), hiveConfig.getPassword());    
     }
     return connect;
   }
@@ -69,20 +68,31 @@ public class CustomerEnrichedInfoHiveOutputOperator extends BaseOperator{
     Connection connect = getConnect();
     Statement stmt = connect.createStatement();
     
-    ResultSet rs = stmt.executeQuery("SHOW TABLES LIKE '" + tableName + "'");
-    boolean hasTable = rs.first();
+    ResultSet rs = stmt.executeQuery("SHOW TABLES LIKE '" + hiveConfig.getTableName() + "'");
+    //hive doesn't support first();
+    //boolean hasTable = rs.first();
+    boolean hasTable = false;
+    try
+    {
+      hasTable = rs.next();
+    }
+    catch(SQLException e)
+    {
+      logger.warn(e.getMessage());
+    }
     
     if(hasTable && startOver)
     {
-      stmt.executeUpdate("drop table " + tableName);
+      stmt.executeUpdate("drop table " + hiveConfig.getTableName());
       hasTable = false;
     }
     
     if(!hasTable)
     {
       //create table;
-      String tableSchema = "(id long, imsi string, isdn string, imei string, operatorCode string, operatorName string, deviceBrand string, deviceModel string)";
-      stmt.executeUpdate("create table " + tableName + tableSchema);
+      //not support long?
+      String tableSchema = " (id String, imsi string, isdn string, imei string, operatorCode string, operatorName string, deviceBrand string, deviceModel string)";
+      stmt.executeUpdate("create table " + hiveConfig.getTableName() + tableSchema);
     }
     stmt.close();
   }
@@ -99,18 +109,21 @@ public class CustomerEnrichedInfoHiveOutputOperator extends BaseOperator{
   private int batchSize = 0;
   public void processTuple(SingleRecord tuple)
   {
-    final String sqlValueFormat = "(%d, '%s', '%s', '%s', '%s', '%s', '%s', '%s')";
-    String sql = "insert into table " + tableName + " values " 
+    final String sqlValueFormat = "('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')";
+    String sql = "insert into table " + hiveConfig.getTableName() + " values " 
         + String.format( sqlValueFormat, tuple.id, tuple.imsi, tuple.isdn, tuple.imei, tuple.operatorCode, tuple.operatorName, tuple.deviceBrand, tuple.deviceModel );
     
     try {
-      getInsertStatement().addBatch(sql);
-      ++batchSize;
-      
-      if(batchSize >= batchCount)
-        insertStatement.executeBatch();
-      
-      batchSize = 0;
+      //hive doesn't support batch
+      //getInsertStatement().addBatch(sql);
+      getInsertStatement().executeUpdate(sql);
+//      ++batchSize;
+//      
+//      if(batchSize >= batchCount)
+//      {
+//        insertStatement.executeBatch();
+//        batchSize = 0;
+//      }
       
     } catch (ClassNotFoundException | SQLException e) {
       logger.error(e.getMessage(), e);
@@ -120,63 +133,23 @@ public class CustomerEnrichedInfoHiveOutputOperator extends BaseOperator{
   @Override
   public void endWindow()
   {
-    try
-    {
-      if(batchSize > 0)
-        insertStatement.executeBatch();
-    }
-    catch(SQLException e)
-    {
-      logger.error(e.getMessage(), e);
-    }
+//    try
+//    {
+//      if(batchSize > 0)
+//        insertStatement.executeBatch();
+//    }
+//    catch(SQLException e)
+//    {
+//      logger.error(e.getMessage(), e);
+//    }
   }
 
-  public String getHost() {
-    return host;
+  public DataWarehouseConfig getHiveConfig() {
+    return hiveConfig;
   }
 
-  public void setHost(String host) {
-    this.host = host;
-  }
-
-  public int getPort() {
-    return port;
-  }
-
-  public void setPort(int port) {
-    this.port = port;
-  }
-
-  public String getUserName() {
-    return userName;
-  }
-
-  public void setUserName(String userName) {
-    this.userName = userName;
-  }
-
-  public String getPassword() {
-    return password;
-  }
-
-  public void setPassword(String password) {
-    this.password = password;
-  }
-
-  public String getDatabase() {
-    return database;
-  }
-
-  public void setDatabase(String database) {
-    this.database = database;
-  }
-
-  public String getTableName() {
-    return tableName;
-  }
-
-  public void setTableName(String tableName) {
-    this.tableName = tableName;
+  public void setHiveConfig(DataWarehouseConfig hiveConfig) {
+    this.hiveConfig = hiveConfig;
   }
   
   

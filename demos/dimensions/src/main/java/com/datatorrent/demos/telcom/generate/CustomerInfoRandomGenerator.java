@@ -22,6 +22,6 @@ public class CustomerInfoRandomGenerator  implements Generator<CustomerInfo>{
     {
       imeis.add(imeiGenerator.next());
     }
-    return new CustomerInfo(msidnGenerator.next(), imsiGenerator.next(), imeis);
+    return new CustomerInfo(imsiGenerator.next(), msidnGenerator.next(), imeis);
   }
 }

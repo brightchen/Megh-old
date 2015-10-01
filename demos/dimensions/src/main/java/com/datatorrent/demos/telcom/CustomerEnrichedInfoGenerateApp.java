@@ -14,8 +14,13 @@ import com.datatorrent.contrib.hive.FSPojoToHiveOperator;
 import com.datatorrent.contrib.hive.AbstractFSRollingOutputOperator.FilePartitionMapping;
 import com.datatorrent.contrib.hive.FSPojoToHiveOperator.FIELD_TYPE;
 import com.datatorrent.contrib.hive.HiveMockTest.InnerObj;
+import com.datatorrent.demos.dimensions.telecom.CustomerEnrichedInfoHiveTestConfig;
+import com.datatorrent.demos.telcom.conf.CustomerEnrichedInfoHBaseConfig;
 import com.datatorrent.demos.telcom.generate.CustomerEnrichedInfoGenerateOperator;
-import com.datatorrent.demos.telcom.hive.CustomerEnrichedInfoHiveOutputOperator;
+import com.datatorrent.demos.telcom.generate.CustomerEnrichedInfoHbaseOutputOperator;
+import com.datatorrent.demos.telcom.generate.CustomerEnrichedInfoHiveOutputOperator;
+import com.datatorrent.demos.telcom.hive.CustomerEnrichedInfoHiveConfig;
+import com.datatorrent.demos.telcom.hive.DataWarehouseConfig;
 import com.datatorrent.demos.telcom.model.CustomerEnrichedInfo;
 import com.datatorrent.lib.helper.OperatorContextTestHelper;
 
@@ -29,33 +34,46 @@ import com.datatorrent.lib.helper.OperatorContextTestHelper;
  */
 @ApplicationAnnotation(name="CustomerInfoGenerateApp")
 public class CustomerEnrichedInfoGenerateApp implements StreamingApplication {
+  public static final int outputMask_HBase = 0x01;
+  public static final int outputMask_Hive = 0x10;
+  
+  protected int outputMask = outputMask_HBase;
+  
   protected String fileDir = "CEI";
-  private String host = "localhost";
-  private int port = 10000;
-  private String userName;
-  private String password;
+  
+  
+  protected DataWarehouseConfig hiveConfig = CustomerEnrichedInfoHiveConfig.instance;
+  protected DataWarehouseConfig hbaseConfig = CustomerEnrichedInfoHBaseConfig.instance;
   
   @Override
   public void populateDAG(DAG dag, Configuration conf) {
     CustomerEnrichedInfoGenerateOperator generator = new CustomerEnrichedInfoGenerateOperator();
     dag.addOperator("CustomerEnrichedInfo-Generator", generator);
     
-    //configure this operator
-    CustomerEnrichedInfoHiveOutputOperator hiveOutput = createHiveOutput();
-    
-    dag.addOperator("Hive Ouput", hiveOutput);
-    
-    dag.addStream("Customer Enriched Info", generator.outputPort, hiveOutput.input);
+    //use HBase
+    if((outputMask & outputMask_HBase) != 0)
+    {
+      CustomerEnrichedInfoHbaseOutputOperator hbaseOutput = new CustomerEnrichedInfoHbaseOutputOperator();
+      hbaseOutput.setHbaseConfig(hbaseConfig);
+      dag.addOperator("HBase Ouput", hbaseOutput);
+      dag.addStream("HBase Stream", generator.outputPort, hbaseOutput.input);
+    }
+    //use Hive
+    if((outputMask & outputMask_Hive) != 0)
+    {
+      //configure this operator
+      CustomerEnrichedInfoHiveOutputOperator hiveOutput = createHiveOutput();
+      hiveOutput.setHiveConfig(CustomerEnrichedInfoHiveTestConfig.instance);
+      
+      dag.addOperator("Hive Ouput", hiveOutput);
+      dag.addStream("Hive Stream", generator.outputPort, hiveOutput.input);
+    }
   }
 
   protected CustomerEnrichedInfoHiveOutputOperator createHiveOutput()
   {
     CustomerEnrichedInfoHiveOutputOperator hiveOutput = new CustomerEnrichedInfoHiveOutputOperator();
-    
-    hiveOutput.setHost(host);
-    hiveOutput.setPort(port);
-    hiveOutput.setUserName(userName);
-    hiveOutput.setPassword(password);
+    hiveOutput.setHiveConfig(hiveConfig);
     
     return hiveOutput;
   }
@@ -147,36 +165,12 @@ public class CustomerEnrichedInfoGenerateApp implements StreamingApplication {
     this.fileDir = fileDir;
   }
 
-  public String getHost() {
-    return host;
+  public DataWarehouseConfig getHiveConfig() {
+    return hiveConfig;
   }
 
-  public void setHost(String host) {
-    this.host = host;
-  }
-
-  public int getPort() {
-    return port;
-  }
-
-  public void setPort(int port) {
-    this.port = port;
-  }
-
-  public String getUserName() {
-    return userName;
-  }
-
-  public void setUserName(String userName) {
-    this.userName = userName;
-  }
-
-  public String getPassword() {
-    return password;
-  }
-
-  public void setPassword(String password) {
-    this.password = password;
+  public void setHiveConfig(DataWarehouseConfig hiveConfig) {
+    this.hiveConfig = hiveConfig;
   }
   
   

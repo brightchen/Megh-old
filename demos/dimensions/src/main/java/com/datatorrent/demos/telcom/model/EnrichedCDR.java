@@ -23,10 +23,11 @@ public class EnrichedCDR extends CallDetailRecord{
     return enrichedCDR;
   }
   
-  public String toLine()
+  @Override
+  public String toString()
   {
     StringBuilder sb = new StringBuilder();
-    sb.append(super.toLine()).append(delimiter);
+    sb.append(super.toString()).append(delimiter);
     
     //DR
     if(getDr() != 0)
@@ -43,5 +44,10 @@ public class EnrichedCDR extends CallDetailRecord{
     sb.append(tacInfo.model).append(delimiter);
     
     return sb.toString();
+  }
+  
+  public String toLine()
+  {
+    return toString() + "\n";
   }
 }

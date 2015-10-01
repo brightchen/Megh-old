@@ -1,11 +1,10 @@
 package com.datatorrent.demos.telcom.generate;
 
+import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.InputOperator;
 import com.datatorrent.demos.telcom.model.CustomerEnrichedInfo;
 import com.datatorrent.demos.telcom.model.CustomerEnrichedInfo.SingleRecord;
-import com.datatorrent.demos.telcom.model.CustomerInfo;
-import com.datatorrent.api.Context.OperatorContext;
 
 public class CustomerEnrichedInfoGenerateOperator implements InputOperator {
   public final transient DefaultOutputPort<CustomerEnrichedInfo.SingleRecord> outputPort = new DefaultOutputPort<CustomerEnrichedInfo.SingleRecord>();

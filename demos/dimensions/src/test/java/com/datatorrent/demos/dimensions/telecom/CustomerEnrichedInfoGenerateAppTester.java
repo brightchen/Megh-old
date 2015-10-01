@@ -1,6 +1,7 @@
 package com.datatorrent.demos.dimensions.telecom;
 
 import org.apache.hadoop.conf.Configuration;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.datatorrent.api.DAG;
@@ -9,6 +10,12 @@ import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.demos.telcom.CustomerEnrichedInfoGenerateApp;
 
 public class CustomerEnrichedInfoGenerateAppTester extends CustomerEnrichedInfoGenerateApp{
+  @Before
+  public void setUp()
+  {
+    this.hbaseConfig.setHost("localhost");
+    this.hiveConfig.setHost("localhost");
+  }
   
   @Test
   public void test() throws Exception {
@@ -32,7 +39,7 @@ public class CustomerEnrichedInfoGenerateAppTester extends CustomerEnrichedInfoG
     lc.runAsync();
 
     
-    Thread.sleep(6000);
+    Thread.sleep(600000);
 
     lc.shutdown();
   }

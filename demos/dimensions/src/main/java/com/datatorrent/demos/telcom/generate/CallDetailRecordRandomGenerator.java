@@ -18,6 +18,7 @@ MSIDN;       IMSI;           IMEI;        PLAN;CALL_TYPE;CORRESP_TYPE;CORRESP_IS
  */
 public class CallDetailRecordRandomGenerator implements Generator<CallDetailRecord> {
   private static final Random random = new Random();
+  
   private CharRandomGenerator digitCharGenerator = CharRandomGenerator.digitCharGenerator;
   private MsisdnGenerator msidnGenerator = new MsisdnGenerator();
   private ImsiGenerator imsiGenerator = new ImsiGenerator();
@@ -27,6 +28,8 @@ public class CallDetailRecordRandomGenerator implements Generator<CallDetailReco
   private EnumStringRandomGenerator correspTypeGenerator = new EnumStringRandomGenerator(new String[]{"CUST1", "CUST2", "CUST3"});
   private FixLengthStringRandomGenerator correspIsdnGenerator = new FixLengthStringRandomGenerator(digitCharGenerator, 10);
 
+  private boolean generateCustomerInfo = false;
+  
   //initial as yesterday.
   //private transient volatile long recordTime = Calendar.getInstance().getTimeInMillis() - 24*60*60*1000;
   
@@ -34,9 +37,12 @@ public class CallDetailRecordRandomGenerator implements Generator<CallDetailReco
   public CallDetailRecord next()
   {
     CallDetailRecord record = new CallDetailRecord();
-    record.setMsidn(msidnGenerator.next());
-    record.setImsi(imsiGenerator.next());
-    record.setImei(imeiGenerator.next());
+    if(generateCustomerInfo)
+    {
+      record.setMsidn(msidnGenerator.next());
+      record.setImsi(imsiGenerator.next());
+      record.setImei(imeiGenerator.next());
+    }
     record.setPlan(planGenerator.next());
     record.setCallType(callTypeGenerator.next());
     record.setCorrespType(correspTypeGenerator.next());
@@ -76,6 +82,14 @@ public class CallDetailRecordRandomGenerator implements Generator<CallDetailReco
     record.setTime(Calendar.getInstance().getTimeInMillis());
     
     return record;
+  }
+
+  public boolean isGenerateCustomerInfo() {
+    return generateCustomerInfo;
+  }
+
+  public void setGenerateCustomerInfo(boolean generateCustomerInfo) {
+    this.generateCustomerInfo = generateCustomerInfo;
   }
   
  

@@ -8,7 +8,7 @@ import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.demos.telcom.generate.CallDetailRecordGenerateOperator;
 /**
  * 
- * This application generate random CallDetailRecord and save to files
+ * This application generate CallDetailRecord and save to files
  *   - This application will suspend generate tuples when the file reach to 240 files.
  * 
  * @author bright

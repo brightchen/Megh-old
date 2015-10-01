@@ -10,7 +10,7 @@ import com.datatorrent.demos.telcom.generate.CallDetailRecordGenerateOperator;
 /**
  * 
  * This application read Call Detail Record from files, enrich the CDR records
- * and save to the Hive
+ * and save to the output
  *   - This application will remove the oldest files but keep the files not less than 120.
  * 
  * @author bright

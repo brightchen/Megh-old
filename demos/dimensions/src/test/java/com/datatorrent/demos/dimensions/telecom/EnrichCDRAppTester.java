@@ -8,17 +8,14 @@ import org.slf4j.LoggerFactory;
 import com.datatorrent.api.DAG;
 import com.datatorrent.api.LocalMode;
 import com.datatorrent.api.StreamingApplication;
-import com.datatorrent.demos.telcom.CallDetailRecordGenerateApp;
-import com.datatorrent.demos.telcom.conf.CustomerEnrichedInfoHBaseConfig;
+import com.datatorrent.demos.telcom.EnrichCDRApp;
 
-public class CallDetailRecordGenerateAppTester extends CallDetailRecordGenerateApp {
-
-  private static final Logger logger = LoggerFactory.getLogger(CallDetailRecordGenerateAppTester.class);
+public class EnrichCDRAppTester extends EnrichCDRApp{
+private static final Logger logger = LoggerFactory.getLogger(EnrichCDRAppTester.class);
   
   @Test
   public void test() throws Exception {
     filePath = "CDR/";
-    CustomerEnrichedInfoHBaseConfig.instance.setHost("localhost");
     
     LocalMode lma = LocalMode.newInstance();
     DAG dag = lma.getDAG();
@@ -39,7 +36,7 @@ public class CallDetailRecordGenerateAppTester extends CallDetailRecordGenerateA
     lc.runAsync();
 
     
-    Thread.sleep(6000);
+    Thread.sleep(60000);
 
     lc.shutdown();
   }

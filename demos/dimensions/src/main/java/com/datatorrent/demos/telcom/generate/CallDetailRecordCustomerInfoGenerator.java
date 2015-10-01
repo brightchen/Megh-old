@@ -19,7 +19,7 @@ public class CallDetailRecordCustomerInfoGenerator implements Generator<CallDeta
     
     //fill with the customer info.
     SingleRecord customerInfo = repo.getRandomCustomerEnrichedInfo();
-    cdr.setMsidn(customerInfo.getImsi());
+    cdr.setIsdn(customerInfo.getImsi());
     cdr.setImsi(customerInfo.getImsi());
     cdr.setImei(customerInfo.getImei());
     

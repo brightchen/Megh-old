@@ -14,13 +14,35 @@ import com.datatorrent.demos.telcom.generate.TACRepo;
  *
  */
 public class EnrichedCDR extends CallDetailRecord{
+  private String drLabel;
+  private String operatorCode;
+  private String deviceBrand;
+  private String deviceModel;
+  
   public EnrichedCDR(){}
   
   public static EnrichedCDR fromCallDetailRecord(String line)
   {
     EnrichedCDR enrichedCDR = new EnrichedCDR();
     enrichedCDR.setFromLine(line);
+    enrichedCDR.enrich();
     return enrichedCDR;
+  }
+  
+  protected void enrich()
+  {
+    //DR
+    if(getDr() != 0)
+      drLabel = DisconnectReason.fromCode(getDr()).getLabel();
+    
+    //operator code;
+    MNCInfo mncInfo = MNCRepo.instance().getMncInfoByImsi(this.getImsi());
+    operatorCode = mncInfo.carrier.operatorCode;
+    
+    //brand & model
+    TACInfo tacInfo = TACRepo.instance().getTacInfoByImei(this.getImei());
+    deviceBrand = tacInfo.manufacturer;
+    deviceModel = tacInfo.model;
   }
   
   @Override
@@ -30,18 +52,14 @@ public class EnrichedCDR extends CallDetailRecord{
     sb.append(super.toString()).append(delimiter);
     
     //DR
-    if(getDr() != 0)
-      sb.append(DisconnectReason.fromCode(getDr()).getLabel());
+    if(drLabel != null)
+      sb.append(drLabel);
     sb.append(delimiter);
     
-    //carrier;
-    MNCInfo mncInfo = MNCRepo.instance().getMncInfoByImsi(this.getImsi());
-    sb.append(mncInfo.carrier).append(delimiter);
+    sb.append(operatorCode).append(delimiter);
     
-    //manufacturer & model
-    TACInfo tacInfo = TACRepo.instance().getTacInfoByImei(this.getImei());
-    sb.append(tacInfo.manufacturer).append(delimiter);
-    sb.append(tacInfo.model).append(delimiter);
+    sb.append(deviceBrand).append(delimiter);
+    sb.append(deviceModel).append(delimiter);
     
     return sb.toString();
   }
@@ -50,4 +68,38 @@ public class EnrichedCDR extends CallDetailRecord{
   {
     return toString() + "\n";
   }
+
+  public String getDrLabel() {
+    return drLabel;
+  }
+
+  public void setDrLabel(String drLabel) {
+    this.drLabel = drLabel;
+  }
+
+  public String getOperatorCode() {
+    return operatorCode;
+  }
+
+  public void setOperatorCode(String operatorCode) {
+    this.operatorCode = operatorCode;
+  }
+
+  public String getDeviceBrand() {
+    return deviceBrand;
+  }
+
+  public void setDeviceBrand(String deviceBrand) {
+    this.deviceBrand = deviceBrand;
+  }
+
+  public String getDeviceModel() {
+    return deviceModel;
+  }
+
+  public void setDeviceModel(String deviceModel) {
+    this.deviceModel = deviceModel;
+  }
+  
+  
 }

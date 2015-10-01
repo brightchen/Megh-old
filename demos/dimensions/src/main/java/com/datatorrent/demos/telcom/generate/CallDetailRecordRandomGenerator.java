@@ -39,7 +39,7 @@ public class CallDetailRecordRandomGenerator implements Generator<CallDetailReco
     CallDetailRecord record = new CallDetailRecord();
     if(generateCustomerInfo)
     {
-      record.setMsidn(msidnGenerator.next());
+      record.setIsdn(msidnGenerator.next());
       record.setImsi(imsiGenerator.next());
       record.setImei(imeiGenerator.next());
     }

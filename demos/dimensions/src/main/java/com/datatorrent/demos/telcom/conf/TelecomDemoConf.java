@@ -24,6 +24,9 @@ public class TelecomDemoConf {
   
   protected String database = "telecomdemo";
   protected String customerEnrichedInfoTableName = "CustomerEnrichedInfo";
+  protected String cdrEnrichedRecordTableName = "CDREnrichedRecord";
+  
+  protected String cdrDir = "CDR";
   
   private TelecomDemoConf(){}
   
@@ -94,6 +97,22 @@ public class TelecomDemoConf {
 
   public void setHbasePassword(String hbasePassword) {
     this.hbasePassword = hbasePassword;
+  }
+
+  public String getCdrEnrichedRecordTableName() {
+    return cdrEnrichedRecordTableName;
+  }
+
+  public void setCdrEnrichedRecordTableName(String cdrEnrichedRecordTableName) {
+    this.cdrEnrichedRecordTableName = cdrEnrichedRecordTableName;
+  }
+
+  public String getCdrDir() {
+    return cdrDir;
+  }
+
+  public void setCdrDir(String cdrDir) {
+    this.cdrDir = cdrDir;
   }
   
   

@@ -10,10 +10,11 @@ import org.apache.hadoop.fs.Path;
 import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.lib.io.fs.AbstractFileInputOperator;
 
-public class HdfsStringInputOperator  extends AbstractFileInputOperator<String>
+public class CDRHdfsInputOperator extends AbstractFileInputOperator<String>
 {
   public final transient DefaultOutputPort<String> output = new DefaultOutputPort<String>();
   private transient BufferedReader br = null;
+
 
   @Override
   protected InputStream openFile(Path path) throws IOException

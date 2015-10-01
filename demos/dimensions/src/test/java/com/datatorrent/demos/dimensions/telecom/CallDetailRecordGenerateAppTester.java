@@ -17,7 +17,6 @@ public class CallDetailRecordGenerateAppTester extends CallDetailRecordGenerateA
   
   @Test
   public void test() throws Exception {
-    filePath = "CDR/";
     CustomerEnrichedInfoHBaseConfig.instance.setHost("localhost");
     
     LocalMode lma = LocalMode.newInstance();
@@ -39,7 +38,7 @@ public class CallDetailRecordGenerateAppTester extends CallDetailRecordGenerateA
     lc.runAsync();
 
     
-    Thread.sleep(6000);
+    Thread.sleep(600000);
 
     lc.shutdown();
   }

@@ -14,7 +14,7 @@ public class CustomerEnrichedInfoGenerateAppTester extends CustomerEnrichedInfoG
   public void setUp()
   {
     this.hbaseConfig.setHost("localhost");
-    this.hiveConfig.setHost("localhost");
+    //this.hiveConfig.setHost("localhost");
   }
   
   @Test

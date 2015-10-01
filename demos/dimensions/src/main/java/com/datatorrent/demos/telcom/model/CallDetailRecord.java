@@ -8,7 +8,7 @@ public class CallDetailRecord {
   public static final String delimiter = ";";
   public static final int COLUMN_NUM = 14;
   
-  private String msidn;
+  private String isdn;
   private String imsi;
   private String imei;
   private String plan;
@@ -22,12 +22,12 @@ public class CallDetailRecord {
   private float lon;
   private long time;
 
-  public String getMsidn() {
-    return msidn;
+  public String getIsdn() {
+    return isdn;
   }
 
-  public void setMsidn(String msidn) {
-    this.msidn = msidn;
+  public void setIsdn(String isdn) {
+    this.isdn = isdn;
   }
 
   public String getImsi() {
@@ -102,6 +102,10 @@ public class CallDetailRecord {
   public void setDr(DisconnectReason disconnectReason) {
     this.dr = disconnectReason.getCode();
   }
+  public void setDr(int dr)
+  {
+    this.dr = dr;
+  }
 
   public float getLat() {
     return lat;
@@ -122,7 +126,30 @@ public class CallDetailRecord {
   public long getTime() {
     return time;
   }
+  public String getDate()
+  {
+    Calendar c = Calendar.getInstance();
+    c.setTimeInMillis(time);
+    // MM/DD/YYYY
+    return String.format("%02d/%02d/%4d", c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH), c.get(Calendar.YEAR));
+  }
+  public void setDate(String date)
+  {
+    throw new RuntimeException("unsupported");
+  }
+  public String getTimeInDay()
+  {
+    Calendar c = Calendar.getInstance();
+    c.setTimeInMillis(time);
 
+    // hh:mm:ss
+    return String.format("%02d:%02d:%02d", c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), c.get(Calendar.SECOND));
+  }
+  public void setTimeInDay(String timeInDay)
+  {
+    throw new RuntimeException("unsupported");
+  }
+  
   public void setTime(long time) {
     this.time = time;
   }
@@ -139,7 +166,7 @@ public class CallDetailRecord {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append(msidn).append(delimiter);
+    sb.append(isdn).append(delimiter);
     sb.append(imsi).append(delimiter);
     sb.append(imei).append(delimiter);
     sb.append(plan).append(delimiter);
@@ -154,11 +181,11 @@ public class CallDetailRecord {
       sb.append(dr);
     sb.append(delimiter);
 
-    Calendar c = Calendar.getInstance();
-    c.setTimeInMillis(time);
-
     sb.append(String.format("%.4f", lat)).append(delimiter);
     sb.append(String.format("%.4f", lon)).append(delimiter);
+    
+    Calendar c = Calendar.getInstance();
+    c.setTimeInMillis(time);
     // hh:mm:ss
     sb.append(
         String.format("%02d:%02d:%02d", c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), c.get(Calendar.SECOND)))
@@ -199,7 +226,7 @@ public class CallDetailRecord {
         throw new IllegalArgumentException("Column not correct, expect: " + COLUMN_NUM + "; actual: " + items.length + ".\n line: " + line);
       }
       int index = 0;
-      setMsidn(items[index++]);
+      setIsdn(items[index++]);
       setImsi(items[index++]);
       setImei(items[index++]);
       setPlan(items[index++]);

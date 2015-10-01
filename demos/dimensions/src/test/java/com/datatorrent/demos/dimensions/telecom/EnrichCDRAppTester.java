@@ -9,13 +9,15 @@ import com.datatorrent.api.DAG;
 import com.datatorrent.api.LocalMode;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.demos.telcom.EnrichCDRApp;
+import com.datatorrent.demos.telcom.conf.CDREnrichedRecordHBaseConfig;
 
 public class EnrichCDRAppTester extends EnrichCDRApp{
 private static final Logger logger = LoggerFactory.getLogger(EnrichCDRAppTester.class);
   
   @Test
   public void test() throws Exception {
-    filePath = "CDR/";
+    cdrDir = "CDR/";
+    CDREnrichedRecordHBaseConfig.instance.setHost("localhost");
     
     LocalMode lma = LocalMode.newInstance();
     DAG dag = lma.getDAG();
@@ -36,7 +38,7 @@ private static final Logger logger = LoggerFactory.getLogger(EnrichCDRAppTester.
     lc.runAsync();
 
     
-    Thread.sleep(60000);
+    Thread.sleep(600000);
 
     lc.shutdown();
   }

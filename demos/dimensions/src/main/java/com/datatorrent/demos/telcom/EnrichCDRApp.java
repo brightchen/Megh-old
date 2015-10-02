@@ -6,7 +6,7 @@ import com.datatorrent.api.DAG;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.demos.telcom.conf.TelecomDemoConf;
-import com.datatorrent.demos.telcom.generate.CDREnrichedRecordHbaseOutputOperator;
+import com.datatorrent.demos.telcom.generate.EnrichedCDRHbaseOutputOperator;
 import com.datatorrent.demos.telcom.generate.CallDetailRecordGenerateOperator;
 
 /**
@@ -35,7 +35,7 @@ public class EnrichCDRApp implements StreamingApplication {
     CDREnrichOperator enrichOperator = new CDREnrichOperator();
     dag.addOperator("CDR-Enrich", enrichOperator);
     
-    CDREnrichedRecordHbaseOutputOperator outputOperator = new CDREnrichedRecordHbaseOutputOperator();
+    EnrichedCDRHbaseOutputOperator outputOperator = new EnrichedCDRHbaseOutputOperator();
     dag.addOperator("EnrichedCDR-output", outputOperator);
     
     //streams

@@ -6,14 +6,10 @@ import org.apache.hadoop.conf.Configuration;
 
 import com.datatorrent.api.DAG;
 import com.datatorrent.api.StreamingApplication;
-import com.datatorrent.api.Attribute.AttributeMap;
-import com.datatorrent.api.Context.OperatorContext;
-import com.datatorrent.api.Operator.ProcessingMode;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.contrib.hive.FSPojoToHiveOperator;
-import com.datatorrent.contrib.hive.AbstractFSRollingOutputOperator.FilePartitionMapping;
 import com.datatorrent.contrib.hive.FSPojoToHiveOperator.FIELD_TYPE;
-import com.datatorrent.contrib.hive.HiveMockTest.InnerObj;
+
 import com.datatorrent.demos.dimensions.telecom.CustomerEnrichedInfoHiveTestConfig;
 import com.datatorrent.demos.telcom.conf.CustomerEnrichedInfoHBaseConfig;
 import com.datatorrent.demos.telcom.generate.CustomerEnrichedInfoGenerateOperator;
@@ -22,7 +18,7 @@ import com.datatorrent.demos.telcom.generate.CustomerEnrichedInfoHiveOutputOpera
 import com.datatorrent.demos.telcom.hive.CustomerEnrichedInfoHiveConfig;
 import com.datatorrent.demos.telcom.hive.DataWarehouseConfig;
 import com.datatorrent.demos.telcom.model.CustomerEnrichedInfo;
-import com.datatorrent.lib.helper.OperatorContextTestHelper;
+
 
 /**
  * This application generate random customer info and write to Hive database.

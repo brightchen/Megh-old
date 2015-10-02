@@ -8,20 +8,22 @@ import org.slf4j.LoggerFactory;
 import com.datatorrent.api.DAG;
 import com.datatorrent.api.LocalMode;
 import com.datatorrent.api.StreamingApplication;
-import com.datatorrent.demos.telcom.EnrichCDRApp;
+import com.datatorrent.demos.telcom.TelecomDimensionsDemo;
 import com.datatorrent.demos.telcom.conf.EnrichedCDRHBaseConfig;
 
-public class EnrichCDRAppTester extends EnrichCDRApp{
-  private static final Logger logger = LoggerFactory.getLogger(EnrichCDRAppTester.class);
+public class TelecomDimensionsDemoTester extends TelecomDimensionsDemo{
+private static final Logger logger = LoggerFactory.getLogger(TelecomDimensionsDemoTester.class);
   
   @Test
   public void test() throws Exception {
-    cdrDir = "CDR/";
     EnrichedCDRHBaseConfig.instance.setHost("localhost");
+    
+    Configuration conf = new Configuration(false);
+    conf.set(TelecomDimensionsDemo.PROP_STORE_PATH, "~/temp");
     
     LocalMode lma = LocalMode.newInstance();
     DAG dag = lma.getDAG();
-    Configuration conf = new Configuration(false);
+    
 
     super.populateDAG(dag, conf);
 
@@ -37,7 +39,6 @@ public class EnrichCDRAppTester extends EnrichCDRApp{
     final LocalMode.Controller lc = lma.getController();
     lc.runAsync();
 
-    
     Thread.sleep(600000);
 
     lc.shutdown();

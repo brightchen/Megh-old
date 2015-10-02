@@ -17,20 +17,24 @@ import com.datatorrent.api.annotation.InputPortFieldAnnotation;
 import com.datatorrent.contrib.hbase.HBaseFieldInfo;
 import com.datatorrent.contrib.hbase.HBasePOJOPutOperator;
 import com.datatorrent.contrib.hbase.HBaseStore;
-import com.datatorrent.demos.telcom.conf.CDREnrichedRecordHBaseConfig;
+import com.datatorrent.demos.telcom.conf.EnrichedCDRHBaseConfig;
 import com.datatorrent.demos.telcom.hive.DataWarehouseConfig;
 import com.datatorrent.demos.telcom.model.EnrichedCDR;
 import com.datatorrent.lib.util.FieldInfo.SupportType;
 import com.datatorrent.lib.util.FieldValueGenerator.FieldValueHandler;
 import com.datatorrent.lib.util.TableInfo;
 
-public class CDREnrichedRecordHbaseOutputOperator extends HBasePOJOPutOperator{
+public class EnrichedCDRHbaseOutputOperator extends HBasePOJOPutOperator{
   public static class CDRHBaseFieldInfo extends HBaseFieldInfo
   {
     public CDRHBaseFieldInfo( String columnName, String columnExpression, SupportType type, String familyName )
     {
       super( columnName, columnExpression, type, familyName );
     }
+    
+    /**
+     * get rid of the null point exception. should be fix it in HBasePOJOPutOperator or HBaseFieldInfo
+     */
     @Override
     public byte[] toBytes( Object value )
     {
@@ -40,9 +44,9 @@ public class CDREnrichedRecordHbaseOutputOperator extends HBasePOJOPutOperator{
     }
   }
   
-  private static final transient Logger logger = LoggerFactory.getLogger(CDREnrichedRecordHbaseOutputOperator.class);
+  private static final transient Logger logger = LoggerFactory.getLogger(EnrichedCDRHbaseOutputOperator.class);
   
-  private DataWarehouseConfig hbaseConfig = CDREnrichedRecordHBaseConfig.instance;
+  private DataWarehouseConfig hbaseConfig = EnrichedCDRHBaseConfig.instance;
   
   private boolean startOver = false;
   

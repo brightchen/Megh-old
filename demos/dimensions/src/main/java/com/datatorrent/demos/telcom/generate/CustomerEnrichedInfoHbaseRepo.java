@@ -106,8 +106,6 @@ public class CustomerEnrichedInfoHbaseRepo {
       HTable table = store.getTable();
       Scan scan = new Scan();
       ResultScanner scanner = table.getScanner(scan);
-      int recordCount = 0;
-      
       
       Map<String,String> nameValueMap = new HashMap<String,String>();
       while( true )

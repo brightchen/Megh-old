@@ -1,5 +1,9 @@
 package com.datatorrent.demos.telcom.model;
 
+import java.util.Map;
+
+import org.apache.hadoop.hbase.util.Bytes;
+
 import com.datatorrent.demos.telcom.generate.DisconnectReason;
 import com.datatorrent.demos.telcom.generate.MNCRepo;
 import com.datatorrent.demos.telcom.generate.TACRepo;
@@ -27,6 +31,17 @@ public class EnrichedCDR extends CallDetailRecord{
     enrichedCDR.setFromLine(line);
     enrichedCDR.enrich();
     return enrichedCDR;
+  }
+  
+  public EnrichedCDR(Map<String, byte[]> nameValueMap)
+  {
+    super(nameValueMap);
+    
+    setDrLabel(Bytes.toString(nameValueMap.get("drLabel")));
+    setOperatorCode(Bytes.toString(nameValueMap.get("operatorCode")));
+    setDeviceBrand(Bytes.toString(nameValueMap.get("deviceBrand")));
+    setDeviceModel(Bytes.toString(nameValueMap.get("deviceModel")));
+
   }
   
   protected void enrich()

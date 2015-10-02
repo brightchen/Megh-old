@@ -1,6 +1,9 @@
 package com.datatorrent.demos.telcom.model;
 
 import java.util.Calendar;
+import java.util.Map;
+
+import org.apache.hadoop.hbase.util.Bytes;
 
 import com.datatorrent.demos.telcom.generate.DisconnectReason;
 
@@ -22,6 +25,25 @@ public class CallDetailRecord {
   private float lon;
   private long time;
 
+  public CallDetailRecord(){}
+  
+  public CallDetailRecord(Map<String, byte[]> nameValueMap)
+  {
+    this.setIsdn(Bytes.toString(nameValueMap.get("isdn")));
+    this.setImsi(Bytes.toString(nameValueMap.get("imsi")));
+    this.setImei(Bytes.toString(nameValueMap.get("imei")));
+    this.setCallType(Bytes.toString(nameValueMap.get("callType")));
+    this.setCorrespType(Bytes.toString(nameValueMap.get("correspType")));
+    this.setCorrespIsdn(Bytes.toString(nameValueMap.get("correspIsdn")));
+    this.setDuration(Bytes.toInt(nameValueMap.get("duration")));
+    this.setBytes(Bytes.toInt(nameValueMap.get("bytes")));
+    this.setDr(Bytes.toInt(nameValueMap.get("dr")));
+    this.setLat(Bytes.toFloat(nameValueMap.get("lat")));
+    this.setLon(Bytes.toFloat(nameValueMap.get("lon")));
+    
+    this.setTime(Bytes.toString(nameValueMap.get("timeInDay")), Bytes.toString(nameValueMap.get("date")));
+  }
+  
   public String getIsdn() {
     return isdn;
   }
@@ -248,5 +270,21 @@ public class CallDetailRecord {
     } catch (Exception e) {
       throw new IllegalArgumentException("The line can't convert to Call Detail Record: " + line, e);
     }
+  }
+  
+  /**
+   * for demension computation
+   */
+  public int getTerminatedAbnomally()
+  {
+    return DisconnectReason.CallDropped.getCode() == dr ? 1 : 0;
+  }
+  public int getTerminatedNomally()
+  {
+    return DisconnectReason.CallComplete.getCode() == dr ? 1 : 0;
+  }
+  public int getCalled()
+  {
+    return (DisconnectReason.CallComplete.getCode() == dr || DisconnectReason.CallDropped.getCode() == dr) ? 1 : 0;
   }
 }

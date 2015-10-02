@@ -2,10 +2,10 @@ package com.datatorrent.demos.telcom.conf;
 
 import com.datatorrent.demos.telcom.hive.DataWarehouseConfig;
 
-public class CDREnrichedRecordHBaseConfig extends DataWarehouseConfig{
-  public static CDREnrichedRecordHBaseConfig instance = new CDREnrichedRecordHBaseConfig();
+public class EnrichedCDRHBaseConfig extends DataWarehouseConfig{
+  public static EnrichedCDRHBaseConfig instance = new EnrichedCDRHBaseConfig();
   
-  protected CDREnrichedRecordHBaseConfig()
+  protected EnrichedCDRHBaseConfig()
   {
     host = TelecomDemoConf.instance.getHbaseHost();
     port = TelecomDemoConf.instance.getHbasePort();

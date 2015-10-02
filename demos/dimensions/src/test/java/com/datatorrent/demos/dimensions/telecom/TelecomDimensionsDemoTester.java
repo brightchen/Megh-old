@@ -8,8 +8,8 @@ import org.slf4j.LoggerFactory;
 import com.datatorrent.api.DAG;
 import com.datatorrent.api.LocalMode;
 import com.datatorrent.api.StreamingApplication;
-import com.datatorrent.demos.telcom.TelecomDimensionsDemo;
-import com.datatorrent.demos.telcom.conf.EnrichedCDRHBaseConfig;
+import com.datatorrent.demos.dimensions.telecom.TelecomDimensionsDemo;
+import com.datatorrent.demos.dimensions.telecom.conf.EnrichedCDRHBaseConfig;
 
 public class TelecomDimensionsDemoTester extends TelecomDimensionsDemo{
 private static final Logger logger = LoggerFactory.getLogger(TelecomDimensionsDemoTester.class);

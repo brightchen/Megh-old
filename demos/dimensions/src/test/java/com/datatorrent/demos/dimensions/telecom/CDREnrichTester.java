@@ -2,9 +2,9 @@ package com.datatorrent.demos.dimensions.telecom;
 
 import org.junit.Test;
 
-import com.datatorrent.demos.telcom.generate.CallDetailRecordRandomGenerator;
-import com.datatorrent.demos.telcom.model.CallDetailRecord;
-import com.datatorrent.demos.telcom.model.EnrichedCDR;
+import com.datatorrent.demos.dimensions.telecom.generate.CallDetailRecordRandomGenerator;
+import com.datatorrent.demos.dimensions.telecom.model.CallDetailRecord;
+import com.datatorrent.demos.dimensions.telecom.model.EnrichedCDR;
 
 public class CDREnrichTester {
   @Test

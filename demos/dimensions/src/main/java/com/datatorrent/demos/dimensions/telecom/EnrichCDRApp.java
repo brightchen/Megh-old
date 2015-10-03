@@ -21,14 +21,14 @@ import com.datatorrent.demos.dimensions.telecom.generate.EnrichedCDRHbaseOutputO
 
 @ApplicationAnnotation(name = "EnrichCDRApp")
 public class EnrichCDRApp implements StreamingApplication {
-  protected String cdrDir = TelecomDemoConf.instance.getCdrDir();
+  protected String cdrDir;
 
   private String filePatternRegexp = ".*cdr\\.\\d+\\z";
   
   @Override
   public void populateDAG(DAG dag, Configuration conf) {
     CDRHdfsInputOperator reader = new CDRHdfsInputOperator();
-    reader.setDirectory(cdrDir);
+    reader.setDirectory(cdrDir==null ? TelecomDemoConf.instance.getCdrDir() : cdrDir);
     reader.getScanner().setFilePatternRegexp(filePatternRegexp);
     dag.addOperator("CDR-Reader", reader);
 

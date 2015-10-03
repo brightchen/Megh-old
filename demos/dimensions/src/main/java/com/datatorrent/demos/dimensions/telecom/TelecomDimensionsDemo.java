@@ -101,11 +101,12 @@ public class TelecomDimensionsDemo implements StreamingApplication
     store.setConfigurationSchemaJSON(eventSchema);
     store.setDimensionalSchemaStubJSON(eventSchema);
    
-    store.setEmbeddableQueryInfoProvider(new PubSubWebSocketAppDataQuery());
+    PubSubWebSocketAppDataQuery query = createAppDataQuery();
+    store.setEmbeddableQueryInfoProvider(query);
   
     //wsOut
-    PubSubWebSocketAppDataResult wsOut = dag.addOperator("QueryResult", new PubSubWebSocketAppDataResult());
-
+    PubSubWebSocketAppDataResult wsOut = createAppDataResult();
+    dag.addOperator("QueryResult", wsOut);
     //Set remaining dag options
 
     dag.setAttribute(store, Context.OperatorContext.COUNTERS_AGGREGATOR, new BasicCounters.LongAggregator<MutableLong>());
@@ -113,6 +114,16 @@ public class TelecomDimensionsDemo implements StreamingApplication
     dag.addStream("InputStream", inputOperator.outputPort, dimensions.input).setLocality(Locality.CONTAINER_LOCAL);
     dag.addStream("DimensionalData", dimensions.output, store.input);
     dag.addStream("QueryResult", store.queryResult, wsOut.input);
+  }
+  
+  protected PubSubWebSocketAppDataQuery createAppDataQuery()
+  {
+    return new PubSubWebSocketAppDataQuery();
+  }
+  
+  protected PubSubWebSocketAppDataResult createAppDataResult()
+  {
+    return new PubSubWebSocketAppDataResult();
   }
 }
 

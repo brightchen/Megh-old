@@ -10,14 +10,15 @@ import com.datatorrent.api.LocalMode;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.demos.dimensions.telecom.EnrichCDRApp;
 import com.datatorrent.demos.dimensions.telecom.conf.EnrichedCDRHBaseConfig;
+import com.datatorrent.demos.dimensions.telecom.conf.TelecomDemoConf;
 
 public class EnrichCDRAppTester extends EnrichCDRApp{
   private static final Logger logger = LoggerFactory.getLogger(EnrichCDRAppTester.class);
   
   @Test
   public void test() throws Exception {
-    cdrDir = "CDR/";
     EnrichedCDRHBaseConfig.instance.setHost("localhost");
+    TelecomDemoConf.instance.setCdrDir("target/CDR");
     
     LocalMode lma = LocalMode.newInstance();
     DAG dag = lma.getDAG();

@@ -1,5 +1,7 @@
 package com.datatorrent.demos.dimensions.telecom.model;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Map;
 
@@ -25,6 +27,13 @@ public class CallDetailRecord {
   private float lon;
   private long time;
 
+  // MM/DD/YYYY
+  protected final SimpleDateFormat dayFormat = new SimpleDateFormat("MM/dd/yyyy");
+  //hh:mm:ss, 
+  protected final SimpleDateFormat timeInDayFormat = new SimpleDateFormat("HH:mm:ss");
+  //
+  protected final SimpleDateFormat timeFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+  
   public CallDetailRecord(){}
   
   public CallDetailRecord(Map<String, byte[]> nameValueMap)
@@ -152,7 +161,7 @@ public class CallDetailRecord {
   {
     Calendar c = Calendar.getInstance();
     c.setTimeInMillis(time);
-    // MM/DD/YYYY
+    // return dayFormat.format(c.getTime());  //this return something like "10/2/15 4:36 PM", why
     return String.format("%02d/%02d/%4d", c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH), c.get(Calendar.YEAR));
   }
   public void setDate(String date)
@@ -163,8 +172,7 @@ public class CallDetailRecord {
   {
     Calendar c = Calendar.getInstance();
     c.setTimeInMillis(time);
-
-    // hh:mm:ss
+    // return timeInDayFormat.format(c.getTime());   //this return something like "10/2/15 4:36 PM", why
     return String.format("%02d:%02d:%02d", c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), c.get(Calendar.SECOND));
   }
   public void setTimeInDay(String timeInDay)
@@ -179,10 +187,11 @@ public class CallDetailRecord {
   // hh:mm:ss, MM/DD/YYYY
   public void setTime(String timeInDay, String day) {
     Calendar c = Calendar.getInstance();
-    String[] hms = timeInDay.split(":");
-    String[] ymd = day.split("/");
-    c.set(Integer.valueOf(ymd[0]), Integer.valueOf(ymd[1]), Integer.valueOf(ymd[2]), Integer.valueOf(hms[0]),
-        Integer.valueOf(hms[1]), Integer.valueOf(hms[2]));
+    try {
+      c.setTime(timeFormat.parse(day + " " + timeInDay));
+      time = c.getTimeInMillis();
+    } catch (ParseException e) {
+    }
   }
 
   @Override
@@ -205,16 +214,12 @@ public class CallDetailRecord {
 
     sb.append(String.format("%.4f", lat)).append(delimiter);
     sb.append(String.format("%.4f", lon)).append(delimiter);
-    
-    Calendar c = Calendar.getInstance();
-    c.setTimeInMillis(time);
+
     // hh:mm:ss
-    sb.append(
-        String.format("%02d:%02d:%02d", c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), c.get(Calendar.SECOND)))
-        .append(delimiter);
+    sb.append(getTimeInDay()).append(delimiter);
+        
     // MM/DD/YYYY
-    sb.append(
-        String.format("%02d/%02d/%4d", c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH), c.get(Calendar.YEAR)));
+    sb.append(getDate());
 
     return sb.toString();
   }

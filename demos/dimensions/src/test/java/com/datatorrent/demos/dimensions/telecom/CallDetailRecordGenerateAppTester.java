@@ -10,6 +10,7 @@ import com.datatorrent.api.LocalMode;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.demos.dimensions.telecom.CallDetailRecordGenerateApp;
 import com.datatorrent.demos.dimensions.telecom.conf.CustomerEnrichedInfoHBaseConfig;
+import com.datatorrent.demos.dimensions.telecom.conf.TelecomDemoConf;
 
 public class CallDetailRecordGenerateAppTester extends CallDetailRecordGenerateApp {
 
@@ -18,6 +19,7 @@ public class CallDetailRecordGenerateAppTester extends CallDetailRecordGenerateA
   @Test
   public void test() throws Exception {
     CustomerEnrichedInfoHBaseConfig.instance.setHost("localhost");
+    TelecomDemoConf.instance.setCdrDir("target/CDR");
     
     LocalMode lma = LocalMode.newInstance();
     DAG dag = lma.getDAG();

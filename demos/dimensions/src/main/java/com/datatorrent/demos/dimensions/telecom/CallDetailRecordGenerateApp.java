@@ -17,7 +17,7 @@ import com.datatorrent.demos.dimensions.telecom.generate.CallDetailRecordGenerat
  */
 @ApplicationAnnotation(name="CallDetailRecordGenerateApp")
 public class CallDetailRecordGenerateApp implements StreamingApplication {
-  protected String cdrDir = TelecomDemoConf.instance.getCdrDir();
+  protected String cdrDir;
   protected long maxFileLength = 0;
   protected String fileName;
   
@@ -25,9 +25,9 @@ public class CallDetailRecordGenerateApp implements StreamingApplication {
   public void populateDAG(DAG dag, Configuration conf) {
     CallDetailRecordGenerateOperator generator = new CallDetailRecordGenerateOperator();
     dag.addOperator("CDR-Generator", generator);
-    
+
     CDRHdfsOutputOperator writer = new CDRHdfsOutputOperator();
-    writer.setFilePath(cdrDir);
+    writer.setFilePath(cdrDir == null ? TelecomDemoConf.instance.getCdrDir() : cdrDir);
     if(maxFileLength >0 )
       writer.setMaxLength(maxFileLength);
     if(fileName != null && !fileName.isEmpty())

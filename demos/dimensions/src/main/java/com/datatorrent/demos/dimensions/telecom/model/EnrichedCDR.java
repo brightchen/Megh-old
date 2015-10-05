@@ -33,6 +33,14 @@ public class EnrichedCDR extends CallDetailRecord{
     return enrichedCDR;
   }
   
+  public static EnrichedCDR fromCallDetailRecord(CallDetailRecord cdr)
+  {
+    EnrichedCDR enrichedCDR = new EnrichedCDR();
+    enrichedCDR.setFromCdr(cdr);
+    enrichedCDR.enrich();
+    return enrichedCDR;
+  }
+  
   public EnrichedCDR(Map<String, byte[]> nameValueMap)
   {
     super(nameValueMap);

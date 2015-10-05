@@ -239,7 +239,24 @@ public class CallDetailRecord {
   public String toLine() {
     return toString() + "\n";
   }
-
+  
+  public void setFromCdr(CallDetailRecord cdr)
+  {
+    this.isdn = cdr.isdn;
+    this.imsi = cdr.imsi;
+    this.imei = cdr.imei;
+    this.plan = cdr.plan;
+    this.callType = cdr.callType;
+    this.correspType = cdr.correspType;
+    this.correspIsdn = cdr.correspIsdn;
+    this.duration = cdr.duration;
+    this.bytes = cdr.bytes;
+    this.dr = cdr.dr;
+    this.lat = cdr.lat;
+    this.lon = cdr.lon;
+    this.time = cdr.time;
+  }
+  
   public void setFromLine(String line) {
     try {
       if (line.endsWith("\n"))

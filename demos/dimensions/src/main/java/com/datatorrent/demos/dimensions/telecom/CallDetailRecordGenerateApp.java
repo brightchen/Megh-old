@@ -34,7 +34,7 @@ public class CallDetailRecordGenerateApp implements StreamingApplication {
       writer.setOutputFileName(fileName);
     dag.addOperator("CDR-Writer", writer);
     
-    dag.addStream("CDR-Stream", generator.outputPort, writer.input);
+    dag.addStream("CDR-Stream", generator.bytesOutputPort, writer.input);
   }
 
   public String getCdrDir() {

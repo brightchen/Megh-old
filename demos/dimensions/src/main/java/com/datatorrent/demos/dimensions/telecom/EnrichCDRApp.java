@@ -39,7 +39,7 @@ public class EnrichCDRApp implements StreamingApplication {
     dag.addOperator("EnrichedCDR-output", outputOperator);
     
     //streams
-    dag.addStream("CDR-Stream", reader.output, enrichOperator.inputPort);
+    dag.addStream("CDR-Stream", reader.output, enrichOperator.stringInputPort);
     dag.addStream("EnrichedCDR-Stream", enrichOperator.outputPort, outputOperator.input);
   }
 

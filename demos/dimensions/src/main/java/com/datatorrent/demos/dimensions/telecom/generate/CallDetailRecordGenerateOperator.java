@@ -3,9 +3,11 @@ package com.datatorrent.demos.dimensions.telecom.generate;
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.InputOperator;
+import com.datatorrent.demos.dimensions.telecom.model.CallDetailRecord;
 
 public class CallDetailRecordGenerateOperator implements InputOperator {
-  public final transient DefaultOutputPort<byte[]> outputPort = new DefaultOutputPort<byte[]>();
+  public final transient DefaultOutputPort<byte[]> bytesOutputPort = new DefaultOutputPort<byte[]>();
+  public final transient DefaultOutputPort<CallDetailRecord> cdrOutputPort = new DefaultOutputPort<CallDetailRecord>();
 
   private int batchSize = 10;
   private CallDetailRecordCustomerInfoGenerator generator = new CallDetailRecordCustomerInfoGenerator();
@@ -25,9 +27,19 @@ public class CallDetailRecordGenerateOperator implements InputOperator {
 
   @Override
   public void emitTuples() {
-    for(int i=0; i<batchSize; ++i)
+    if(bytesOutputPort.isConnected())
     {
-      outputPort.emit(generator.next().toLine().getBytes());
+      for(int i=0; i<batchSize; ++i)
+      {
+        bytesOutputPort.emit(generator.next().toLine().getBytes());
+      }
+    }
+    if(cdrOutputPort.isConnected())
+    {
+      for(int i=0; i<batchSize; ++i)
+      {
+        cdrOutputPort.emit(generator.next());
+      }
     }
   }
 

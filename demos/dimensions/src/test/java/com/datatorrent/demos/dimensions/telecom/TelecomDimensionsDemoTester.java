@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 import com.datatorrent.api.DAG;
 import com.datatorrent.api.LocalMode;
 import com.datatorrent.api.StreamingApplication;
-import com.datatorrent.demos.dimensions.telecom.TelecomDimensionsDemo;
+import com.datatorrent.demos.dimensions.telecom.app.TelecomDimensionsDemo;
 import com.datatorrent.demos.dimensions.telecom.conf.EnrichedCDRHBaseConfig;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataQuery;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataResult;

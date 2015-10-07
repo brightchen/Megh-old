@@ -1,8 +1,9 @@
-package com.datatorrent.demos.dimensions.telecom.generate;
+package com.datatorrent.demos.dimensions.telecom.operator;
 
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.InputOperator;
+import com.datatorrent.demos.dimensions.telecom.generate.CallDetailRecordCustomerInfoGenerator;
 import com.datatorrent.demos.dimensions.telecom.model.CallDetailRecord;
 
 public class CallDetailRecordGenerateOperator implements InputOperator {

@@ -1,6 +1,7 @@
-package com.datatorrent.demos.dimensions.telecom.generate;
+package com.datatorrent.demos.dimensions.telecom.operator;
 
 import com.datatorrent.api.Context.OperatorContext;
+import com.datatorrent.demos.dimensions.telecom.generate.CustomerInfoRandomGenerator;
 import com.datatorrent.demos.dimensions.telecom.model.CustomerEnrichedInfo;
 import com.datatorrent.demos.dimensions.telecom.model.CustomerEnrichedInfo.SingleRecord;
 import com.datatorrent.api.DefaultOutputPort;

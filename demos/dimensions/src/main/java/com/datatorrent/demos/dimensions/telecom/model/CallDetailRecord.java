@@ -7,8 +7,6 @@ import java.util.Map;
 
 import org.apache.hadoop.hbase.util.Bytes;
 
-import com.datatorrent.demos.dimensions.telecom.generate.DisconnectReason;
-
 public class CallDetailRecord {
   public static final String delimiter = ";";
   public static final int COLUMN_NUM = 14;

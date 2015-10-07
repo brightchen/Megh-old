@@ -1,4 +1,4 @@
-package com.datatorrent.demos.dimensions.telecom.generate;
+package com.datatorrent.demos.dimensions.telecom.operator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,6 +6,8 @@ import java.util.List;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,19 +17,21 @@ import com.datatorrent.api.annotation.InputPortFieldAnnotation;
 import com.datatorrent.contrib.hbase.HBaseFieldInfo;
 import com.datatorrent.contrib.hbase.HBasePOJOPutOperator;
 import com.datatorrent.contrib.hbase.HBaseStore;
-import com.datatorrent.demos.dimensions.telecom.conf.CustomerEnrichedInfoHBaseConfig;
 import com.datatorrent.demos.dimensions.telecom.conf.DataWarehouseConfig;
-import com.datatorrent.demos.dimensions.telecom.model.CustomerEnrichedInfo.SingleRecord;
+import com.datatorrent.demos.dimensions.telecom.conf.EnrichedCDRHBaseConfig;
+import com.datatorrent.demos.dimensions.telecom.generate.CDRHBaseFieldInfo;
+import com.datatorrent.demos.dimensions.telecom.model.EnrichedCDR;
 import com.datatorrent.lib.util.FieldInfo.SupportType;
+import com.datatorrent.lib.util.FieldValueGenerator.FieldValueHandler;
 import com.datatorrent.lib.util.TableInfo;
 
-public class CustomerEnrichedInfoHbaseOutputOperator extends HBasePOJOPutOperator{
-  private static final transient Logger logger = LoggerFactory.getLogger(CustomerEnrichedInfoHbaseOutputOperator.class);
+public class EnrichedCDRHbaseOutputOperator extends HBasePOJOPutOperator{
   
-  private DataWarehouseConfig hbaseConfig = CustomerEnrichedInfoHBaseConfig.instance;
+  private static final transient Logger logger = LoggerFactory.getLogger(EnrichedCDRHbaseOutputOperator.class);
+  
+  private DataWarehouseConfig hbaseConfig = EnrichedCDRHBaseConfig.instance;
   
   private boolean startOver = false;
-  
   
   protected void configure()
   {
@@ -37,14 +41,25 @@ public class CustomerEnrichedInfoHbaseOutputOperator extends HBasePOJOPutOperato
     tableInfo.setRowOrIdExpression("imsi");
 
     List<HBaseFieldInfo> fieldsInfo = new ArrayList<HBaseFieldInfo>();
-    fieldsInfo.add( new HBaseFieldInfo( "id", "id", SupportType.STRING, "f0") );
-    fieldsInfo.add( new HBaseFieldInfo( "isdn", "isdn", SupportType.STRING, "f0") );
-    fieldsInfo.add( new HBaseFieldInfo( "imei", "imei", SupportType.STRING, "f0") );
-    fieldsInfo.add( new HBaseFieldInfo( "operatorName", "operatorName", SupportType.STRING, "f1") );
-    fieldsInfo.add( new HBaseFieldInfo( "operatorCode", "operatorCode", SupportType.STRING, "f1") );
-    fieldsInfo.add( new HBaseFieldInfo( "deviceBrand", "deviceBrand", SupportType.STRING, "f1") );
-    fieldsInfo.add( new HBaseFieldInfo( "deviceModel", "deviceModel", SupportType.STRING, "f1") );
-
+    fieldsInfo.add( new CDRHBaseFieldInfo( "isdn", "isdn", SupportType.STRING, "f1") );
+    fieldsInfo.add( new CDRHBaseFieldInfo( "imei", "imei", SupportType.STRING, "f1") );
+    fieldsInfo.add( new CDRHBaseFieldInfo( "plan", "plan", SupportType.STRING, "f1") );
+    fieldsInfo.add( new CDRHBaseFieldInfo( "callType", "callType", SupportType.STRING, "f1") );
+    fieldsInfo.add( new CDRHBaseFieldInfo( "correspType", "correspType", SupportType.STRING, "f1") );
+    fieldsInfo.add( new CDRHBaseFieldInfo( "correspIsdn", "correspIsdn", SupportType.STRING, "f1") );
+    fieldsInfo.add( new CDRHBaseFieldInfo( "duration", "duration", SupportType.INTEGER, "f1") );
+    fieldsInfo.add( new CDRHBaseFieldInfo( "bytes", "bytes", SupportType.INTEGER, "f1") );
+    fieldsInfo.add( new CDRHBaseFieldInfo( "dr", "dr", SupportType.INTEGER, "f1") );
+    fieldsInfo.add( new CDRHBaseFieldInfo( "lat", "lat", SupportType.FLOAT, "f1") );
+    fieldsInfo.add( new CDRHBaseFieldInfo( "lon", "lon", SupportType.FLOAT, "f1") );
+    fieldsInfo.add( new CDRHBaseFieldInfo( "date", "date", SupportType.STRING, "f1") );
+    fieldsInfo.add( new CDRHBaseFieldInfo( "time", "timeInDay", SupportType.STRING, "f1") );
+    fieldsInfo.add( new CDRHBaseFieldInfo( "drLabel", "drLabel", SupportType.STRING, "f1") );
+    fieldsInfo.add( new CDRHBaseFieldInfo( "operatorCode", "operatorCode", SupportType.STRING, "f1") );
+    fieldsInfo.add( new CDRHBaseFieldInfo( "deviceBrand", "deviceBrand", SupportType.STRING, "f1") );
+    fieldsInfo.add( new CDRHBaseFieldInfo( "deviceModel", "deviceModel", SupportType.STRING, "f1") );
+    fieldsInfo.add( new CDRHBaseFieldInfo( "zipCode", "zipCode", SupportType.STRING, "f1") );
+ 
     tableInfo.setFieldsInfo(fieldsInfo);
     setTableInfo(tableInfo);
 
@@ -60,10 +75,10 @@ public class CustomerEnrichedInfoHbaseOutputOperator extends HBasePOJOPutOperato
   
   
   @InputPortFieldAnnotation(optional = true)
-  public final transient DefaultInputPort<SingleRecord> input = new DefaultInputPort<SingleRecord>()
+  public final transient DefaultInputPort<EnrichedCDR> input = new DefaultInputPort<EnrichedCDR>()
   {
     @Override
-    public void process(SingleRecord t)
+    public void process(EnrichedCDR t)
     {
       processTuple(t);
     }
@@ -120,7 +135,6 @@ public class CustomerEnrichedInfoHbaseOutputOperator extends HBasePOJOPutOperato
       if(!hasTable)
       {
         HTableDescriptor tableDescriptor = new HTableDescriptor(tableName);
-        tableDescriptor.addFamily(new HColumnDescriptor("f0"));
         tableDescriptor.addFamily(new HColumnDescriptor("f1"));
 
         admin.createTable(tableDescriptor);
@@ -171,4 +185,3 @@ public class CustomerEnrichedInfoHbaseOutputOperator extends HBasePOJOPutOperato
   
   
 }
-  

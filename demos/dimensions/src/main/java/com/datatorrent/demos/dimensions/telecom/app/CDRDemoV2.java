@@ -1,4 +1,4 @@
-package com.datatorrent.demos.dimensions.telecom;
+package com.datatorrent.demos.dimensions.telecom.app;
 
 import java.util.Map;
 
@@ -13,9 +13,12 @@ import com.datatorrent.api.DAG.Locality;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.contrib.dimensions.AppDataSingleSchemaDimensionStoreHDHT;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
-import com.datatorrent.demos.dimensions.telecom.generate.CallDetailRecordGenerateOperator;
-import com.datatorrent.demos.dimensions.telecom.generate.EnrichedCDRHbaseOutputOperator;
 import com.datatorrent.demos.dimensions.telecom.model.EnrichedCDR;
+import com.datatorrent.demos.dimensions.telecom.operator.CDREnrichOperator;
+import com.datatorrent.demos.dimensions.telecom.operator.CallDetailRecordGenerateOperator;
+import com.datatorrent.demos.dimensions.telecom.operator.CustomerServiceGenerateOperator;
+import com.datatorrent.demos.dimensions.telecom.operator.CustomerServiceHbaseOutputOperator;
+import com.datatorrent.demos.dimensions.telecom.operator.EnrichedCDRHbaseOutputOperator;
 import com.datatorrent.lib.appdata.schemas.SchemaUtils;
 import com.datatorrent.lib.counters.BasicCounters;
 import com.datatorrent.lib.dimensions.DimensionsComputationFlexibleSingleSchemaPOJO;
@@ -35,11 +38,11 @@ import com.google.common.collect.Maps;
  * @author bright
  *
  */
-@ApplicationAnnotation(name = TelecomDemoV2.APP_NAME)
-public class TelecomDemoV2 implements StreamingApplication {
+@ApplicationAnnotation(name = CDRDemoV2.APP_NAME)
+public class CDRDemoV2 implements StreamingApplication {
 
-  public static final String APP_NAME = "TelecomDemoV2";
-  public static final String EVENT_SCHEMA = "telecomDemoEventSchema.json";
+  public static final String APP_NAME = "CDRDemoV2";
+  public static final String EVENT_SCHEMA = "cdrDemoV2EventSchema.json";
   public static final String PROP_STORE_PATH = "dt.application." + APP_NAME
       + ".operator.Store.fileStore.basePathPrefix";
 
@@ -52,20 +55,32 @@ public class TelecomDemoV2 implements StreamingApplication {
     String eventSchema = SchemaUtils.jarResourceFileToString(eventSchemaLocation);
 
     // CDR generator
-    CallDetailRecordGenerateOperator generator = new CallDetailRecordGenerateOperator();
-    dag.addOperator("CDR-Generator", generator);
+    CallDetailRecordGenerateOperator cdrGenerator = new CallDetailRecordGenerateOperator();
+    dag.addOperator("CDR-Generator", cdrGenerator);
 
     // CDR enrich
     CDREnrichOperator enrichOperator = new CDREnrichOperator();
     dag.addOperator("CDR-Enrich", enrichOperator);
 
-    // persist
-    EnrichedCDRHbaseOutputOperator outputOperator = new EnrichedCDRHbaseOutputOperator();
-    dag.addOperator("EnrichedCDR-output", outputOperator);
+    // CDR persist
+    EnrichedCDRHbaseOutputOperator cdrPersist = new EnrichedCDRHbaseOutputOperator();
+    dag.addOperator("EnrichedCDR-Persist", cdrPersist);
 
-    dag.addStream("InputStream", generator.cdrOutputPort, enrichOperator.cdrInputPort)
+    dag.addStream("InputStream", cdrGenerator.cdrOutputPort, enrichOperator.cdrInputPort)
         .setLocality(Locality.CONTAINER_LOCAL);
-    dag.addStream("EnrichedPersistStream", enrichOperator.outputPort, outputOperator.input);
+    dag.addStream("EnrichedPersistStream", enrichOperator.outputPort, cdrPersist.input);
+    
+    
+    // Customer service generator
+    CustomerServiceGenerateOperator customerServiceGenerator = new CustomerServiceGenerateOperator();
+    dag.addOperator("CustomerService-Generator", customerServiceGenerator);
+    
+    // Customer service persist
+    CustomerServiceHbaseOutputOperator customerServicePersist = new CustomerServiceHbaseOutputOperator();
+    dag.addOperator("CustomerService-Persist", customerServicePersist);
+    
+    dag.addStream("CustomerService", customerServiceGenerator.outputPort, customerServicePersist.input);
+    
 
     if (enableDimension) {
       // dimension
@@ -83,10 +98,6 @@ public class TelecomDemoV2 implements StreamingApplication {
         keyToExpression.put("imei", "getImei()");
         dimensions.setKeyToExpression(keyToExpression);
       }
-
-      EnrichedCDR cdr = new EnrichedCDR();
-      cdr.getOperatorCode();
-      cdr.getDuration();
 
       // aggregate expression
       {
@@ -134,7 +145,7 @@ public class TelecomDemoV2 implements StreamingApplication {
           new BasicCounters.LongAggregator<MutableLong>());
 
       dag.addStream("EnrichedStream", enrichOperator.outputPort, dimensions.input);
-      dag.addStream("DimensionalData", dimensions.output, store.input);
+      dag.addStream("DimensionalStream", dimensions.output, store.input);
       dag.addStream("QueryResult", store.queryResult, wsOut.input);
     }
   }

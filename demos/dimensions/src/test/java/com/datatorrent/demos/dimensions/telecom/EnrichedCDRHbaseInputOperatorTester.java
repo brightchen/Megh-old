@@ -4,7 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.datatorrent.demos.dimensions.telecom.conf.EnrichedCDRHBaseConfig;
-import com.datatorrent.demos.dimensions.telecom.generate.EnrichedCDRHbaseInputOperator;
+import com.datatorrent.demos.dimensions.telecom.operator.EnrichedCDRHbaseInputOperator;
 
 public class EnrichedCDRHbaseInputOperatorTester {
   

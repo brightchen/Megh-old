@@ -1,4 +1,4 @@
-package com.datatorrent.demos.dimensions.telecom.generate;
+package com.datatorrent.demos.dimensions.telecom.operator;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

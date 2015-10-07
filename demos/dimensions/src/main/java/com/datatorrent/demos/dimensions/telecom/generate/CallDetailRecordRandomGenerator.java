@@ -4,6 +4,8 @@ import java.util.Calendar;
 import java.util.Random;
 
 import com.datatorrent.demos.dimensions.telecom.model.CallDetailRecord;
+import com.datatorrent.demos.dimensions.telecom.model.CallType;
+import com.datatorrent.demos.dimensions.telecom.model.DisconnectReason;
 
 /**
  * record example

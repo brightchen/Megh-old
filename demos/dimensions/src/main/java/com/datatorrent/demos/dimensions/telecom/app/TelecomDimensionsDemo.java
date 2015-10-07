@@ -1,4 +1,4 @@
-package com.datatorrent.demos.dimensions.telecom;
+package com.datatorrent.demos.dimensions.telecom.app;
 
 import java.util.List;
 import java.util.Map;
@@ -15,8 +15,8 @@ import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.contrib.dimensions.AppDataSingleSchemaDimensionStoreHDHT;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
-import com.datatorrent.demos.dimensions.telecom.generate.EnrichedCDRHbaseInputOperator;
 import com.datatorrent.demos.dimensions.telecom.model.EnrichedCDR;
+import com.datatorrent.demos.dimensions.telecom.operator.EnrichedCDRHbaseInputOperator;
 import com.datatorrent.lib.appdata.schemas.SchemaUtils;
 import com.datatorrent.lib.counters.BasicCounters;
 import com.datatorrent.lib.dimensions.DimensionsComputationFlexibleSingleSchemaPOJO;

@@ -1,4 +1,4 @@
-package com.datatorrent.demos.dimensions.telecom;
+package com.datatorrent.demos.dimensions.telecom.operator;
 
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.lib.io.fs.AbstractSingleFileOutputOperator;

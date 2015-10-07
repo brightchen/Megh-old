@@ -1,4 +1,4 @@
-package com.datatorrent.demos.dimensions.telecom;
+package com.datatorrent.demos.dimensions.telecom.app;
 
 import org.apache.hadoop.conf.Configuration;
 
@@ -6,7 +6,8 @@ import com.datatorrent.api.DAG;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.demos.dimensions.telecom.conf.TelecomDemoConf;
-import com.datatorrent.demos.dimensions.telecom.generate.CallDetailRecordGenerateOperator;
+import com.datatorrent.demos.dimensions.telecom.operator.CDRHdfsOutputOperator;
+import com.datatorrent.demos.dimensions.telecom.operator.CallDetailRecordGenerateOperator;
 /**
  * 
  * This application generate CallDetailRecord and save to files

@@ -1,4 +1,4 @@
-package com.datatorrent.demos.dimensions.telecom.generate;
+package com.datatorrent.demos.dimensions.telecom.model;
 
 public enum CallType {
   MOC, 

@@ -28,6 +28,8 @@ public class TelecomDemoConf {
   
   protected String cdrDir = "CDR";
   
+  protected String customerServiceTableName = "CustomerService";
+  
   private TelecomDemoConf(){}
   
   public String getHiveHost() {
@@ -113,6 +115,14 @@ public class TelecomDemoConf {
 
   public void setCdrDir(String cdrDir) {
     this.cdrDir = cdrDir;
+  }
+
+  public String getCustomerServiceTableName() {
+    return customerServiceTableName;
+  }
+
+  public void setCustomerServiceTableName(String customerServiceTableName) {
+    this.customerServiceTableName = customerServiceTableName;
   }
   
   

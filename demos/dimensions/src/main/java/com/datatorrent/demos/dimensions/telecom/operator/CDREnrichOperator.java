@@ -1,4 +1,4 @@
-package com.datatorrent.demos.dimensions.telecom;
+package com.datatorrent.demos.dimensions.telecom.operator;
 
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.DefaultOutputPort;

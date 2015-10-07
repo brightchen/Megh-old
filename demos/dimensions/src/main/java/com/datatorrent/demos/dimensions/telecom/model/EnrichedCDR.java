@@ -4,8 +4,8 @@ import java.util.Map;
 
 import org.apache.hadoop.hbase.util.Bytes;
 
-import com.datatorrent.demos.dimensions.telecom.generate.DisconnectReason;
 import com.datatorrent.demos.dimensions.telecom.generate.MNCRepo;
+import com.datatorrent.demos.dimensions.telecom.generate.PointZipCodeRepo;
 import com.datatorrent.demos.dimensions.telecom.generate.TACRepo;
 
 /**
@@ -22,6 +22,7 @@ public class EnrichedCDR extends CallDetailRecord{
   private String operatorCode;
   private String deviceBrand;
   private String deviceModel;
+  private String zipCode;
   
   public EnrichedCDR(){}
   
@@ -66,6 +67,9 @@ public class EnrichedCDR extends CallDetailRecord{
     TACInfo tacInfo = TACRepo.instance().getTacInfoByImei(this.getImei());
     deviceBrand = tacInfo.manufacturer;
     deviceModel = tacInfo.model;
+    
+    //zip code
+    zipCode = String.valueOf(PointZipCodeRepo.instance().getZip(this.getLat(), this.getLon()));
   }
   
   @Override
@@ -84,6 +88,7 @@ public class EnrichedCDR extends CallDetailRecord{
     sb.append(deviceBrand).append(delimiter);
     sb.append(deviceModel).append(delimiter);
     
+    sb.append(zipCode);
     return sb.toString();
   }
   

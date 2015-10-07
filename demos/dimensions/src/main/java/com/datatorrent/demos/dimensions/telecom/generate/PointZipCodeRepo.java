@@ -6,20 +6,21 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 
-import org.apache.bval.jsr303.util.IOUtils;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 /**
  * This class keep the map between location(lan, lon) and zipcode.
@@ -42,7 +43,7 @@ public class PointZipCodeRepo {
     public final int lan;
     public final int lon;
     
-    private Point()
+    protected Point()
     {
       lan = 0;
       lon = 0;
@@ -99,8 +100,10 @@ public class PointZipCodeRepo {
     
   });
   
+  protected Random random = new Random();
   protected SortedMap<Integer, int[]> lanToLons = Maps.newTreeMap();
   protected int[] sortedLans;
+  protected int[] zipCodes;
   
   /**
    * load from csv file
@@ -143,7 +146,7 @@ public class PointZipCodeRepo {
       }
       
       
-      List<Integer> lans = new ArrayList(lanToLonList.keySet());
+      List<Integer> lans = Lists.newArrayList(lanToLonList.keySet());
       Collections.sort(lans);
       
       sortedLans = toArray(lans);
@@ -153,6 +156,19 @@ public class PointZipCodeRepo {
       {
         Collections.sort( entry.getValue() );
         lanToLons.put(entry.getKey(), toArray(entry.getValue() ));
+      }
+      
+      //get zip codes
+      Set<Integer> zipCodeSet = Sets.newHashSet();
+      for(Map.Entry<Point, Integer> entry : pointToZip.entrySet())
+      {
+        zipCodeSet.add(entry.getValue());
+      }
+      zipCodes = new int[zipCodeSet.size()];
+      int index = 0;
+      for(Integer zipCode : zipCodeSet)
+      {
+        zipCodes[index++] = zipCode;
       }
       
     } catch (FileNotFoundException e) {
@@ -335,5 +351,12 @@ public class PointZipCodeRepo {
       return getIndexOfMostCloseToValue(values, matchValue, middleIndex, end);
     else
       return getIndexOfMostCloseToValue(values, matchValue, start, middleIndex);
+  }
+  
+  public String getRandomZipCode()
+  {
+    if(zipCodes == null)
+      throw new RuntimeException("load() first.");
+    return String.valueOf(zipCodes[random.nextInt(zipCodes.length)]);
   }
 }

@@ -7,7 +7,7 @@ import org.junit.Test;
 import com.datatorrent.api.DAG;
 import com.datatorrent.api.LocalMode;
 import com.datatorrent.api.StreamingApplication;
-import com.datatorrent.demos.dimensions.telecom.CustomerEnrichedInfoGenerateApp;
+import com.datatorrent.demos.dimensions.telecom.app.CustomerEnrichedInfoGenerateApp;
 
 public class CustomerEnrichedInfoGenerateAppTester extends CustomerEnrichedInfoGenerateApp{
   @Before

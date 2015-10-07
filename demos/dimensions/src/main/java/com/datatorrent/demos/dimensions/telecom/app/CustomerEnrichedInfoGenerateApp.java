@@ -1,4 +1,4 @@
-package com.datatorrent.demos.dimensions.telecom;
+package com.datatorrent.demos.dimensions.telecom.app;
 
 import java.util.ArrayList;
 
@@ -12,10 +12,10 @@ import com.datatorrent.contrib.hive.FSPojoToHiveOperator.FIELD_TYPE;
 import com.datatorrent.demos.dimensions.telecom.conf.CustomerEnrichedInfoHBaseConfig;
 import com.datatorrent.demos.dimensions.telecom.conf.CustomerEnrichedInfoHiveConfig;
 import com.datatorrent.demos.dimensions.telecom.conf.DataWarehouseConfig;
-import com.datatorrent.demos.dimensions.telecom.generate.CustomerEnrichedInfoGenerateOperator;
-import com.datatorrent.demos.dimensions.telecom.generate.CustomerEnrichedInfoHbaseOutputOperator;
-import com.datatorrent.demos.dimensions.telecom.generate.CustomerEnrichedInfoHiveOutputOperator;
 import com.datatorrent.demos.dimensions.telecom.model.CustomerEnrichedInfo;
+import com.datatorrent.demos.dimensions.telecom.operator.CustomerEnrichedInfoGenerateOperator;
+import com.datatorrent.demos.dimensions.telecom.operator.CustomerEnrichedInfoHbaseOutputOperator;
+import com.datatorrent.demos.dimensions.telecom.operator.CustomerEnrichedInfoHiveOutputOperator;
 
 
 /**

@@ -1,4 +1,4 @@
-package com.datatorrent.demos.dimensions.telecom;
+package com.datatorrent.demos.dimensions.telecom.operator;
 
 import java.io.BufferedReader;
 import java.io.IOException;

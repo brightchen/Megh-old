@@ -235,7 +235,26 @@
     <name>dt.application.SalesDemo.operator.Enrichment.filePath</name>
     <value>./products.txt</value>
   </property>
+  
+  <!-- settings for telecom demos -->
+  <property>
+    <name>dt.application.CDRDemoV2.operator.Store.fileStore.basePathPrefix</name>
+    <value>CDRDemoV2/Store</value>
+  </property>
+  <property>
+    <name>dt.application.CDRDemoV2.operator.QueryResult.topic</name>
+    <value>CDRDemoV2QueryResult</value>
+  </property>
 
+  <property>
+    <name>dt.application.CustomerServiceDemoV2.operator.Store.fileStore.basePathPrefix</name>
+    <value>CustomerServiceDemoV2/Store</value>
+  </property>
+  <property>
+    <name>dt.application.CustomerServiceDemoV2.operator.QueryResult.topic</name>
+    <value>CustomerServiceDemoV2QueryResult</value>
+  </property>
+  
   <!-- Settings for all the apps -->
   <property>
     <name>dt.operator.*.attr.MEMORY_MB</name>

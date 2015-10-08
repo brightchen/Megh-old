@@ -108,7 +108,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       dag.setAttribute(store, Context.OperatorContext.COUNTERS_AGGREGATOR,
           new BasicCounters.LongAggregator<MutableLong>());
       store.setConfigurationSchemaJSON(eventSchema);
-      store.setDimensionalSchemaStubJSON(eventSchema);
+      //store.setDimensionalSchemaStubJSON(eventSchema);
 
       PubSubWebSocketAppDataQuery query = createAppDataQuery();
       store.setEmbeddableQueryInfoProvider(query);

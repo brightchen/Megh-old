@@ -32,7 +32,7 @@ public class CDRDemoV2Tester extends CDRDemoV2{
   @Test
   public void test() throws Exception {
     Configuration conf = new Configuration(false);
-    conf.set(CDRDemoV2.PROP_STORE_PATH, "~/temp");
+    conf.set(CDRDemoV2.PROP_STORE_PATH, "target/temp");
     
     LocalMode lma = LocalMode.newInstance();
     DAG dag = lma.getDAG();
@@ -62,7 +62,7 @@ public class CDRDemoV2Tester extends CDRDemoV2{
   protected PubSubWebSocketAppDataQuery createAppDataQuery()
   {
     PubSubWebSocketAppDataQuery query = new PubSubWebSocketAppDataQuery();
-    query.setTopic("telecomdemo-query");
+    //query.setTopic("telecomdemo-query");
     try
     {
       query.setUri(new URI("ws://localhost:9090/pubsub"));

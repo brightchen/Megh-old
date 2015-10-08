@@ -24,7 +24,7 @@ private static final Logger logger = LoggerFactory.getLogger(TelecomDimensionsDe
     EnrichedCDRHBaseConfig.instance.setHost("localhost");
     
     Configuration conf = new Configuration(false);
-    conf.set(TelecomDimensionsDemo.PROP_STORE_PATH, "~/temp");
+    conf.set(TelecomDimensionsDemo.PROP_STORE_PATH, "target/temp");
     
     LocalMode lma = LocalMode.newInstance();
     DAG dag = lma.getDAG();

@@ -91,6 +91,7 @@ public class CDRDemoV2 implements StreamingApplication {
       {
         Map<String, String> keyToExpression = Maps.newHashMap();
         keyToExpression.put("point", "getPoint()");
+        keyToExpression.put("time", "getTime()");
         dimensions.setKeyToExpression(keyToExpression);
       }
 
@@ -123,7 +124,8 @@ public class CDRDemoV2 implements StreamingApplication {
       dag.setAttribute(store, Context.OperatorContext.COUNTERS_AGGREGATOR,
           new BasicCounters.LongAggregator<MutableLong>());
       store.setConfigurationSchemaJSON(eventSchema);
-      store.setDimensionalSchemaStubJSON(eventSchema);
+      //should not setDimensionalSchemaStubJSON 
+      //store.setDimensionalSchemaStubJSON(eventSchema);
 
       PubSubWebSocketAppDataQuery query = createAppDataQuery();
       store.setEmbeddableQueryInfoProvider(query);

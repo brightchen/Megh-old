@@ -15,7 +15,7 @@ public abstract class TelecomDemoHBaseOutputOperator<T> extends AbstractHBasePut
   
   private static final transient Logger logger = LoggerFactory.getLogger(TelecomDemoHBaseOutputOperator.class);
   
-  protected DataWarehouseConfig hbaseConfig; //= EnrichedCDRHBaseConfig.instance;
+  protected DataWarehouseConfig hbaseConfig;
   
   private boolean startOver = false;
   

@@ -27,6 +27,8 @@ public class CDRDemoV2Tester extends CDRDemoV2{
   {
     CustomerEnrichedInfoHBaseConfig.instance.setHost("localhost");
     EnrichedCDRHBaseConfig.instance.setHost("localhost");
+    
+    enableDimension = false;
   }
   
   @Test

@@ -56,7 +56,7 @@ public class CustomerEnrichedInfoHbaseRepo {
         if(instance == null)
         {
           instance = new CustomerEnrichedInfoHbaseRepo();
-          instance.setHiveConfig(conf);
+          instance.setHbaseConfig(conf);
           
           try
           {
@@ -143,14 +143,13 @@ public class CustomerEnrichedInfoHbaseRepo {
     int index = random.nextInt(customerInfoArray.length);
     return customerInfoArray[index];
   }
-  
-  
-  public DataWarehouseConfig getHiveConfig() {
+  public DataWarehouseConfig getHbaseConfig()
+  {
     return hbaseConfig;
   }
-  public void setHiveConfig(DataWarehouseConfig hiveConfig) {
-    this.hbaseConfig = hiveConfig;
+  public void setHbaseConfig(DataWarehouseConfig hbaseConfig)
+  {
+    this.hbaseConfig = hbaseConfig;
   }
-  
   
 }

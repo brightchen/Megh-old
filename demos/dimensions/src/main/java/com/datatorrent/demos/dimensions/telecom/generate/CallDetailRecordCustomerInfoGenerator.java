@@ -10,15 +10,18 @@ import com.datatorrent.demos.dimensions.telecom.model.CustomerEnrichedInfo.Singl
  *
  */
 public class CallDetailRecordCustomerInfoGenerator implements Generator<CallDetailRecord> {
-  protected CustomerEnrichedInfoHbaseRepo repo = CustomerEnrichedInfoHbaseRepo.createInstance(CustomerEnrichedInfoHBaseConfig.instance);
+  protected CustomerEnrichedInfoHbaseRepo customerEnrichedInfoHbaseRepo = null;
   protected CallDetailRecordRandomGenerator cdrRandomGenerator = new CallDetailRecordRandomGenerator();
   
   @Override
   public CallDetailRecord next() {
+    if(customerEnrichedInfoHbaseRepo == null)
+      customerEnrichedInfoHbaseRepo = CustomerEnrichedInfoHbaseRepo.createInstance(CustomerEnrichedInfoHBaseConfig.instance);
+    
     CallDetailRecord cdr = cdrRandomGenerator.next();
     
     //fill with the customer info.
-    SingleRecord customerInfo = repo.getRandomCustomerEnrichedInfo();
+    SingleRecord customerInfo = customerEnrichedInfoHbaseRepo.getRandomCustomerEnrichedInfo();
     cdr.setIsdn(customerInfo.getIsdn());
     cdr.setImsi(customerInfo.getImsi());
     cdr.setImei(customerInfo.getImei());

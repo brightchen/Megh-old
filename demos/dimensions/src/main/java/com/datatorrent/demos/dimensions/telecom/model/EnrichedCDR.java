@@ -22,7 +22,7 @@ public class EnrichedCDR extends CallDetailRecord{
   private String operatorCode;
   private String deviceBrand;
   private String deviceModel;
-  private String zipCode;
+  //private String zipCode;
   
   public EnrichedCDR(){}
   
@@ -69,7 +69,7 @@ public class EnrichedCDR extends CallDetailRecord{
     deviceModel = tacInfo.model;
     
     //zip code
-    zipCode = String.valueOf(PointZipCodeRepo.instance().getZip(this.getLat(), this.getLon()));
+    //zipCode = String.valueOf(PointZipCodeRepo.instance().getZip(this.getLat(), this.getLon()));
   }
   
   @Override
@@ -86,9 +86,9 @@ public class EnrichedCDR extends CallDetailRecord{
     sb.append(operatorCode).append(delimiter);
     
     sb.append(deviceBrand).append(delimiter);
-    sb.append(deviceModel).append(delimiter);
+    sb.append(deviceModel);     //.append(delimiter);
     
-    sb.append(zipCode);
+    //sb.append(zipCode);
     return sb.toString();
   }
   
@@ -128,6 +128,5 @@ public class EnrichedCDR extends CallDetailRecord{
   public void setDeviceModel(String deviceModel) {
     this.deviceModel = deviceModel;
   }
-  
   
 }

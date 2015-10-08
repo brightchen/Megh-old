@@ -307,4 +307,15 @@ public class CallDetailRecord {
   {
     return (DisconnectReason.CallComplete.getCode() == dr || DisconnectReason.CallDropped.getCode() == dr) ? 1 : 0;
   }
+  
+  public int getDisconnectCount()
+  {
+    return (DisconnectReason.NoResponse.getCode() == dr || DisconnectReason.CallDropped.getCode() == dr) ? 1 : 0;
+  }
+  
+  //Lat,lon
+  public String getPoint()
+  {
+    return this.getLat() + "," + this.getLon();
+  }
 }

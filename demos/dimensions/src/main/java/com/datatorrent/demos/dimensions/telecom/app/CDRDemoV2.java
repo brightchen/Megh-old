@@ -31,9 +31,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 /**
- * This demo application generate the CDR records --> enrich them --> Dimension
- * computation ( count of disconnect group by DR by ZipCode, count of service
- * call group by zip code )
+ * Only need compute maximum Disconnects by Location (Latitude and Longitude)
  * 
  * @author bright
  *
@@ -90,22 +88,17 @@ public class CDRDemoV2 implements StreamingApplication {
       dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.CHECKPOINT_WINDOW_COUNT, 4);
 
       // Set operator properties
-      // key expression
+      // key expression: Point( Lat, Lon )
       {
         Map<String, String> keyToExpression = Maps.newHashMap();
-        keyToExpression.put("imsi", "getImsi()");
-        keyToExpression.put("Carrier", "getOperatorCode()");
-        keyToExpression.put("imei", "getImei()");
+        keyToExpression.put("point", "getPoint()");
         dimensions.setKeyToExpression(keyToExpression);
       }
 
-      // aggregate expression
+      // aggregate expression: disconnect
       {
         Map<String, String> aggregateToExpression = Maps.newHashMap();
-        aggregateToExpression.put("duration", "getDuration()");
-        aggregateToExpression.put("terminatedAbnomally", "getTerminatedAbnomally()");
-        aggregateToExpression.put("terminatedNomally", "getTerminatedNomally()");
-        aggregateToExpression.put("called", "getCalled()");
+        aggregateToExpression.put("disconnectCount", "getDisconnectCount()");
         dimensions.setAggregateToExpression(aggregateToExpression);
       }
 

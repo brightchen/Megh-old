@@ -58,7 +58,7 @@ public class EnrichedCDRHbaseOutputOperator extends HBasePOJOPutOperator{
     fieldsInfo.add( new CDRHBaseFieldInfo( "operatorCode", "operatorCode", SupportType.STRING, "f1") );
     fieldsInfo.add( new CDRHBaseFieldInfo( "deviceBrand", "deviceBrand", SupportType.STRING, "f1") );
     fieldsInfo.add( new CDRHBaseFieldInfo( "deviceModel", "deviceModel", SupportType.STRING, "f1") );
-    fieldsInfo.add( new CDRHBaseFieldInfo( "zipCode", "zipCode", SupportType.STRING, "f1") );
+    //fieldsInfo.add( new CDRHBaseFieldInfo( "zipCode", "zipCode", SupportType.STRING, "f1") );
  
     tableInfo.setFieldsInfo(fieldsInfo);
     setTableInfo(tableInfo);

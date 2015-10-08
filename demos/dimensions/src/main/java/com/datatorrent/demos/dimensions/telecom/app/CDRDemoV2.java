@@ -66,7 +66,6 @@ public class CDRDemoV2 implements StreamingApplication {
 
     dag.addStream("InputStream", cdrGenerator.cdrOutputPort, enrichOperator.cdrInputPort)
         .setLocality(Locality.CONTAINER_LOCAL);
-    dag.addStream("EnrichedPersistStream", enrichOperator.outputPort, cdrPersist.input);
     
     
     // Customer service generator
@@ -79,10 +78,10 @@ public class CDRDemoV2 implements StreamingApplication {
     
     dag.addStream("CustomerService", customerServiceGenerator.outputPort, customerServicePersist.input);
     
-
+    DimensionsComputationFlexibleSingleSchemaPOJO dimensions = null;
     if (enableDimension) {
       // dimension
-      DimensionsComputationFlexibleSingleSchemaPOJO dimensions = dag.addOperator("DimensionsComputation",
+      dimensions = dag.addOperator("DimensionsComputation",
           DimensionsComputationFlexibleSingleSchemaPOJO.class);
       dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.APPLICATION_WINDOW_COUNT, 4);
       dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.CHECKPOINT_WINDOW_COUNT, 4);
@@ -137,10 +136,14 @@ public class CDRDemoV2 implements StreamingApplication {
       dag.setAttribute(store, Context.OperatorContext.COUNTERS_AGGREGATOR,
           new BasicCounters.LongAggregator<MutableLong>());
 
-      dag.addStream("EnrichedStream", enrichOperator.outputPort, dimensions.input);
       dag.addStream("DimensionalStream", dimensions.output, store.input);
       dag.addStream("QueryResult", store.queryResult, wsOut.input);
     }
+    if(dimensions != null)
+      dag.addStream("EnrichedStream", enrichOperator.outputPort, cdrPersist.input, dimensions.input);
+    else
+      dag.addStream("EnrichedStream", enrichOperator.outputPort, cdrPersist.input);
+      
   }
 
   

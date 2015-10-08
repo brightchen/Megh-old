@@ -37,4 +37,19 @@ public class CustomerService {
     this.issueType = issueType;
     this.satisfied = satisfied;
   }
+  
+  public String getZipCodeAsString()
+  {
+    return String.valueOf(zipCode);
+  }
+  
+  public int getServiceCallCount()
+  {
+    return 1;
+  }
+  
+  public int getWait()
+  {
+    return wait;
+  }
 }

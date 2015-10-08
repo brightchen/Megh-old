@@ -28,6 +28,16 @@ import com.datatorrent.lib.statistics.DimensionsComputationUnifierImpl;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
+/**
+ * 
+ * # of service calls by Zipcode
+ * Top 10 Zipcodes by Service Calls -> Drill Down to get Customer records
+ * # Total wait time v/s Average Wait time for Top 10 Zipcodes
+ * I also want running wait times for all zipcodes
+ *
+ * @author bright
+ *
+ */
 @ApplicationAnnotation(name = CustomerServiceDemoV2.APP_NAME)
 public class CustomerServiceDemoV2 implements StreamingApplication {
 
@@ -52,11 +62,10 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     CustomerServiceHbaseOutputOperator customerServicePersist = new CustomerServiceHbaseOutputOperator();
     dag.addOperator("CustomerService-Persist", customerServicePersist);
 
-    dag.addStream("CustomerService", customerServiceGenerator.outputPort, customerServicePersist.input);
-
+    DimensionsComputationFlexibleSingleSchemaPOJO dimensions = null;
     if (enableDimension) {
       // dimension
-      DimensionsComputationFlexibleSingleSchemaPOJO dimensions = dag.addOperator("DimensionsComputation",
+      dimensions = dag.addOperator("DimensionsComputation",
           DimensionsComputationFlexibleSingleSchemaPOJO.class);
       dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.APPLICATION_WINDOW_COUNT, 4);
       dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.CHECKPOINT_WINDOW_COUNT, 4);
@@ -65,19 +74,15 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       // key expression
       {
         Map<String, String> keyToExpression = Maps.newHashMap();
-        keyToExpression.put("imsi", "getImsi()");
-        keyToExpression.put("Carrier", "getOperatorCode()");
-        keyToExpression.put("imei", "getImei()");
+        keyToExpression.put("zipCode", "getZipCodeAsString()");
         dimensions.setKeyToExpression(keyToExpression);
       }
 
       // aggregate expression
       {
         Map<String, String> aggregateToExpression = Maps.newHashMap();
-        aggregateToExpression.put("duration", "getDuration()");
-        aggregateToExpression.put("terminatedAbnomally", "getTerminatedAbnomally()");
-        aggregateToExpression.put("terminatedNomally", "getTerminatedNomally()");
-        aggregateToExpression.put("called", "getCalled()");
+        aggregateToExpression.put("serviceCall", "getServiceCallCount()");
+        aggregateToExpression.put("wait", "getWait()");
         dimensions.setAggregateToExpression(aggregateToExpression);
       }
 
@@ -116,10 +121,14 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       dag.setAttribute(store, Context.OperatorContext.COUNTERS_AGGREGATOR,
           new BasicCounters.LongAggregator<MutableLong>());
 
-      dag.addStream("CustomerServiceStream", customerServiceGenerator.outputPort, dimensions.input);
       dag.addStream("DimensionalStream", dimensions.output, store.input);
       dag.addStream("QueryResult", store.queryResult, wsOut.input);
     }
+    
+    if(dimensions != null)
+      dag.addStream("CustomerService", customerServiceGenerator.outputPort, customerServicePersist.input, dimensions.input);
+    else
+      dag.addStream("CustomerService", customerServiceGenerator.outputPort, customerServicePersist.input);
   }
 
   public boolean isEnableDimension() {

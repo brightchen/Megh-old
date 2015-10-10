@@ -8,14 +8,19 @@ import com.datatorrent.api.DAG;
 import com.datatorrent.api.LocalMode;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.demos.dimensions.telecom.app.CustomerEnrichedInfoGenerateApp;
+import com.datatorrent.demos.dimensions.telecom.conf.CustomerEnrichedInfoCassandraConfig;
+import com.datatorrent.demos.dimensions.telecom.conf.CustomerEnrichedInfoHBaseConfig;
+import com.datatorrent.demos.dimensions.telecom.conf.CustomerEnrichedInfoHiveConfig;
 
 public class CustomerEnrichedInfoGenerateAppTester extends CustomerEnrichedInfoGenerateApp{
   @Before
   public void setUp()
   {
-    this.hbaseConfig.setHost("localhost");
-    //this.hiveConfig.setHost("localhost");
+    CustomerEnrichedInfoHBaseConfig.instance.setHost("localhost");
+    CustomerEnrichedInfoCassandraConfig.instance.setHost("localhost");
+    CustomerEnrichedInfoHiveConfig.instance.setHost("localhost");
   }
+  
   
   @Test
   public void test() throws Exception {

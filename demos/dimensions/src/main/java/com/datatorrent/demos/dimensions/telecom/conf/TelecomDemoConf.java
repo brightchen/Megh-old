@@ -17,10 +17,16 @@ public class TelecomDemoConf {
   protected String hivePassword = "";
 
   //for HBase
-  protected String hbaseHost = "node23";
+  protected String hbaseHost = "node26";
   protected int hbasePort = 2181;
   protected String hbaseUserName = "bright";
   protected String hbasePassword = "";
+  
+  //cassandra
+  protected String cassandraHost = "node11";
+  protected int cassandraPort = 9160;
+  protected String cassandraUserName = "bright";
+  protected String cassandraPassword = "";
   
   protected String database = "telecomdemo";
   protected String customerEnrichedInfoTableName = "CustomerEnrichedInfo";
@@ -123,6 +129,46 @@ public class TelecomDemoConf {
 
   public void setCustomerServiceTableName(String customerServiceTableName) {
     this.customerServiceTableName = customerServiceTableName;
+  }
+
+  public String getCassandraHost()
+  {
+    return cassandraHost;
+  }
+
+  public void setCassandraHost(String cassandraHost)
+  {
+    this.cassandraHost = cassandraHost;
+  }
+
+  public int getCassandraPort()
+  {
+    return cassandraPort;
+  }
+
+  public void setCassandraPort(int cassandraPort)
+  {
+    this.cassandraPort = cassandraPort;
+  }
+
+  public String getCassandraUserName()
+  {
+    return cassandraUserName;
+  }
+
+  public void setCassandraUserName(String cassandraUserName)
+  {
+    this.cassandraUserName = cassandraUserName;
+  }
+
+  public String getCassandraPassword()
+  {
+    return cassandraPassword;
+  }
+
+  public void setCassandraPassword(String cassandraPassword)
+  {
+    this.cassandraPassword = cassandraPassword;
   }
   
   

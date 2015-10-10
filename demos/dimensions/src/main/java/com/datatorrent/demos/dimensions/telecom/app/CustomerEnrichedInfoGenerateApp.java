@@ -13,6 +13,7 @@ import com.datatorrent.demos.dimensions.telecom.conf.CustomerEnrichedInfoHBaseCo
 import com.datatorrent.demos.dimensions.telecom.conf.CustomerEnrichedInfoHiveConfig;
 import com.datatorrent.demos.dimensions.telecom.conf.DataWarehouseConfig;
 import com.datatorrent.demos.dimensions.telecom.model.CustomerEnrichedInfo;
+import com.datatorrent.demos.dimensions.telecom.operator.CustomerEnrichedInfoCassandraOutputOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.CustomerEnrichedInfoGenerateOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.CustomerEnrichedInfoHbaseOutputOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.CustomerEnrichedInfoHiveOutputOperator;
@@ -30,14 +31,12 @@ import com.datatorrent.demos.dimensions.telecom.operator.CustomerEnrichedInfoHiv
 public class CustomerEnrichedInfoGenerateApp implements StreamingApplication {
   public static final int outputMask_HBase = 0x01;
   public static final int outputMask_Hive = 0x10;
+  public static final int outputMask_Cassandra = 0x100;
   
-  protected int outputMask = outputMask_HBase;
+  protected int outputMask = outputMask_Cassandra;
   
   protected String fileDir = "CEI";
   
-  
-  protected DataWarehouseConfig hiveConfig = CustomerEnrichedInfoHiveConfig.instance;
-  protected DataWarehouseConfig hbaseConfig = CustomerEnrichedInfoHBaseConfig.instance;
   
   @Override
   public void populateDAG(DAG dag, Configuration conf) {
@@ -48,7 +47,6 @@ public class CustomerEnrichedInfoGenerateApp implements StreamingApplication {
     if((outputMask & outputMask_HBase) != 0)
     {
       CustomerEnrichedInfoHbaseOutputOperator hbaseOutput = new CustomerEnrichedInfoHbaseOutputOperator();
-      hbaseOutput.setHbaseConfig(hbaseConfig);
       dag.addOperator("HBase Ouput", hbaseOutput);
       dag.addStream("HBase Stream", generator.outputPort, hbaseOutput.input);
     }
@@ -57,19 +55,32 @@ public class CustomerEnrichedInfoGenerateApp implements StreamingApplication {
     {
       //configure this operator
       CustomerEnrichedInfoHiveOutputOperator hiveOutput = createHiveOutput();
-      hiveOutput.setHiveConfig(CustomerEnrichedInfoHiveConfig.instance);
       
       dag.addOperator("Hive Ouput", hiveOutput);
       dag.addStream("Hive Stream", generator.outputPort, hiveOutput.input);
+    }
+    //use Cassandra
+    if((outputMask & outputMask_Cassandra) != 0)
+    {
+      //configure this operator
+      CustomerEnrichedInfoCassandraOutputOperator cassandrOutput = createCassandraOutput();
+      
+      dag.addOperator("Cassandra Ouput", cassandrOutput);
+      dag.addStream("Cassandra Stream", generator.outputPort, cassandrOutput.input);
     }
   }
 
   protected CustomerEnrichedInfoHiveOutputOperator createHiveOutput()
   {
     CustomerEnrichedInfoHiveOutputOperator hiveOutput = new CustomerEnrichedInfoHiveOutputOperator();
-    hiveOutput.setHiveConfig(hiveConfig);
     
     return hiveOutput;
+  }
+  
+  protected CustomerEnrichedInfoCassandraOutputOperator createCassandraOutput()
+  {
+    CustomerEnrichedInfoCassandraOutputOperator cassandrOutput = new CustomerEnrichedInfoCassandraOutputOperator();
+    return cassandrOutput;
   }
   
   protected FSPojoToHiveOperator createFsToHiveOutput()
@@ -150,6 +161,8 @@ public class CustomerEnrichedInfoGenerateApp implements StreamingApplication {
 
     return fsRolling;
   }
+  
+  
 
   public String getFileDir() {
     return fileDir;
@@ -158,14 +171,5 @@ public class CustomerEnrichedInfoGenerateApp implements StreamingApplication {
   public void setFileDir(String fileDir) {
     this.fileDir = fileDir;
   }
-
-  public DataWarehouseConfig getHiveConfig() {
-    return hiveConfig;
-  }
-
-  public void setHiveConfig(DataWarehouseConfig hiveConfig) {
-    this.hiveConfig = hiveConfig;
-  }
-  
   
 }

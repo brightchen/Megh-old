@@ -20,7 +20,7 @@ import com.datatorrent.demos.dimensions.telecom.operator.CustomerEnrichedInfoHiv
 
 
 /**
- * This application generate random customer info and write to Hive database.
+ * This application generate random customer info and write to Output database.
  * The generation of CDR depends on the customer info.
  * So, if the customer info changed, all previous generated CDR are not valid any more.
  * 

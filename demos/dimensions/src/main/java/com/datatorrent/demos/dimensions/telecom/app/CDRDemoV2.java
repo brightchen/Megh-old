@@ -1,5 +1,6 @@
 package com.datatorrent.demos.dimensions.telecom.app;
 
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.mutable.MutableLong;
@@ -10,6 +11,7 @@ import com.datatorrent.api.DAG;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DAG.Locality;
+import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.contrib.dimensions.AppDataSingleSchemaDimensionStoreHDHT;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
@@ -18,6 +20,7 @@ import com.datatorrent.demos.dimensions.telecom.operator.CDREnrichOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.CallDetailRecordGenerateOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.CustomerServiceGenerateOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.CustomerServiceHbaseOutputOperator;
+import com.datatorrent.demos.dimensions.telecom.operator.EnrichedCDRCassandraOutputOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.EnrichedCDRHbaseOutputOperator;
 import com.datatorrent.lib.appdata.schemas.SchemaUtils;
 import com.datatorrent.lib.counters.BasicCounters;
@@ -28,6 +31,7 @@ import com.datatorrent.lib.io.PubSubWebSocketAppDataQuery;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataResult;
 import com.datatorrent.lib.statistics.DimensionsComputationUnifierImpl;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 /**
@@ -43,7 +47,12 @@ public class CDRDemoV2 implements StreamingApplication {
   public static final String EVENT_SCHEMA = "cdrDemoV2EventSchema.json";
   public static final String PROP_STORE_PATH = "dt.application." + APP_NAME
       + ".operator.Store.fileStore.basePathPrefix";
-
+  
+  public static final int outputMask_HBase = 0x01;
+  public static final int outputMask_Cassandra = 0x100;
+  
+  protected int outputMask = outputMask_Cassandra;
+  
   public String eventSchemaLocation = EVENT_SCHEMA;
 
   protected boolean enableDimension = true;
@@ -59,14 +68,25 @@ public class CDRDemoV2 implements StreamingApplication {
     // CDR enrich
     CDREnrichOperator enrichOperator = new CDREnrichOperator();
     dag.addOperator("CDR-Enrich", enrichOperator);
-
-    // CDR persist
-    EnrichedCDRHbaseOutputOperator cdrPersist = new EnrichedCDRHbaseOutputOperator();
-    dag.addOperator("EnrichedCDR-Persist", cdrPersist);
-
-    dag.addStream("InputStream", cdrGenerator.cdrOutputPort, enrichOperator.cdrInputPort)
-        .setLocality(Locality.CONTAINER_LOCAL);
     
+    dag.addStream("InputStream", cdrGenerator.cdrOutputPort, enrichOperator.cdrInputPort)
+    .setLocality(Locality.CONTAINER_LOCAL);
+
+    List<DefaultInputPort<? super EnrichedCDR>> enrichedStreamSinks = Lists.newArrayList();
+    // CDR persist
+    if((outputMask & outputMask_HBase) != 0)
+    {
+      // HBase
+      EnrichedCDRHbaseOutputOperator cdrPersist = new EnrichedCDRHbaseOutputOperator();
+      dag.addOperator("EnrichedCDR-HBase-Persist", cdrPersist);
+      enrichedStreamSinks.add(cdrPersist.input);
+    }
+    if((outputMask & outputMask_Cassandra) != 0)
+    {
+      EnrichedCDRCassandraOutputOperator cdrPersist = new EnrichedCDRCassandraOutputOperator();
+      dag.addOperator("EnrichedCDR-Canssandra-Persist", cdrPersist);
+      enrichedStreamSinks.add(cdrPersist.input);
+    }
     
     // Customer service generator
     CustomerServiceGenerateOperator customerServiceGenerator = new CustomerServiceGenerateOperator();
@@ -86,6 +106,8 @@ public class CDRDemoV2 implements StreamingApplication {
       dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.APPLICATION_WINDOW_COUNT, 4);
       dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.CHECKPOINT_WINDOW_COUNT, 4);
 
+      enrichedStreamSinks.add(dimensions.input);
+      
       // Set operator properties
       // key expression: Point( Lat, Lon )
       {
@@ -141,10 +163,7 @@ public class CDRDemoV2 implements StreamingApplication {
       dag.addStream("DimensionalStream", dimensions.output, store.input);
       dag.addStream("QueryResult", store.queryResult, wsOut.input);
     }
-    if(dimensions != null)
-      dag.addStream("EnrichedStream", enrichOperator.outputPort, cdrPersist.input, dimensions.input);
-    else
-      dag.addStream("EnrichedStream", enrichOperator.outputPort, cdrPersist.input);
+    dag.addStream("EnrichedStream", enrichOperator.outputPort, enrichedStreamSinks.toArray(new DefaultInputPort[0]));
       
   }
 

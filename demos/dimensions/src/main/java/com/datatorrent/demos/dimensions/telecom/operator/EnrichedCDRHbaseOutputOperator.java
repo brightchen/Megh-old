@@ -35,7 +35,7 @@ public class EnrichedCDRHbaseOutputOperator extends TelecomDemoHBaseOutputOperat
     put.add(familyName, Bytes.toBytes("operatorCode"), Bytes.toBytes(ecdr.getOperatorCode()));
     put.add(familyName, Bytes.toBytes("deviceBrand"), Bytes.toBytes(ecdr.getDeviceBrand()));
     put.add(familyName, Bytes.toBytes("deviceModel"), Bytes.toBytes(ecdr.getDeviceModel()));
-    //put.add(familyName, Bytes.toBytes("zipCode"), Bytes.toBytes(ecdr.getZipCode()));
+    put.add(familyName, Bytes.toBytes("zipCode"), Bytes.toBytes(ecdr.getZipCode()));
     return put;
     
   }

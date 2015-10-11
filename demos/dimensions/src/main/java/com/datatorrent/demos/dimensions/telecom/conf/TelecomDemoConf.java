@@ -35,6 +35,7 @@ public class TelecomDemoConf {
   protected String cdrDir = "CDR";
   
   protected String customerServiceTableName = "CustomerService";
+  protected String EnrichedCustomerServiceTableName = "EnrichedCustomerService";
   
   private TelecomDemoConf(){}
   
@@ -169,6 +170,16 @@ public class TelecomDemoConf {
   public void setCassandraPassword(String cassandraPassword)
   {
     this.cassandraPassword = cassandraPassword;
+  }
+
+  public String getEnrichedCustomerServiceTableName()
+  {
+    return EnrichedCustomerServiceTableName;
+  }
+
+  public void setEnrichedCustomerServiceTableName(String enrichedCustomerServiceTableName)
+  {
+    EnrichedCustomerServiceTableName = enrichedCustomerServiceTableName;
   }
   
   

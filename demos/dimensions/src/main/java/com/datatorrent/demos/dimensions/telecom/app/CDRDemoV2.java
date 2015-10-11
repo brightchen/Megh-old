@@ -88,15 +88,6 @@ public class CDRDemoV2 implements StreamingApplication {
       enrichedStreamSinks.add(cdrPersist.input);
     }
     
-    // Customer service generator
-    CustomerServiceGenerateOperator customerServiceGenerator = new CustomerServiceGenerateOperator();
-    dag.addOperator("CustomerService-Generator", customerServiceGenerator);
-    
-    // Customer service persist
-    CustomerServiceHbaseOutputOperator customerServicePersist = new CustomerServiceHbaseOutputOperator();
-    dag.addOperator("CustomerService-Persist", customerServicePersist);
-    
-    dag.addStream("CustomerService", customerServiceGenerator.outputPort, customerServicePersist.input);
     
     DimensionsComputationFlexibleSingleSchemaPOJO dimensions = null;
     if (enableDimension) {

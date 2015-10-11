@@ -1,6 +1,8 @@
 package com.datatorrent.demos.dimensions.telecom.model;
 
 public class CustomerService {
+  public static final String delimiter = ";";
+  
   public static enum IssueType
   {
     DeviceUpgrade,
@@ -38,6 +40,11 @@ public class CustomerService {
     this.satisfied = satisfied;
   }
   
+  public CustomerService( CustomerService other)
+  {
+    this(other.imsi, other.totalDuration, other.wait, other.zipCode, other.issueType, other.satisfied);
+  }
+
   public String getZipCodeAsString()
   {
     return String.valueOf(zipCode);

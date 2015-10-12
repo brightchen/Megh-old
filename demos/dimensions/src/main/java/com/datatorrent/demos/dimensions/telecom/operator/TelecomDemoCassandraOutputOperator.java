@@ -68,14 +68,6 @@ public abstract class TelecomDemoCassandraOutputOperator<T> extends BaseOperator
   
   protected void createTables()
   {
-    String createMetaTable = "CREATE TABLE IF NOT EXISTS " + CassandraTransactionalStore.DEFAULT_META_TABLE + " ( "
-        + CassandraTransactionalStore.DEFAULT_APP_ID_COL + " TEXT, "
-        + CassandraTransactionalStore.DEFAULT_OPERATOR_ID_COL + " INT, "
-        + CassandraTransactionalStore.DEFAULT_WINDOW_COL + " BIGINT, "
-        + "PRIMARY KEY (" + CassandraTransactionalStore.DEFAULT_APP_ID_COL + ", " + CassandraTransactionalStore.DEFAULT_OPERATOR_ID_COL + ") "
-        + ");";
-    session.execute(createMetaTable);
-
     createBusinessTables(session);
   }
   

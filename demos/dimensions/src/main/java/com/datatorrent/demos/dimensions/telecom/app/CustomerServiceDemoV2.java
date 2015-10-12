@@ -6,22 +6,23 @@ import java.util.Map;
 import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.hadoop.conf.Configuration;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
 import com.datatorrent.api.Context;
+import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DAG;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.StreamingApplication;
-import com.datatorrent.api.Context.OperatorContext;
-import com.datatorrent.api.DAG.Locality;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.contrib.dimensions.AppDataSingleSchemaDimensionStoreHDHT;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
-import com.datatorrent.demos.dimensions.telecom.model.CustomerService;
-import com.datatorrent.demos.dimensions.telecom.model.EnrichedCDR;
-import com.datatorrent.demos.dimensions.telecom.operator.CallDetailRecordGenerateOperator;
-import com.datatorrent.demos.dimensions.telecom.operator.CustomerServiceCassandraOutputOperator;
+import com.datatorrent.demos.dimensions.telecom.model.EnrichedCustomerService;
+import com.datatorrent.demos.dimensions.telecom.operator.CustomerServiceEnrichOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.CustomerServiceGenerateOperator;
-import com.datatorrent.demos.dimensions.telecom.operator.CustomerServiceHbaseOutputOperator;
-import com.datatorrent.demos.dimensions.telecom.operator.EnrichedCDRHbaseOutputOperator;
+import com.datatorrent.demos.dimensions.telecom.operator.EnrichedCustomerServiceCassandraOutputOperator;
+import com.datatorrent.demos.dimensions.telecom.operator.EnrichedCustomerServiceHbaseOutputOperator;
 import com.datatorrent.lib.appdata.schemas.SchemaUtils;
 import com.datatorrent.lib.counters.BasicCounters;
 import com.datatorrent.lib.dimensions.DimensionsComputationFlexibleSingleSchemaPOJO;
@@ -30,9 +31,6 @@ import com.datatorrent.lib.dimensions.DimensionsEvent.InputEvent;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataQuery;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataResult;
 import com.datatorrent.lib.statistics.DimensionsComputationUnifierImpl;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 /**
  * 
@@ -68,21 +66,24 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     // Customer service generator
     CustomerServiceGenerateOperator customerServiceGenerator = new CustomerServiceGenerateOperator();
     dag.addOperator("CustomerService-Generator", customerServiceGenerator);
+    
+    CustomerServiceEnrichOperator enrichOperator = new CustomerServiceEnrichOperator();
+    dag.addOperator("Enrich", enrichOperator);
 
-    List<DefaultInputPort<? super CustomerService>> sustomerServiceStreamSinks = Lists.newArrayList();
+    List<DefaultInputPort<? super EnrichedCustomerService>> sustomerServiceStreamSinks = Lists.newArrayList();
     
     // Customer service persist
     if((outputMask & outputMask_HBase) != 0)
     {
       // HBase
-      CustomerServiceHbaseOutputOperator customerServicePersist = new CustomerServiceHbaseOutputOperator();
+      EnrichedCustomerServiceHbaseOutputOperator customerServicePersist = new EnrichedCustomerServiceHbaseOutputOperator();
       dag.addOperator("CustomerService-HBase-Persist", customerServicePersist);
       sustomerServiceStreamSinks.add(customerServicePersist.input);
     }
     if((outputMask & outputMask_Cassandra) != 0)
     {
       // Cassandra
-      CustomerServiceCassandraOutputOperator customerServicePersist = new CustomerServiceCassandraOutputOperator();
+      EnrichedCustomerServiceCassandraOutputOperator customerServicePersist = new EnrichedCustomerServiceCassandraOutputOperator();
       dag.addOperator("CustomerService-Cassandra-Persist", customerServicePersist);
       sustomerServiceStreamSinks.add(customerServicePersist.input);
     }

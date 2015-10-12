@@ -44,10 +44,12 @@ public abstract class TelecomDemoCassandraOutputOperator<T> extends BaseOperator
   @Override
   public void setup(OperatorContext context)
   {
+    logger.info("setup() starting"); 
     configure();
     createSession();
     createTables();
     createSqlFormat();
+    logger.info("setup() done."); 
   }
   
   protected abstract String createSqlFormat();

@@ -32,6 +32,7 @@ public class CustomerEnrichedInfoCassandraOutputOperator extends TelecomDemoCass
     String createTable = "CREATE TABLE IF NOT EXISTS " + cassandraConfig.getDatabase() + "." + cassandraConfig.getTableName()
         + " (id text PRIMARY KEY, imsi text, isdn text, imei text, operatorName text, operatorCode text, deviceBrand text, deviceModel text);";
     session.execute(createTable);
+    logger.info("created table: {}",cassandraConfig.getDatabase() + "." + cassandraConfig.getTableName());
   }
   
   protected String createSqlFormat()

@@ -27,7 +27,7 @@ import com.datatorrent.demos.dimensions.telecom.operator.CustomerEnrichedInfoHiv
  * @author bright
  *
  */
-@ApplicationAnnotation(name="CustomerInfoGenerateApp")
+@ApplicationAnnotation(name="CustomerEnrichedInfoGenerateApp")
 public class CustomerEnrichedInfoGenerateApp implements StreamingApplication {
   public static final int outputMask_HBase = 0x01;
   public static final int outputMask_Hive = 0x10;

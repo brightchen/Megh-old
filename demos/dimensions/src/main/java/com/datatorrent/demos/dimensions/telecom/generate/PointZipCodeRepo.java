@@ -40,24 +40,24 @@ public class PointZipCodeRepo {
   {
     public static final int SCALAR = 10000;
     //instead of use float, use int to increase performance
-    public final int lan;
+    public final int lat;
     public final int lon;
     
     protected Point()
     {
-      lan = 0;
+      lat = 0;
       lon = 0;
     }
     
-    public Point(int lan, int lon)
+    public Point(int lat, int lon)
     {
-      this.lan = lan;
+      this.lat = lat;
       this.lon = lon;
     }
     
-    public Point(float lan, float lon)
+    public Point(float lat, float lon)
     {
-      this.lan = (int)(lan*SCALAR);
+      this.lat = (int)(lat*SCALAR);
       this.lon = (int)(lon*SCALAR);
     }
 
@@ -87,9 +87,9 @@ public class PointZipCodeRepo {
 
     @Override
     public int compare(Point l1, Point l2) {
-      if(l1.lan < l2.lan)
+      if(l1.lat < l2.lat)
         return -1;
-      else if(l1.lan > l2.lan)
+      else if(l1.lat > l2.lat)
         return 1;
       else if(l1.lon < l2.lon)
         return -1;
@@ -104,6 +104,7 @@ public class PointZipCodeRepo {
   protected SortedMap<Integer, int[]> lanToLons = Maps.newTreeMap();
   protected int[] sortedLans;
   protected int[] zipCodes;
+  protected Point[] points;
   
   /**
    * load from csv file
@@ -132,14 +133,17 @@ public class PointZipCodeRepo {
       
       //generate LanToLons
       Map<Integer, List<Integer>> lanToLonList = Maps.newHashMap();
-      Set<Point> points = pointToZip.keySet();
-      for(Point point : points )
+      Set<Point> pointSet = pointToZip.keySet();
+      points = new Point[pointSet.size()];
+      int index = 0;
+      for(Point point : pointSet )
       {
-        List<Integer> lons = lanToLonList.get(point.lan);
+        points[index++] = point;
+        List<Integer> lons = lanToLonList.get(point.lat);
         if(lons == null)
         {
           lons = Lists.newArrayList(point.lon);
-          lanToLonList.put(point.lan, lons);
+          lanToLonList.put(point.lat, lons);
         }
         else
           lons.add(point.lon);
@@ -165,11 +169,12 @@ public class PointZipCodeRepo {
         zipCodeSet.add(entry.getValue());
       }
       zipCodes = new int[zipCodeSet.size()];
-      int index = 0;
+      index = 0;
       for(Integer zipCode : zipCodeSet)
       {
         zipCodes[index++] = zipCode;
       }
+      
       
     } catch (FileNotFoundException e) {
       e.printStackTrace();
@@ -294,7 +299,7 @@ public class PointZipCodeRepo {
   
   public Integer getZip(Point point)
   {
-    return getZipByScaledPoint(point.lan, point.lon);
+    return getZipByScaledPoint(point.lat, point.lon);
   }
   
   protected Point getPoint(int lan, int lon)
@@ -358,5 +363,10 @@ public class PointZipCodeRepo {
     if(zipCodes == null)
       throw new RuntimeException("load() first.");
     return String.valueOf(zipCodes[random.nextInt(zipCodes.length)]);
+  }
+  
+  public Point getRandomPoint()
+  {
+    return points[random.nextInt(points.length)];
   }
 }

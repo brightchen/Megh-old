@@ -50,7 +50,7 @@ public class PointZipCodeRepoTester {
     for(Map.Entry<Point, Integer> entry : pointToZipMap.entrySet())
     {
       int actual = repo.getZip(entry.getKey());
-      Assert.assertTrue(String.format("Point: lan=%d, lon=%d; Zip: expected: %d; actual: %d", entry.getKey().lan, entry.getKey().lon, entry.getValue(), actual ), 
+      Assert.assertTrue(String.format("Point: lan=%d, lon=%d; Zip: expected: %d; actual: %d", entry.getKey().lat, entry.getKey().lon, entry.getValue(), actual ), 
           entry.getValue()==actual);
     }
   }

@@ -3,6 +3,7 @@ package com.datatorrent.demos.dimensions.telecom.generate;
 import java.util.Calendar;
 import java.util.Random;
 
+import com.datatorrent.demos.dimensions.telecom.generate.PointZipCodeRepo.Point;
 import com.datatorrent.demos.dimensions.telecom.model.CallDetailRecord;
 import com.datatorrent.demos.dimensions.telecom.model.CallType;
 import com.datatorrent.demos.dimensions.telecom.model.DisconnectReason;
@@ -75,9 +76,12 @@ public class CallDetailRecordRandomGenerator implements Generator<CallDetailReco
       }
     }
     //[35, 41]
-    record.setLat((float)(Math.random()*7+35));
-    //[-124, -118]
-    record.setLon((float)(Math.random()*7-124));
+//    record.setLat((float)(Math.random()*7+35));
+//    //[-124, -118]
+//    record.setLon((float)(Math.random()*7-124));
+    Point point = PointZipCodeRepo.instance().getRandomPoint();
+    record.setLat(point.lat);
+    record.setLon(point.lon);
     
     //use current time
     //recordTime += random.nextInt(100);

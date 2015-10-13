@@ -49,6 +49,8 @@ public abstract class TelecomDemoCassandraOutputOperator<T> extends BaseOperator
     createSession();
     createTables();
     createSqlFormat();
+
+    preparedStatement = prepareStatement();
     logger.info("setup() done."); 
   }
   
@@ -86,11 +88,6 @@ public abstract class TelecomDemoCassandraOutputOperator<T> extends BaseOperator
   protected PreparedStatement preparedStatement;
   public void processTuple(T tuple)
   {
-    if(size >= batchSize)
-      size = 0;
-    if(size == 0)
-      preparedStatement = prepareStatement();
-   
     Statement statement = setStatementParameters(preparedStatement, tuple);
     session.execute(statement);
   }

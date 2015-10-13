@@ -11,11 +11,12 @@ public class CustomerEnrichedInfoGenerateOperator implements InputOperator {
   public final transient DefaultOutputPort<CustomerEnrichedInfo.SingleRecord> outputPort = new DefaultOutputPort<CustomerEnrichedInfo.SingleRecord>();
 
   private int batchSize = 10;
-  private int customerSize = 100000;
+  //the total amount of customers to generate.
+  private int customerSize = 30000;
   private transient CustomerInfoRandomGenerator generator = new CustomerInfoRandomGenerator();
   private int generatedSize = 0;
   
-   @Override
+  @Override
   public void beginWindow(long windowId) {
   }
 

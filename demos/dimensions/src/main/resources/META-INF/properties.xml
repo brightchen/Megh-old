@@ -245,6 +245,10 @@
     <name>dt.application.CDRDemoV2.operator.QueryResult.topic</name>
     <value>CDRDemoV2QueryResult</value>
   </property>
+  <property>
+    <name>dt.application.CDRDemoV2.operator.EnrichedCDR-Canssandra-Persist.cassandraConfig.host</name>
+    <value>node22</value>
+  </property>
 
   <property>
     <name>dt.application.CustomerServiceDemoV2.operator.Store.fileStore.basePathPrefix</name>
@@ -253,6 +257,16 @@
   <property>
     <name>dt.application.CustomerServiceDemoV2.operator.QueryResult.topic</name>
     <value>CustomerServiceDemoV2QueryResult</value>
+  </property>
+    <property>
+    <name>dt.application.CustomerServiceDemoV2.operator.CustomerService-Cassandra-Persist.cassandraConfig.host</name>
+    <value>node22</value>
+  </property>
+  
+  <property>
+    <property>
+    <name>dt.application.CustomerServiceDemoV2.operator.CassandraPersist.cassandraConfig.host</name>
+    <value>node22</value>
   </property>
   
   <!-- Settings for all the apps -->

@@ -94,4 +94,15 @@ public abstract class TelecomDemoCassandraOutputOperator<T> extends BaseOperator
     Statement statement = setStatementParameters(preparedStatement, tuple);
     session.execute(statement);
   }
+
+  public DataWarehouseConfig getCassandraConfig()
+  {
+    return cassandraConfig;
+  }
+
+  public void setCassandraConfig(DataWarehouseConfig cassandraConfig)
+  {
+    this.cassandraConfig = cassandraConfig;
+  }
+  
 }

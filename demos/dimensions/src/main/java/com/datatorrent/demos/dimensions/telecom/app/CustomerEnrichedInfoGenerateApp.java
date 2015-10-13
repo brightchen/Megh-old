@@ -65,7 +65,7 @@ public class CustomerEnrichedInfoGenerateApp implements StreamingApplication {
       //configure this operator
       CustomerEnrichedInfoCassandraOutputOperator cassandrOutput = createCassandraOutput();
       
-      dag.addOperator("Cassandra Ouput", cassandrOutput);
+      dag.addOperator("CassandraPersist", cassandrOutput);
       dag.addStream("Cassandra Stream", generator.outputPort, cassandrOutput.input);
     }
   }

@@ -17,20 +17,17 @@ public class CustomerServiceCassandraOutputOperator extends TelecomDemoCassandra
 {
   private static final transient Logger logger = LoggerFactory.getLogger(CustomerServiceCassandraOutputOperator.class);
 
-  @Override
-  public void setup(OperatorContext context)
+  public CustomerServiceCassandraOutputOperator()
   {
     cassandraConfig = CustomerServiceCassandraConf.instance;
-    
-    super.setup(context);
   }
-  
+
   @Override
   protected void createBusinessTables(Session session)
   {
     
     String createTable = "CREATE TABLE IF NOT EXISTS " + cassandraConfig.getDatabase() + "." + cassandraConfig.getTableName()
-        + " (id long PRIMARY KEY, imsi text, totalDuration int, wait int, zipCode text, issueType text, satisfied boolean);";
+        + " (id bigint PRIMARY KEY, imsi text, totalDuration int, wait int, zipCode text, issueType text, satisfied boolean);";
     session.execute(createTable);
     
 

@@ -1,5 +1,6 @@
 package com.datatorrent.demos.dimensions.telecom.generate;
 
+import com.datatorrent.demos.dimensions.telecom.conf.CustomerEnrichedInfoCassandraConfig;
 import com.datatorrent.demos.dimensions.telecom.conf.CustomerEnrichedInfoHBaseConfig;
 import com.datatorrent.demos.dimensions.telecom.model.CallDetailRecord;
 import com.datatorrent.demos.dimensions.telecom.model.CustomerEnrichedInfo.SingleRecord;
@@ -10,23 +11,53 @@ import com.datatorrent.demos.dimensions.telecom.model.CustomerEnrichedInfo.Singl
  *
  */
 public class CallDetailRecordCustomerInfoGenerator implements Generator<CallDetailRecord> {
-  protected CustomerEnrichedInfoHbaseRepo customerEnrichedInfoHbaseRepo = null;
+  public static enum RepoType
+  {
+    HBase,
+    Cassandra
+  }
+  
+  protected CustomerEnrichedInfoProvider customerEnrichedInfoProvider = null;
   protected CallDetailRecordRandomGenerator cdrRandomGenerator = new CallDetailRecordRandomGenerator();
+  protected RepoType repoType = RepoType.Cassandra;
   
   @Override
   public CallDetailRecord next() {
-    if(customerEnrichedInfoHbaseRepo == null)
-      customerEnrichedInfoHbaseRepo = CustomerEnrichedInfoHbaseRepo.createInstance(CustomerEnrichedInfoHBaseConfig.instance);
+    if(customerEnrichedInfoProvider == null)
+      customerEnrichedInfoProvider = createCustomerEnrichedInfoProvider();
+      
     
     CallDetailRecord cdr = cdrRandomGenerator.next();
     
     //fill with the customer info.
-    SingleRecord customerInfo = customerEnrichedInfoHbaseRepo.getRandomCustomerEnrichedInfo();
+    SingleRecord customerInfo = customerEnrichedInfoProvider.getRandomCustomerEnrichedInfo();
     cdr.setIsdn(customerInfo.getIsdn());
     cdr.setImsi(customerInfo.getImsi());
     cdr.setImei(customerInfo.getImei());
     
     return cdr;
   }
+  
+  protected CustomerEnrichedInfoProvider createCustomerEnrichedInfoProvider()
+  {
+    if(RepoType.HBase == repoType)
+      customerEnrichedInfoProvider = CustomerEnrichedInfoHbaseRepo.createInstance(CustomerEnrichedInfoHBaseConfig.instance);
+    else if(RepoType.Cassandra == repoType )
+      customerEnrichedInfoProvider = CustomerEnrichedInfoCassandraRepo.createInstance(CustomerEnrichedInfoCassandraConfig.instance);
+    return customerEnrichedInfoProvider;
+  }
 
+  public String getRepoType()
+  {
+    return repoType.name();
+  }
+
+  public void setRepoType(String repoType)
+  {
+    this.repoType = RepoType.valueOf(repoType);
+    if(this.repoType == null)
+      this.repoType = RepoType.Cassandra;
+  }
+
+  
 }

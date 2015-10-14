@@ -14,7 +14,9 @@ import com.datatorrent.api.DAG;
 import com.datatorrent.api.LocalMode;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.demos.dimensions.telecom.app.CDRDemoV2;
+import com.datatorrent.demos.dimensions.telecom.conf.CustomerEnrichedInfoCassandraConfig;
 import com.datatorrent.demos.dimensions.telecom.conf.CustomerEnrichedInfoHBaseConfig;
+import com.datatorrent.demos.dimensions.telecom.conf.EnrichedCDRCassandraConfig;
 import com.datatorrent.demos.dimensions.telecom.conf.EnrichedCDRHBaseConfig;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataQuery;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataResult;
@@ -27,7 +29,8 @@ public class CDRDemoV2Tester extends CDRDemoV2{
   {
     CustomerEnrichedInfoHBaseConfig.instance.setHost("localhost");
     EnrichedCDRHBaseConfig.instance.setHost("localhost");
-    
+    CustomerEnrichedInfoCassandraConfig.instance.setHost("localhost");
+    EnrichedCDRCassandraConfig.instance.setHost("localhost");
     enableDimension = false;
   }
   

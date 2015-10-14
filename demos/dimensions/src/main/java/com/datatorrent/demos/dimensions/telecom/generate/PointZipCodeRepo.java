@@ -266,7 +266,7 @@ public class PointZipCodeRepo {
     {
       if(minDistanceSquare == 0)
         break;
-      for(int index=lanIndex; minDistanceSquare > 0; index+=stepSize)
+      for(int index=lanIndex; minDistanceSquare > 0 && index < sortedLans.length && index >= 0; index+=stepSize)
       {
         final int closeLon = findMostCloseLon(sortedLans[index], lon);
         long distanceSquare = distanceSquare(lan, lon, sortedLans[index], closeLon);

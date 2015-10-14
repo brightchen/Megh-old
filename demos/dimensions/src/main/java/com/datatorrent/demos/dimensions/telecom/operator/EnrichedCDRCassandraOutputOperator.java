@@ -17,20 +17,16 @@ public class EnrichedCDRCassandraOutputOperator extends TelecomDemoCassandraOutp
 {
   private static final transient Logger logger = LoggerFactory.getLogger(EnrichedCDRCassandraOutputOperator.class);
   
-  
-  @Override
-  public void setup(OperatorContext context)
+  public EnrichedCDRCassandraOutputOperator()
   {
     cassandraConfig = EnrichedCDRCassandraConfig.instance;
-    
-    super.setup(context);
   }
   
   @Override
   protected void createBusinessTables(Session session)
   {
     String createTable = "CREATE TABLE IF NOT EXISTS " + cassandraConfig.getDatabase() + "." + cassandraConfig.getTableName()
-        + " (id long PRIMARY KEY, imsi text, isdn text, imei text, plan text, callType text, correspType text, correspIsdn text, duration int, "
+        + " (id bigint PRIMARY KEY, imsi text, isdn text, imei text, plan text, callType text, correspType text, correspIsdn text, duration int, "
         + "bytes int, dr int, lat float, lon float, date text, time text, drLabel text, operatorCode text, deviceBrand text, "
         + "deviceModel text, zipcode text );";
     session.execute(createTable);

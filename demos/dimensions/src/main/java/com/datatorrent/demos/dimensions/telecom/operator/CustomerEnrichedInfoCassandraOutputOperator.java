@@ -17,14 +17,11 @@ public class CustomerEnrichedInfoCassandraOutputOperator extends TelecomDemoCass
 {
   private static final transient Logger logger = LoggerFactory.getLogger(CustomerEnrichedInfoCassandraOutputOperator.class);
   
-  
-  @Override
-  public void setup(OperatorContext context)
+  public CustomerEnrichedInfoCassandraOutputOperator()
   {
     cassandraConfig = CustomerEnrichedInfoCassandraConfig.instance;
-    
-    super.setup(context);
   }
+  
   
   @Override
   protected void createBusinessTables(Session session)

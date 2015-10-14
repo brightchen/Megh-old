@@ -29,7 +29,7 @@ import com.google.common.collect.Lists;
  * @author bright
  *
  */
-public class CustomerEnrichedInfoHbaseRepo {
+public class CustomerEnrichedInfoHbaseRepo implements CustomerEnrichedInfoProvider{
   private static final transient Logger logger = LoggerFactory.getLogger(CustomerEnrichedInfoHbaseRepo.class);
   
   private SingleRecord[] customerInfoArray;
@@ -138,6 +138,7 @@ public class CustomerEnrichedInfoHbaseRepo {
     customerInfoArray = customerInfoList.toArray(new SingleRecord[0]);
   }
   
+  @Override
   public SingleRecord getRandomCustomerEnrichedInfo()
   {
     int index = random.nextInt(customerInfoArray.length);

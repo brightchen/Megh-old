@@ -17,12 +17,9 @@ public class EnrichedCustomerServiceCassandraOutputOperator extends TelecomDemoC
 {
   private static final transient Logger logger = LoggerFactory.getLogger(CustomerServiceCassandraOutputOperator.class);
 
-  @Override
-  public void setup(OperatorContext context)
+  public EnrichedCustomerServiceCassandraOutputOperator()
   {
     cassandraConfig = EnrichedCustomerServiceCassandraConf.instance;
-    
-    super.setup(context);
   }
   
   @Override
@@ -30,7 +27,7 @@ public class EnrichedCustomerServiceCassandraOutputOperator extends TelecomDemoC
   {
     
     String createTable = "CREATE TABLE IF NOT EXISTS " + cassandraConfig.getDatabase() + "." + cassandraConfig.getTableName()
-        + " (id long PRIMARY KEY, imsi text, totalDuration int, wait int, zipCode text, issueType text, satisfied boolean, "
+        + " (id bigint PRIMARY KEY, imsi text, totalDuration int, wait int, zipCode text, issueType text, satisfied boolean, "
         + " operatorCode String, deviceBrand String, deviceModel String";
     session.execute(createTable);
   }

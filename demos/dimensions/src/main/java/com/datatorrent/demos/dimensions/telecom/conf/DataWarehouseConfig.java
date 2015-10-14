@@ -47,6 +47,10 @@ public class DataWarehouseConfig {
     this.tableName = tableName;
   }
   
-  
+  @Override
+  public String toString()
+  {
+    return String.format("host=%s; port=%d; userName=%s; database=%s; tableName=%s ", host, port, userName, database, tableName );
+  }
 }
 

@@ -1,11 +1,10 @@
 package com.datatorrent.demos.dimensions.telecom.generate;
 
 import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URL;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -14,9 +13,10 @@ import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 
-import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.apache.commons.io.IOUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -69,17 +69,18 @@ public class PointZipCodeRepo {
   
   public static PointZipCodeRepo instance()
   {
-    if(instance == null)
+    if(instance == null || instance.lanToLons.size() == 0)
     {
       synchronized(PointZipCodeRepo.class)
       {
-        if(instance == null)
+        if(instance == null || instance.lanToLons.size() == 0)
         {
           instance = new PointZipCodeRepo();
           instance.load();
         }
       }
     }
+    
     return instance;
   }
   
@@ -112,16 +113,13 @@ public class PointZipCodeRepo {
    */
   protected void load()
   {
-    URL fileUrl = Thread.currentThread().getContextClassLoader().getResource(LOCATION_ZIPS_FILE);
-    if(fileUrl == null)
-      return;
+    logger.info("instance:{}; PointZipCodeRepo.load()", System.identityHashCode(this));
     
-    String filePath = fileUrl.getPath();
-
+    InputStream is = null;
     BufferedReader br = null;
     try {
-      FileInputStream fis = new FileInputStream(filePath);
-      br = new BufferedReader(new InputStreamReader(fis));
+      is = this.getClass().getClassLoader().getResourceAsStream(LOCATION_ZIPS_FILE);
+      br = new BufferedReader(new InputStreamReader(is));
       while(true)
       {
         String line = br.readLine();
@@ -130,6 +128,7 @@ public class PointZipCodeRepo {
 
         addPointMeta(line);
       }
+      logger.info("load(): {} of pointToZip entries are loaded.", pointToZip.size());
       
       //generate LanToLons
       Map<Integer, List<Integer>> lanToLonList = Maps.newHashMap();
@@ -148,7 +147,7 @@ public class PointZipCodeRepo {
         else
           lons.add(point.lon);
       }
-      
+      logger.info("load(): {} of points are loaded.", points.length);
       
       List<Integer> lans = Lists.newArrayList(lanToLonList.keySet());
       Collections.sort(lans);
@@ -174,17 +173,19 @@ public class PointZipCodeRepo {
       {
         zipCodes[index++] = zipCode;
       }
-      
+      logger.info("load(): {} of zipcode are loaded.", zipCodes.length);
       
     } catch (FileNotFoundException e) {
-      e.printStackTrace();
+      logger.error("Exception in load()", e);
     } catch (IOException e) {
-      e.printStackTrace();
+      logger.error("Exception in load()", e);
     }
     finally
     {
       if(br != null)
         IOUtils.closeQuietly(br);
+      if(is != null)
+        IOUtils.closeQuietly(is);
     }
   }
   
@@ -367,6 +368,7 @@ public class PointZipCodeRepo {
   
   public Point getRandomPoint()
   {
+    logger.info("instance:{}; PointZipCodeRepo.getRandomPoint()", System.identityHashCode(this));
     return points[random.nextInt(points.length)];
   }
 }

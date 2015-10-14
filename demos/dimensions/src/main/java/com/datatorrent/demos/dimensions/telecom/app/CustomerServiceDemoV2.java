@@ -84,7 +84,8 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     {
       // Cassandra
       EnrichedCustomerServiceCassandraOutputOperator customerServicePersist = new EnrichedCustomerServiceCassandraOutputOperator();
-      dag.addOperator("CustomerService-Cassandra-Persist", customerServicePersist);
+      //dag.addOperator("CustomerService-Cassandra-Persist", customerServicePersist);
+      dag.addOperator("CassandraPersist", customerServicePersist);
       sustomerServiceStreamSinks.add(customerServicePersist.input);
     }
     

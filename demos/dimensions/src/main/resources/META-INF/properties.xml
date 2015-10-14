@@ -246,8 +246,12 @@
     <value>CDRDemoV2QueryResult</value>
   </property>
   <property>
-    <name>dt.application.CDRDemoV2.operator.EnrichedCDR-Canssandra-Persist.cassandraConfig.host</name>
+    <name>dt.application.CDRDemoV2.operator.CanssandraPersist.cassandraConfig.host</name>
     <value>node22</value>
+  </property>
+  <property>
+    <name>dt.application.CDRDemoV2.cassandra.host</name>
+      <value>node22</value>
   </property>
 
   <property>
@@ -259,18 +263,18 @@
     <value>CustomerServiceDemoV2QueryResult</value>
   </property>
   <property>
-    <name>dt.application.CustomerServiceDemoV2.operator.CustomerService-Cassandra-Persist.cassandraConfig.host</name>
-    <value>node22</value>
-  </property>
-  
-  <property>
     <name>dt.application.CustomerServiceDemoV2.operator.CassandraPersist.cassandraConfig.host</name>
     <value>node22</value>
   </property>
-  
+
   <property>
     <name>dt.application.CustomerEnrichedInfoGenerateApp.operator.CassandraPersist.cassandraConfig.host</name>
     <value>node22</value>
+  </property>
+
+  <property>
+    <name>dt.gateway.listenAddress</name>
+    <value>node20.morado.com:10001</value>
   </property>
 
 

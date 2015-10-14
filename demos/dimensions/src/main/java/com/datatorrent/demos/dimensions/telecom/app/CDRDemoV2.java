@@ -15,6 +15,7 @@ import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.contrib.dimensions.AppDataSingleSchemaDimensionStoreHDHT;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
+import com.datatorrent.demos.dimensions.telecom.conf.TelecomDemoConf;
 import com.datatorrent.demos.dimensions.telecom.model.EnrichedCDR;
 import com.datatorrent.demos.dimensions.telecom.operator.CDREnrichOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.CallDetailRecordGenerateOperator;
@@ -47,7 +48,7 @@ public class CDRDemoV2 implements StreamingApplication {
   public static final String EVENT_SCHEMA = "cdrDemoV2EventSchema.json";
   public static final String PROP_STORE_PATH = "dt.application." + APP_NAME
       + ".operator.Store.fileStore.basePathPrefix";
-  
+  public static final String PROP_CASSANDRA_HOST = "dt.application." + APP_NAME + "cassandra.host";
   public static final int outputMask_HBase = 0x01;
   public static final int outputMask_Cassandra = 0x100;
   
@@ -56,18 +57,23 @@ public class CDRDemoV2 implements StreamingApplication {
   public String eventSchemaLocation = EVENT_SCHEMA;
 
   protected boolean enableDimension = true;
+
   
   @Override
   public void populateDAG(DAG dag, Configuration conf) {
     String eventSchema = SchemaUtils.jarResourceFileToString(eventSchemaLocation);
-
+    final String cassandraHost = conf.get(PROP_CASSANDRA_HOST);
+    if(cassandraHost != null)
+    {
+      TelecomDemoConf.instance.setCassandraHost(cassandraHost);
+    }
     // CDR generator
     CallDetailRecordGenerateOperator cdrGenerator = new CallDetailRecordGenerateOperator();
-    dag.addOperator("CDR-Generator", cdrGenerator);
+    dag.addOperator("CDRGenerator", cdrGenerator);
 
     // CDR enrich
     CDREnrichOperator enrichOperator = new CDREnrichOperator();
-    dag.addOperator("CDR-Enrich", enrichOperator);
+    dag.addOperator("CDREnrich", enrichOperator);
     
     dag.addStream("InputStream", cdrGenerator.cdrOutputPort, enrichOperator.cdrInputPort)
     .setLocality(Locality.CONTAINER_LOCAL);
@@ -175,4 +181,5 @@ public class CDRDemoV2 implements StreamingApplication {
   protected PubSubWebSocketAppDataResult createAppDataResult() {
     return new PubSubWebSocketAppDataResult();
   }
+
 }

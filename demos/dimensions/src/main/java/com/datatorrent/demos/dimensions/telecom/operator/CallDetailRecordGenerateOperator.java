@@ -11,7 +11,7 @@ public class CallDetailRecordGenerateOperator implements InputOperator {
   public final transient DefaultOutputPort<CallDetailRecord> cdrOutputPort = new DefaultOutputPort<CallDetailRecord>();
 
   private int batchSize = 10;
-  private CallDetailRecordCustomerInfoGenerator generator = new CallDetailRecordCustomerInfoGenerator();
+  private CallDetailRecordCustomerInfoGenerator customerInfoGeneratorGenerator = new CallDetailRecordCustomerInfoGenerator();
   
    @Override
   public void beginWindow(long windowId) {
@@ -32,16 +32,26 @@ public class CallDetailRecordGenerateOperator implements InputOperator {
     {
       for(int i=0; i<batchSize; ++i)
       {
-        bytesOutputPort.emit(generator.next().toLine().getBytes());
+        bytesOutputPort.emit(customerInfoGeneratorGenerator.next().toLine().getBytes());
       }
     }
     if(cdrOutputPort.isConnected())
     {
       for(int i=0; i<batchSize; ++i)
       {
-        cdrOutputPort.emit(generator.next());
+        cdrOutputPort.emit(customerInfoGeneratorGenerator.next());
       }
     }
+  }
+
+  public CallDetailRecordCustomerInfoGenerator getCustomerInfoGeneratorGenerator()
+  {
+    return customerInfoGeneratorGenerator;
+  }
+
+  public void setCustomerInfoGeneratorGenerator(CallDetailRecordCustomerInfoGenerator customerInfoGeneratorGenerator)
+  {
+    this.customerInfoGeneratorGenerator = customerInfoGeneratorGenerator;
   }
 
 }

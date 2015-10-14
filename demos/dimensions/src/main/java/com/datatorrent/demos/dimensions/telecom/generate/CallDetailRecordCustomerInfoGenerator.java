@@ -1,5 +1,8 @@
 package com.datatorrent.demos.dimensions.telecom.generate;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.datatorrent.demos.dimensions.telecom.conf.CustomerEnrichedInfoCassandraConfig;
 import com.datatorrent.demos.dimensions.telecom.conf.CustomerEnrichedInfoHBaseConfig;
 import com.datatorrent.demos.dimensions.telecom.model.CallDetailRecord;
@@ -16,6 +19,8 @@ public class CallDetailRecordCustomerInfoGenerator implements Generator<CallDeta
     HBase,
     Cassandra
   }
+  
+  private static final transient Logger logger = LoggerFactory.getLogger(CallDetailRecordCustomerInfoGenerator.class);
   
   protected CustomerEnrichedInfoProvider customerEnrichedInfoProvider = null;
   protected CallDetailRecordRandomGenerator cdrRandomGenerator = new CallDetailRecordRandomGenerator();
@@ -44,6 +49,7 @@ public class CallDetailRecordCustomerInfoGenerator implements Generator<CallDeta
       customerEnrichedInfoProvider = CustomerEnrichedInfoHbaseRepo.createInstance(CustomerEnrichedInfoHBaseConfig.instance);
     else if(RepoType.Cassandra == repoType )
       customerEnrichedInfoProvider = CustomerEnrichedInfoCassandraRepo.createInstance(CustomerEnrichedInfoCassandraConfig.instance);
+    logger.info("repoType={}, customerEnrichedInfoProvider={}", repoType, customerEnrichedInfoProvider);
     return customerEnrichedInfoProvider;
   }
 
@@ -57,6 +63,16 @@ public class CallDetailRecordCustomerInfoGenerator implements Generator<CallDeta
     this.repoType = RepoType.valueOf(repoType);
     if(this.repoType == null)
       this.repoType = RepoType.Cassandra;
+  }
+
+  public CustomerEnrichedInfoProvider getCustomerEnrichedInfoProvider()
+  {
+    return customerEnrichedInfoProvider;
+  }
+
+  public void setCustomerEnrichedInfoProvider(CustomerEnrichedInfoProvider customerEnrichedInfoProvider)
+  {
+    this.customerEnrichedInfoProvider = customerEnrichedInfoProvider;
   }
 
   

@@ -269,10 +269,11 @@
   </property>
   
   <property>
-    <name>dt.operator.*.cassandraConfig.host</name>
+    <name>dt.application.CustomerEnrichedInfoGenerateApp.operator.CassandraPersist.cassandraConfig.host</name>
     <value>node22</value>
   </property>
-  
+
+
   <!-- Settings for all the apps -->
   <property>
     <name>dt.operator.*.attr.MEMORY_MB</name>

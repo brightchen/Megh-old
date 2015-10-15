@@ -11,6 +11,7 @@ import com.datastax.driver.core.exceptions.DriverException;
 
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.demos.dimensions.telecom.conf.CustomerServiceCassandraConf;
+import com.datatorrent.demos.dimensions.telecom.generate.GeneratorUtil;
 import com.datatorrent.demos.dimensions.telecom.model.CustomerService;
 
 public class CustomerServiceCassandraOutputOperator extends TelecomDemoCassandraOutputOperator<CustomerService>
@@ -43,7 +44,7 @@ public class CustomerServiceCassandraOutputOperator extends TelecomDemoCassandra
   }
   
 
-  private long id = 0;
+  private long id = GeneratorUtil.getRecordId();
   @Override
   protected Statement setStatementParameters(PreparedStatement updateCommand, CustomerService tuple) throws DriverException
   {

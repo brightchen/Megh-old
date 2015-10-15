@@ -31,7 +31,7 @@ public class EnrichedCustomerService extends CustomerService
     MNCInfo mncInfo = MNCRepo.instance().getMncInfoByImsi(cs.imsi);
     
     //brand & model
-    TACInfo tacInfo = TACRepo.instance().getTacInfoByImei(cs.imsi);
+    TACInfo tacInfo = TACRepo.instance().getTacInfoByImei(cs.imei);
     
     return new EnrichedCustomerService(cs, mncInfo.carrier.operatorCode, tacInfo.manufacturer, tacInfo.model);
   }

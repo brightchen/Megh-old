@@ -15,6 +15,7 @@ import com.datatorrent.api.LocalMode;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.demos.dimensions.telecom.app.CustomerServiceDemoV2;
 import com.datatorrent.demos.dimensions.telecom.conf.CustomerServiceHBaseConf;
+import com.datatorrent.demos.dimensions.telecom.conf.TelecomDemoConf;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataQuery;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataResult;
 
@@ -24,7 +25,11 @@ public class CustomerServiceDemoV2Tester extends CustomerServiceDemoV2{
   @Before
   public void setUp()
   {
-    CustomerServiceHBaseConf.instance.setHost("localhost");
+    //CustomerServiceHBaseConf.instance.setHost("localhost");
+    TelecomDemoConf.instance.setCassandraHost("localhost");
+    TelecomDemoConf.instance.setHbaseHost("localhost");
+    TelecomDemoConf.instance.setHiveHost("localhost");
+    enableDimension = false;
   }
   
   @Test

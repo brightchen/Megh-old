@@ -69,6 +69,8 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     
     CustomerServiceEnrichOperator enrichOperator = new CustomerServiceEnrichOperator();
     dag.addOperator("Enrich", enrichOperator);
+    
+    dag.addStream("CustomerService", customerServiceGenerator.outputPort, enrichOperator.inputPort);
 
     List<DefaultInputPort<? super EnrichedCustomerService>> sustomerServiceStreamSinks = Lists.newArrayList();
     
@@ -102,7 +104,8 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       // key expression
       {
         Map<String, String> keyToExpression = Maps.newHashMap();
-        keyToExpression.put("zipCode", "getZipCodeAsString()");
+        keyToExpression.put("zipCode", "getZipCode()");
+        keyToExpression.put("time", "getTime()");
         dimensions.setKeyToExpression(keyToExpression);
       }
 
@@ -153,7 +156,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       dag.addStream("QueryResult", store.queryResult, wsOut.input);
     }
     
-    dag.addStream("CustomerService", customerServiceGenerator.outputPort, sustomerServiceStreamSinks.toArray(new DefaultInputPort[0]));
+    dag.addStream("EnrichedCustomerService", enrichOperator.outputPort, sustomerServiceStreamSinks.toArray(new DefaultInputPort[0]));
   }
 
   public boolean isEnableDimension() {

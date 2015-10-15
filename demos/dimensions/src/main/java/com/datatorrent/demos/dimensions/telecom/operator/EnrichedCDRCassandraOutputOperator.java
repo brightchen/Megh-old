@@ -13,6 +13,7 @@ import com.datastax.driver.core.exceptions.DriverException;
 
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.demos.dimensions.telecom.conf.EnrichedCDRCassandraConfig;
+import com.datatorrent.demos.dimensions.telecom.generate.GeneratorUtil;
 import com.datatorrent.demos.dimensions.telecom.model.EnrichedCDR;
 
 public class EnrichedCDRCassandraOutputOperator extends TelecomDemoCassandraOutputOperator<EnrichedCDR>
@@ -45,13 +46,7 @@ public class EnrichedCDRCassandraOutputOperator extends TelecomDemoCassandraOutp
   }
   
 
-  private long id = getInitId();
-  protected static long getInitId()
-  {
-    Calendar c = Calendar.getInstance();
-    c.set(Calendar.YEAR, 2010);
-    return Calendar.getInstance().getTimeInMillis() - c.getTimeInMillis();
-  }
+  private long id = GeneratorUtil.getRecordId();
   
   @Override
   protected Statement setStatementParameters(PreparedStatement updateCommand, EnrichedCDR tuple) throws DriverException

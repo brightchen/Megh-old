@@ -11,6 +11,7 @@ import com.datastax.driver.core.exceptions.DriverException;
 
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.demos.dimensions.telecom.conf.EnrichedCustomerServiceCassandraConf;
+import com.datatorrent.demos.dimensions.telecom.generate.GeneratorUtil;
 import com.datatorrent.demos.dimensions.telecom.model.EnrichedCustomerService;
 
 public class EnrichedCustomerServiceCassandraOutputOperator extends TelecomDemoCassandraOutputOperator<EnrichedCustomerService>
@@ -28,7 +29,7 @@ public class EnrichedCustomerServiceCassandraOutputOperator extends TelecomDemoC
     
     String createTable = "CREATE TABLE IF NOT EXISTS " + cassandraConfig.getDatabase() + "." + cassandraConfig.getTableName()
         + " (id bigint PRIMARY KEY, imsi text, totalDuration int, wait int, zipCode text, issueType text, satisfied boolean, "
-        + " operatorCode String, deviceBrand String, deviceModel String";
+        + " operatorCode text, deviceBrand text, deviceModel text)";
     session.execute(createTable);
   }
   
@@ -37,12 +38,12 @@ public class EnrichedCustomerServiceCassandraOutputOperator extends TelecomDemoC
     sqlCommand = "INSERT INTO " + cassandraConfig.getDatabase() + "."
         + cassandraConfig.getTableName()
         + " ( id, imsi, totalDuration, wait, zipCode, issueType, satisfied, operatorCode, deviceBrand, deviceModel ) "
-        + "VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+        + "VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
     return sqlCommand;
   }
   
 
-  private long id = 0;
+  private long id = GeneratorUtil.getRecordId();
   @Override
   protected Statement setStatementParameters(PreparedStatement updateCommand, EnrichedCustomerService tuple) throws DriverException
   {

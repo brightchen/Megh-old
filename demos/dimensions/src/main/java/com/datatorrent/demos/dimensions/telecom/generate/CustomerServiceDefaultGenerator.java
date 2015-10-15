@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import com.datatorrent.demos.dimensions.telecom.conf.CustomerEnrichedInfoCassandraConfig;
 import com.datatorrent.demos.dimensions.telecom.conf.CustomerEnrichedInfoHBaseConfig;
+import com.datatorrent.demos.dimensions.telecom.model.CustomerEnrichedInfo.SingleRecord;
 import com.datatorrent.demos.dimensions.telecom.model.CustomerService;
 import com.datatorrent.demos.dimensions.telecom.model.CustomerService.IssueType;
 
@@ -25,14 +26,18 @@ public class CustomerServiceDefaultGenerator implements Generator<CustomerServic
   {
     if (customerEnrichedInfoProvider == null)
       customerEnrichedInfoProvider = createCustomerEnrichedInfoProvider();
-
-    String imsi = customerEnrichedInfoProvider.getRandomCustomerEnrichedInfo().imsi;
+    
+    SingleRecord ci = customerEnrichedInfoProvider.getRandomCustomerEnrichedInfo();
+    String imsi = ci.imsi;
+    String imei = ci.imei;
+    String isdn = ci.isdn;
+        
     int totalDuration = Generator.random.nextInt(MAX_DURATION);
     int wait = (int)(totalDuration * Math.random());
     String zipCode = PointZipCodeRepo.instance().getRandomZipCode();
     IssueType issueType = IssueType.values()[Generator.random.nextInt(IssueType.values().length)];
     boolean satisfied = (Generator.random.nextInt(1) == 0);
-    return new CustomerService(imsi, totalDuration, wait, zipCode, issueType, satisfied);
+    return new CustomerService(imsi, isdn, imei, totalDuration, wait, zipCode, issueType, satisfied);
   }
   
   protected CustomerEnrichedInfoProvider createCustomerEnrichedInfoProvider()

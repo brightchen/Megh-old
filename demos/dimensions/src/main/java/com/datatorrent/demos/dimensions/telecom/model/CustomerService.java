@@ -1,5 +1,7 @@
 package com.datatorrent.demos.dimensions.telecom.model;
 
+import java.util.Calendar;
+
 public class CustomerService {
   public static final String delimiter = ";";
   
@@ -14,15 +16,20 @@ public class CustomerService {
   }
   
   public final String imsi;
+  public final String isdn;
+  public final String imei;
   public final int totalDuration;
   public final int wait;
   public final String zipCode;
   public final IssueType issueType;
   public final boolean satisfied;
+  public final long time = Calendar.getInstance().getTimeInMillis();
   
   protected CustomerService()
   {
     imsi = "";
+    isdn = "";
+    imei = "";
     totalDuration = 0;
     wait = 0;
     zipCode = "";
@@ -30,9 +37,11 @@ public class CustomerService {
     satisfied = false;
   }
   
-  public CustomerService(String imsi, int totalDuration, int wait, String zipCode, IssueType issueType, boolean satisfied)
+  public CustomerService(String imsi, String isdn, String imei, int totalDuration, int wait, String zipCode, IssueType issueType, boolean satisfied)
   {
     this.imsi = imsi;
+    this.isdn = isdn;
+    this.imei = imei;
     this.totalDuration = totalDuration;
     this.wait = wait;
     this.zipCode = zipCode;
@@ -42,14 +51,9 @@ public class CustomerService {
   
   public CustomerService( CustomerService other)
   {
-    this(other.imsi, other.totalDuration, other.wait, other.zipCode, other.issueType, other.satisfied);
+    this(other.imsi, other.isdn, other.imei, other.totalDuration, other.wait, other.zipCode, other.issueType, other.satisfied);
   }
 
-  public String getZipCodeAsString()
-  {
-    return String.valueOf(zipCode);
-  }
-  
   public int getServiceCallCount()
   {
     return 1;
@@ -59,4 +63,15 @@ public class CustomerService {
   {
     return wait;
   }
+
+  public String getZipCode()
+  {
+    return zipCode;
+  }
+
+  public long getTime()
+  {
+    return time;
+  }
+
 }

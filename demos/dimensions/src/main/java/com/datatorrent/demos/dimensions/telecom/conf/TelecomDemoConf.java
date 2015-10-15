@@ -23,7 +23,7 @@ public class TelecomDemoConf {
   protected String hbasePassword = "";
   
   //cassandra
-  protected String cassandraHost = "node11";
+  protected String cassandraHost = "node22";
   protected int cassandraPort = 9160;
   protected String cassandraUserName = "bright";
   protected String cassandraPassword = "";

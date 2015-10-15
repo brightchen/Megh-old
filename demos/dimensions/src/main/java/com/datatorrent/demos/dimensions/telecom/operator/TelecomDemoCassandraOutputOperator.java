@@ -37,9 +37,7 @@ public abstract class TelecomDemoCassandraOutputOperator<T> extends BaseOperator
   protected String sqlCommand;
   
   protected int batchSize = 1000;
-  protected List<T> tuples = Lists.newArrayList();
-  protected CassandraStore store;
-  protected Session session;
+  protected transient Session session;
   
   @Override
   public void setup(OperatorContext context)
@@ -58,10 +56,6 @@ public abstract class TelecomDemoCassandraOutputOperator<T> extends BaseOperator
   
   protected void configure()
   {
-    //store
-    store = new CassandraStore();
-    store.setNode(cassandraConfig.getHost());
-    store.setKeyspace(cassandraConfig.getDatabase());
   }
   
   protected void createSession()

@@ -11,6 +11,7 @@ public class CallDetailRecordGenerateOperator implements InputOperator {
   public final transient DefaultOutputPort<CallDetailRecord> cdrOutputPort = new DefaultOutputPort<CallDetailRecord>();
 
   private int batchSize = 10;
+  private int batchSleepTime = 10;
   private CallDetailRecordCustomerInfoGenerator customerInfoGeneratorGenerator = new CallDetailRecordCustomerInfoGenerator();
   
    @Override
@@ -42,6 +43,13 @@ public class CallDetailRecordGenerateOperator implements InputOperator {
         cdrOutputPort.emit(customerInfoGeneratorGenerator.next());
       }
     }
+    try
+    {
+      Thread.sleep(batchSleepTime);
+    }
+    catch(Exception e)
+    {
+    }
   }
 
   public CallDetailRecordCustomerInfoGenerator getCustomerInfoGeneratorGenerator()
@@ -52,6 +60,26 @@ public class CallDetailRecordGenerateOperator implements InputOperator {
   public void setCustomerInfoGeneratorGenerator(CallDetailRecordCustomerInfoGenerator customerInfoGeneratorGenerator)
   {
     this.customerInfoGeneratorGenerator = customerInfoGeneratorGenerator;
+  }
+
+  public int getBatchSize()
+  {
+    return batchSize;
+  }
+
+  public void setBatchSize(int batchSize)
+  {
+    this.batchSize = batchSize;
+  }
+
+  public int getBatchSleepTime()
+  {
+    return batchSleepTime;
+  }
+
+  public void setBatchSleepTime(int batchSleepTime)
+  {
+    this.batchSleepTime = batchSleepTime;
   }
 
 }

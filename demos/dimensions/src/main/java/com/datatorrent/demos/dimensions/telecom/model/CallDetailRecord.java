@@ -316,6 +316,6 @@ public class CallDetailRecord {
   //Lat,lon
   public String getPoint()
   {
-    return this.getLat() + "," + this.getLon();
+    return String.format("%.4f,%.4f", getLat(), getLon());
   }
 }

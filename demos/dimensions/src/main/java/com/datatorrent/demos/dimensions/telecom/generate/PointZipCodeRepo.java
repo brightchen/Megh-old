@@ -69,11 +69,11 @@ public class PointZipCodeRepo {
   
   public static PointZipCodeRepo instance()
   {
-    if(instance == null || instance.lanToLons.size() == 0)
+    if(instance == null)
     {
       synchronized(PointZipCodeRepo.class)
       {
-        if(instance == null || instance.lanToLons.size() == 0)
+        if(instance == null)
         {
           instance = new PointZipCodeRepo();
           instance.load();
@@ -368,7 +368,6 @@ public class PointZipCodeRepo {
   
   public Point getRandomPoint()
   {
-    logger.info("instance:{}; PointZipCodeRepo.getRandomPoint()", System.identityHashCode(this));
     return points[random.nextInt(points.length)];
   }
 }

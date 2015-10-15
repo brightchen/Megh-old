@@ -3,6 +3,9 @@ package com.datatorrent.demos.dimensions.telecom.app;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.hadoop.conf.Configuration;
 
@@ -43,12 +46,13 @@ import com.google.common.collect.Maps;
  */
 @ApplicationAnnotation(name = CDRDemoV2.APP_NAME)
 public class CDRDemoV2 implements StreamingApplication {
+  private static final transient Logger logger = LoggerFactory.getLogger(CDRDemoV2.class);
 
   public static final String APP_NAME = "CDRDemoV2";
   public static final String EVENT_SCHEMA = "cdrDemoV2EventSchema.json";
   public static final String PROP_STORE_PATH = "dt.application." + APP_NAME
       + ".operator.Store.fileStore.basePathPrefix";
-  public static final String PROP_CASSANDRA_HOST = "dt.application." + APP_NAME + "cassandra.host";
+  public static final String PROP_CASSANDRA_HOST = "dt.application." + APP_NAME + ".cassandra.host";
   public static final int outputMask_HBase = 0x01;
   public static final int outputMask_Cassandra = 0x100;
   
@@ -62,11 +66,14 @@ public class CDRDemoV2 implements StreamingApplication {
   @Override
   public void populateDAG(DAG dag, Configuration conf) {
     String eventSchema = SchemaUtils.jarResourceFileToString(eventSchemaLocation);
+    
     final String cassandraHost = conf.get(PROP_CASSANDRA_HOST);
+    logger.info("cassandraHost={}", cassandraHost);
     if(cassandraHost != null)
     {
       TelecomDemoConf.instance.setCassandraHost(cassandraHost);
     }
+    
     // CDR generator
     CallDetailRecordGenerateOperator cdrGenerator = new CallDetailRecordGenerateOperator();
     dag.addOperator("CDRGenerator", cdrGenerator);
@@ -109,7 +116,7 @@ public class CDRDemoV2 implements StreamingApplication {
       // key expression: Point( Lat, Lon )
       {
         Map<String, String> keyToExpression = Maps.newHashMap();
-        keyToExpression.put("point", "getPoint()");
+        keyToExpression.put("zipcode", "getZipCode()");
         keyToExpression.put("time", "getTime()");
         dimensions.setKeyToExpression(keyToExpression);
       }

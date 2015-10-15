@@ -1,5 +1,7 @@
 package com.datatorrent.demos.dimensions.telecom.operator;
 
+import java.util.Calendar;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +45,14 @@ public class EnrichedCDRCassandraOutputOperator extends TelecomDemoCassandraOutp
   }
   
 
-  private long id = 0;
+  private long id = getInitId();
+  protected static long getInitId()
+  {
+    Calendar c = Calendar.getInstance();
+    c.set(Calendar.YEAR, 2010);
+    return Calendar.getInstance().getTimeInMillis() - c.getTimeInMillis();
+  }
+  
   @Override
   protected Statement setStatementParameters(PreparedStatement updateCommand, EnrichedCDR tuple) throws DriverException
   {

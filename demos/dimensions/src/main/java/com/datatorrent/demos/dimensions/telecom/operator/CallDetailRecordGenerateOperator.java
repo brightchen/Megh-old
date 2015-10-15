@@ -43,12 +43,13 @@ public class CallDetailRecordGenerateOperator implements InputOperator {
         cdrOutputPort.emit(customerInfoGeneratorGenerator.next());
       }
     }
-    try
+    if(batchSleepTime > 0)
     {
-      Thread.sleep(batchSleepTime);
-    }
-    catch(Exception e)
-    {
+      try
+      {
+        Thread.sleep(batchSleepTime);
+      }
+      catch(Exception e){}
     }
   }
 

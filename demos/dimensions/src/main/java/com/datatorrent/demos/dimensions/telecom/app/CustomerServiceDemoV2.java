@@ -65,7 +65,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
 
     // Customer service generator
     CustomerServiceGenerateOperator customerServiceGenerator = new CustomerServiceGenerateOperator();
-    dag.addOperator("CustomerService-Generator", customerServiceGenerator);
+    dag.addOperator("CustomerServiceGenerator", customerServiceGenerator);
     
     CustomerServiceEnrichOperator enrichOperator = new CustomerServiceEnrichOperator();
     dag.addOperator("Enrich", enrichOperator);
@@ -77,7 +77,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     {
       // HBase
       EnrichedCustomerServiceHbaseOutputOperator customerServicePersist = new EnrichedCustomerServiceHbaseOutputOperator();
-      dag.addOperator("CustomerService-HBase-Persist", customerServicePersist);
+      dag.addOperator("HBasePersist", customerServicePersist);
       sustomerServiceStreamSinks.add(customerServicePersist.input);
     }
     if((outputMask & outputMask_Cassandra) != 0)

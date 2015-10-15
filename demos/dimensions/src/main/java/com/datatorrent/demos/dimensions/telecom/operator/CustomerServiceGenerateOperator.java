@@ -3,14 +3,15 @@ package com.datatorrent.demos.dimensions.telecom.operator;
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.InputOperator;
-import com.datatorrent.demos.dimensions.telecom.generate.CustomerServiceRandomGenerator;
+import com.datatorrent.demos.dimensions.telecom.generate.CustomerServiceDefaultGenerator;
 import com.datatorrent.demos.dimensions.telecom.model.CustomerService;
 
 public class CustomerServiceGenerateOperator implements InputOperator {
   public final transient DefaultOutputPort<CustomerService> outputPort = new DefaultOutputPort<CustomerService>();
 
   private int batchSize = 10;
-  private CustomerServiceRandomGenerator generator = new CustomerServiceRandomGenerator();
+  private int batchSleepTime = 10;
+  private CustomerServiceDefaultGenerator generator = new CustomerServiceDefaultGenerator();
   
   @Override
   public void beginWindow(long windowId) {
@@ -41,7 +42,36 @@ public class CustomerServiceGenerateOperator implements InputOperator {
     for(int i=0; i<batchSize; ++i)
     {
       outputPort.emit(generator.next());
-    }    
+    }
+    if(batchSleepTime > 0)
+    {
+      try
+      {
+        Thread.sleep(batchSleepTime);
+      }
+      catch(Exception e){}
+    }
   }
+
+  public int getBatchSize()
+  {
+    return batchSize;
+  }
+
+  public void setBatchSize(int batchSize)
+  {
+    this.batchSize = batchSize;
+  }
+
+  public int getBatchSleepTime()
+  {
+    return batchSleepTime;
+  }
+
+  public void setBatchSleepTime(int batchSleepTime)
+  {
+    this.batchSleepTime = batchSleepTime;
+  }
+  
 
 }

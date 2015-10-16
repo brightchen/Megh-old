@@ -43,9 +43,9 @@ public class CustomerServiceDefaultGenerator implements Generator<CustomerServic
   protected CustomerEnrichedInfoProvider createCustomerEnrichedInfoProvider()
   {
     if(RepoType.HBase == repoType)
-      customerEnrichedInfoProvider = CustomerEnrichedInfoHbaseRepo.createInstance(CustomerEnrichedInfoHBaseConfig.instance);
+      customerEnrichedInfoProvider = CustomerEnrichedInfoHbaseRepo.createInstance(CustomerEnrichedInfoHBaseConfig.instance());
     else if(RepoType.Cassandra == repoType )
-      customerEnrichedInfoProvider = CustomerEnrichedInfoCassandraRepo.createInstance(CustomerEnrichedInfoCassandraConfig.instance);
+      customerEnrichedInfoProvider = CustomerEnrichedInfoCassandraRepo.createInstance(CustomerEnrichedInfoCassandraConfig.instance());
     logger.info("repoType={}, customerEnrichedInfoProvider={}", repoType, customerEnrichedInfoProvider);
     return customerEnrichedInfoProvider;
   }

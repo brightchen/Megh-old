@@ -1,7 +1,21 @@
 package com.datatorrent.demos.dimensions.telecom.conf;
 
 public class CustomerEnrichedInfoHiveConfig extends DataWarehouseConfig{
-  public static CustomerEnrichedInfoHiveConfig instance = new CustomerEnrichedInfoHiveConfig();
+  private static CustomerEnrichedInfoHiveConfig instance;
+  
+  public static CustomerEnrichedInfoHiveConfig instance()
+  {
+    if(instance == null)
+    {
+      synchronized(CustomerEnrichedInfoHiveConfig.class)
+      {
+        if(instance == null)
+          instance = new CustomerEnrichedInfoHiveConfig();
+      }
+    }
+    return instance;
+  }
+  
   
   protected CustomerEnrichedInfoHiveConfig()
   {

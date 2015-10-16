@@ -34,7 +34,7 @@ public class CustomerEnrichedInfoHbaseRepo implements CustomerEnrichedInfoProvid
   
   private SingleRecord[] customerInfoArray;
   
-  private DataWarehouseConfig hbaseConfig = CustomerEnrichedInfoHBaseConfig.instance;
+  private DataWarehouseConfig hbaseConfig = CustomerEnrichedInfoHBaseConfig.instance();
 
   
   protected Random random = new Random();

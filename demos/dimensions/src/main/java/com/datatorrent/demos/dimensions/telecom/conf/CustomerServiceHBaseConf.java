@@ -1,7 +1,20 @@
 package com.datatorrent.demos.dimensions.telecom.conf;
 
 public class CustomerServiceHBaseConf extends DataWarehouseConfig{
-  public static CustomerServiceHBaseConf instance = new CustomerServiceHBaseConf();
+  private static CustomerServiceHBaseConf instance;
+  
+  public static CustomerServiceHBaseConf instance()
+  {
+    if(instance == null)
+    {
+      synchronized(CustomerServiceHBaseConf.class)
+      {
+        if(instance == null)
+          instance = new CustomerServiceHBaseConf();
+      }
+    }
+    return instance;
+  }
   
   protected CustomerServiceHBaseConf()
   {

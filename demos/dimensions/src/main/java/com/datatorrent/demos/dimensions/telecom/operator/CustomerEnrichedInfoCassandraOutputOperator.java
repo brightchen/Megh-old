@@ -19,7 +19,7 @@ public class CustomerEnrichedInfoCassandraOutputOperator extends TelecomDemoCass
   
   public CustomerEnrichedInfoCassandraOutputOperator()
   {
-    cassandraConfig = CustomerEnrichedInfoCassandraConfig.instance;
+    cassandraConfig = CustomerEnrichedInfoCassandraConfig.instance();
   }
   
   

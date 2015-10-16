@@ -35,7 +35,7 @@ public class EnrichedCDRHbaseInputOperator implements InputOperator{
   
   public final transient DefaultOutputPort<EnrichedCDR> outputPort = new DefaultOutputPort<EnrichedCDR>();
   
-  protected DataWarehouseConfig hbaseConfig = EnrichedCDRHBaseConfig.instance;
+  protected DataWarehouseConfig hbaseConfig = EnrichedCDRHBaseConfig.instance();
   protected HBaseStore store;
   protected int batchSize = 10;
   

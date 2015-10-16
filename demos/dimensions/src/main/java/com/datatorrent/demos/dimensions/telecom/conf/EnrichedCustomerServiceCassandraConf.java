@@ -1,8 +1,21 @@
 package com.datatorrent.demos.dimensions.telecom.conf;
 
 public class EnrichedCustomerServiceCassandraConf extends DataWarehouseConfig{
-  public static EnrichedCustomerServiceCassandraConf instance = new EnrichedCustomerServiceCassandraConf();
+  private static EnrichedCustomerServiceCassandraConf instance;
   
+  public static EnrichedCustomerServiceCassandraConf instance()
+  {
+    if(instance == null)
+    {
+      synchronized(EnrichedCustomerServiceCassandraConf.class)
+      {
+        if(instance == null)
+          instance = new EnrichedCustomerServiceCassandraConf();
+      }
+    }
+    return instance;
+  }
+    
   protected EnrichedCustomerServiceCassandraConf()
   {
     host = TelecomDemoConf.instance.getCassandraHost();

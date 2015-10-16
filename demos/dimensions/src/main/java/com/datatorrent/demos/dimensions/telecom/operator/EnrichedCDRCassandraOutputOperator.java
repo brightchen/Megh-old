@@ -22,7 +22,7 @@ public class EnrichedCDRCassandraOutputOperator extends TelecomDemoCassandraOutp
   
   public EnrichedCDRCassandraOutputOperator()
   {
-    cassandraConfig = EnrichedCDRCassandraConfig.instance;
+    cassandraConfig = EnrichedCDRCassandraConfig.instance();
   }
   
   @Override

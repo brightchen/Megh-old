@@ -20,7 +20,7 @@ public class EnrichedCustomerServiceCassandraOutputOperator extends TelecomDemoC
 
   public EnrichedCustomerServiceCassandraOutputOperator()
   {
-    cassandraConfig = EnrichedCustomerServiceCassandraConf.instance;
+    cassandraConfig = EnrichedCustomerServiceCassandraConf.instance();
   }
   
   @Override

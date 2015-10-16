@@ -21,7 +21,7 @@ import com.datatorrent.demos.dimensions.telecom.model.CustomerEnrichedInfo.Singl
 public class CustomerEnrichedInfoHiveOutputOperator extends BaseOperator{
   private static final transient Logger logger = LoggerFactory.getLogger(CustomerEnrichedInfoHiveOutputOperator.class);
   
-  private DataWarehouseConfig hiveConfig = CustomerEnrichedInfoHiveConfig.instance;
+  private DataWarehouseConfig hiveConfig = CustomerEnrichedInfoHiveConfig.instance();
   
   private boolean startOver = false;
   

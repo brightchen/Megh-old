@@ -20,7 +20,7 @@ public class CustomerServiceCassandraOutputOperator extends TelecomDemoCassandra
 
   public CustomerServiceCassandraOutputOperator()
   {
-    cassandraConfig = CustomerServiceCassandraConf.instance;
+    cassandraConfig = CustomerServiceCassandraConf.instance();
   }
 
   @Override

@@ -11,7 +11,7 @@ public class CustomerEnrichedInfoHbaseOutputOperator extends TelecomDemoHBaseOut
   
   public CustomerEnrichedInfoHbaseOutputOperator()
   {
-    setHbaseConfig(CustomerEnrichedInfoHBaseConfig.instance);
+    setHbaseConfig(CustomerEnrichedInfoHBaseConfig.instance());
   }
   
   @Override

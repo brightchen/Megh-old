@@ -1,7 +1,21 @@
 package com.datatorrent.demos.dimensions.telecom.conf;
 
 public class CustomerServiceCassandraConf extends DataWarehouseConfig{
-  public static CustomerServiceCassandraConf instance = new CustomerServiceCassandraConf();
+  private static CustomerServiceCassandraConf instance;
+  
+  public static CustomerServiceCassandraConf instance()
+  {
+    if(instance == null)
+    {
+      synchronized(CustomerServiceCassandraConf.class)
+      {
+        if(instance == null)
+          instance = new CustomerServiceCassandraConf();
+      }
+    }
+    return instance;
+  }
+  
   
   protected CustomerServiceCassandraConf()
   {

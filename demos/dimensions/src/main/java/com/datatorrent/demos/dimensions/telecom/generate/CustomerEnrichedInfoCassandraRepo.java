@@ -26,7 +26,7 @@ public class CustomerEnrichedInfoCassandraRepo implements CustomerEnrichedInfoPr
 
   private SingleRecord[] customerInfoArray;
 
-  private DataWarehouseConfig dataWarehouseConfig = CustomerEnrichedInfoCassandraConfig.instance;
+  private DataWarehouseConfig dataWarehouseConfig = CustomerEnrichedInfoCassandraConfig.instance();
 
   protected Random random = new Random();
 

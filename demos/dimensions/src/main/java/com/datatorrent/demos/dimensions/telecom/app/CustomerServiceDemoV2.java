@@ -18,6 +18,7 @@ import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.contrib.dimensions.AppDataSingleSchemaDimensionStoreHDHT;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
+import com.datatorrent.demos.dimensions.telecom.conf.TelecomDemoConf;
 import com.datatorrent.demos.dimensions.telecom.model.EnrichedCustomerService;
 import com.datatorrent.demos.dimensions.telecom.operator.CustomerServiceEnrichOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.CustomerServiceGenerateOperator;
@@ -50,6 +51,10 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   public static final String PROP_STORE_PATH = "dt.application." + APP_NAME
       + ".operator.Store.fileStore.basePathPrefix";
   
+  public static final String PROP_CASSANDRA_HOST = "dt.application." + APP_NAME + ".cassandra.host";
+  public static final String PROP_HBASE_HOST = "dt.application." + APP_NAME + ".hbase.host";
+  public static final String PROP_HIVE_HOST = "dt.application." + APP_NAME + ".hive.host";
+  
   public static final int outputMask_HBase = 0x01;
   public static final int outputMask_Cassandra = 0x100;
   
@@ -59,8 +64,37 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
 
   protected boolean enableDimension = true;
 
+  protected void populateConfig(Configuration conf)
+  {
+    {
+      final String cassandraHost = conf.get(PROP_CASSANDRA_HOST);
+      if(cassandraHost != null)
+      {
+        TelecomDemoConf.instance.setCassandraHost(cassandraHost);
+      }
+    }
+    
+    {
+      final String hbaseHost = conf.get(PROP_HBASE_HOST);
+      if(hbaseHost != null)
+      {
+        TelecomDemoConf.instance.setHbaseHost(hbaseHost);
+      }
+    }
+    
+    {
+      final String hiveHost = conf.get(PROP_HIVE_HOST);
+      if(hiveHost != null)
+      {
+        TelecomDemoConf.instance.setHbaseHost(hiveHost);
+      }
+    }
+        
+  }
+  
   @Override
   public void populateDAG(DAG dag, Configuration conf) {
+    populateConfig(conf);
     String eventSchema = SchemaUtils.jarResourceFileToString(eventSchemaLocation);
 
     // Customer service generator

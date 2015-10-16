@@ -22,7 +22,7 @@ public class CustomerEnrichedInfoHiveRepo {
   
   private SingleRecord[] customerInfoArray;
   
-  private DataWarehouseConfig hiveConfig = CustomerEnrichedInfoHiveConfig.instance;
+  private DataWarehouseConfig hiveConfig = CustomerEnrichedInfoHiveConfig.instance();
 
   protected Connection connect;
   

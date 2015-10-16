@@ -11,7 +11,7 @@ public class EnrichedCDRHbaseOutputOperator extends TelecomDemoHBaseOutputOperat
   
   public EnrichedCDRHbaseOutputOperator()
   {
-    setHbaseConfig(EnrichedCDRHBaseConfig.instance);
+    setHbaseConfig(EnrichedCDRHBaseConfig.instance());
   }
 
   @Override

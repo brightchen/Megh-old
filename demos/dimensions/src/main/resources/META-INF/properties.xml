@@ -254,13 +254,10 @@
     <value>CDRDemoV2QueryResult</value>
   </property>
   <property>
-    <name>dt.application.CDRDemoV2.operator.CanssandraPersist.cassandraConfig.host</name>
+    <name>dt.application.CDRDemoV2.cassandra.host</name>
     <value>node22</value>
   </property>
-  <property>
-    <name>dt.application.CDRDemoV2.cassandra.host</name>
-      <value>node22</value>
-  </property>
+
 
   <property>
     <name>dt.application.CustomerServiceDemoV2.operator.Store.fileStore.basePathPrefix</name>
@@ -279,12 +276,7 @@
     <value>CustomerServiceDemoV2QueryResult</value>
   </property>
   <property>
-    <name>dt.application.CustomerServiceDemoV2.operator.CassandraPersist.cassandraConfig.host</name>
-    <value>node22</value>
-  </property>
-
-  <property>
-    <name>dt.application.CustomerEnrichedInfoGenerateApp.operator.CassandraPersist.cassandraConfig.host</name>
+    <name>dt.application.CustomerServiceDemoV2.cassandra.host</name>
     <value>node22</value>
   </property>
 

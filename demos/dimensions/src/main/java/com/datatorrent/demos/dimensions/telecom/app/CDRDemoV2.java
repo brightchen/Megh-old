@@ -52,7 +52,11 @@ public class CDRDemoV2 implements StreamingApplication {
   public static final String EVENT_SCHEMA = "cdrDemoV2EventSchema.json";
   public static final String PROP_STORE_PATH = "dt.application." + APP_NAME
       + ".operator.Store.fileStore.basePathPrefix";
+  
   public static final String PROP_CASSANDRA_HOST = "dt.application." + APP_NAME + ".cassandra.host";
+  public static final String PROP_HBASE_HOST = "dt.application." + APP_NAME + ".hbase.host";
+  public static final String PROP_HIVE_HOST = "dt.application." + APP_NAME + ".hive.host";
+  
   public static final int outputMask_HBase = 0x01;
   public static final int outputMask_Cassandra = 0x100;
   
@@ -62,17 +66,39 @@ public class CDRDemoV2 implements StreamingApplication {
 
   protected boolean enableDimension = true;
 
+  protected void populateConfig(Configuration conf)
+  {
+    {
+      final String cassandraHost = conf.get(PROP_CASSANDRA_HOST);
+      if(cassandraHost != null)
+      {
+        TelecomDemoConf.instance.setCassandraHost(cassandraHost);
+      }
+    }
+    
+    {
+      final String hbaseHost = conf.get(PROP_HBASE_HOST);
+      if(hbaseHost != null)
+      {
+        TelecomDemoConf.instance.setHbaseHost(hbaseHost);
+      }
+    }
+    
+    {
+      final String hiveHost = conf.get(PROP_HIVE_HOST);
+      if(hiveHost != null)
+      {
+        TelecomDemoConf.instance.setHbaseHost(hiveHost);
+      }
+    }
+        
+  }
   
   @Override
   public void populateDAG(DAG dag, Configuration conf) {
-    String eventSchema = SchemaUtils.jarResourceFileToString(eventSchemaLocation);
     
-    final String cassandraHost = conf.get(PROP_CASSANDRA_HOST);
-    logger.info("cassandraHost={}", cassandraHost);
-    if(cassandraHost != null)
-    {
-      TelecomDemoConf.instance.setCassandraHost(cassandraHost);
-    }
+    populateConfig(conf);
+    String eventSchema = SchemaUtils.jarResourceFileToString(eventSchemaLocation);
     
     // CDR generator
     CallDetailRecordGenerateOperator cdrGenerator = new CallDetailRecordGenerateOperator();

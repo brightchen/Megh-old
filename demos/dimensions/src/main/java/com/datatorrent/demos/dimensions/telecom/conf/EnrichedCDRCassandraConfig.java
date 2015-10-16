@@ -1,7 +1,20 @@
 package com.datatorrent.demos.dimensions.telecom.conf;
 
 public class EnrichedCDRCassandraConfig extends DataWarehouseConfig{
-  public static EnrichedCDRCassandraConfig instance = new EnrichedCDRCassandraConfig();
+  private static EnrichedCDRCassandraConfig instance;
+  
+  public static EnrichedCDRCassandraConfig instance()
+  {
+    if(instance == null)
+    {
+      synchronized(EnrichedCDRCassandraConfig.class)
+      {
+        if(instance == null)
+          instance = new EnrichedCDRCassandraConfig();
+      }
+    }
+    return instance;
+  }
   
   protected EnrichedCDRCassandraConfig()
   {

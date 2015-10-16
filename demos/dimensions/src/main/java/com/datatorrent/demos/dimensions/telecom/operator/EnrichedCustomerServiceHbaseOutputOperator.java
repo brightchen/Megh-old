@@ -11,7 +11,7 @@ public class EnrichedCustomerServiceHbaseOutputOperator extends TelecomDemoHBase
   
   public EnrichedCustomerServiceHbaseOutputOperator()
   {
-    setHbaseConfig(EnrichedCustomerServiceHBaseConf.instance);
+    setHbaseConfig(EnrichedCustomerServiceHBaseConf.instance());
   }
   
   @Override

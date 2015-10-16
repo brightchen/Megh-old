@@ -11,7 +11,7 @@ public class CustomerServiceHbaseOutputOperator extends TelecomDemoHBaseOutputOp
   
   public CustomerServiceHbaseOutputOperator()
   {
-    setHbaseConfig(CustomerServiceHBaseConf.instance);
+    setHbaseConfig(CustomerServiceHBaseConf.instance());
   }
   
   @Override

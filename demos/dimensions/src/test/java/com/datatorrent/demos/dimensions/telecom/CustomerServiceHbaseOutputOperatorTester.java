@@ -17,13 +17,13 @@ public class CustomerServiceHbaseOutputOperatorTester {
   @Before
   public void setUp()
   {
-    CustomerServiceHBaseConf.instance.setHost("localhost");
+    CustomerServiceHBaseConf.instance().setHost("localhost");
   }
   
   @Test
   public void test() throws Exception
   {
-    CustomerEnrichedInfoHBaseConfig.instance.setHost("localhost");
+    CustomerEnrichedInfoHBaseConfig.instance().setHost("localhost");
     TelecomDemoConf.instance.setCdrDir("target/CDR");
     
     LocalMode lma = LocalMode.newInstance();

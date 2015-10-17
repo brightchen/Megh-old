@@ -27,10 +27,10 @@ public class CDRDemoV2Tester extends CDRDemoV2{
   @Before
   public void setUp()
   {
-    CustomerEnrichedInfoHBaseConfig.instance.setHost("localhost");
-    EnrichedCDRHBaseConfig.instance.setHost("localhost");
-    CustomerEnrichedInfoCassandraConfig.instance.setHost("localhost");
-    EnrichedCDRCassandraConfig.instance.setHost("localhost");
+    CustomerEnrichedInfoHBaseConfig.instance().setHost("localhost");
+    EnrichedCDRHBaseConfig.instance().setHost("localhost");
+    CustomerEnrichedInfoCassandraConfig.instance().setHost("localhost");
+    EnrichedCDRCassandraConfig.instance().setHost("localhost");
     enableDimension = false;
   }
   

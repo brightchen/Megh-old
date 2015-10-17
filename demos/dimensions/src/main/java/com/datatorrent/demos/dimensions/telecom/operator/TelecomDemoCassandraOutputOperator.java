@@ -1,22 +1,18 @@
 package com.datatorrent.demos.dimensions.telecom.operator;
 
-import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.DriverException;
-import com.google.common.collect.Lists;
 
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.common.util.BaseOperator;
-import com.datatorrent.contrib.cassandra.CassandraStore;
-import com.datatorrent.contrib.cassandra.CassandraTransactionalStore;
 import com.datatorrent.demos.dimensions.telecom.conf.DataWarehouseConfig;
 
 public abstract class TelecomDemoCassandraOutputOperator<T> extends BaseOperator
@@ -36,7 +32,7 @@ public abstract class TelecomDemoCassandraOutputOperator<T> extends BaseOperator
   protected DataWarehouseConfig cassandraConfig;
   protected String sqlCommand;
   
-  protected int batchSize = 1000;
+  protected int batchSize = 100;
   protected transient Session session;
   
   @Override
@@ -78,12 +74,20 @@ public abstract class TelecomDemoCassandraOutputOperator<T> extends BaseOperator
   }
   protected abstract Statement setStatementParameters(PreparedStatement updateCommand, T tuple) throws DriverException;
   
-  protected int size = 0;
   protected PreparedStatement preparedStatement;
+  private BatchStatement batchStatement;
   public void processTuple(T tuple)
   {
-    Statement statement = setStatementParameters(preparedStatement, tuple);
-    session.execute(statement);
+    if(batchStatement == null)
+      batchStatement = new BatchStatement();
+
+    batchStatement.add(setStatementParameters(preparedStatement, tuple));
+    
+    if( batchStatement.size() >= batchSize )
+    {
+      session.execute(batchStatement);
+      batchStatement.clear();
+    }
   }
 
   public DataWarehouseConfig getCassandraConfig()

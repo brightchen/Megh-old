@@ -11,7 +11,7 @@ public class EnrichedCDRHbaseInputOperatorTester {
   @Before
   public void setUp()
   {
-    EnrichedCDRHBaseConfig.instance.setHost("localhost");
+    EnrichedCDRHBaseConfig.instance().setHost("localhost");
   }
   
   @Test

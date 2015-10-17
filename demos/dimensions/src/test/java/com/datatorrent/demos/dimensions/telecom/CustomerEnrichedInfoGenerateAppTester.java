@@ -16,9 +16,9 @@ public class CustomerEnrichedInfoGenerateAppTester extends CustomerEnrichedInfoG
   @Before
   public void setUp()
   {
-    CustomerEnrichedInfoHBaseConfig.instance.setHost("localhost");
-    CustomerEnrichedInfoCassandraConfig.instance.setHost("localhost");
-    CustomerEnrichedInfoHiveConfig.instance.setHost("localhost");
+    CustomerEnrichedInfoHBaseConfig.instance().setHost("localhost");
+    CustomerEnrichedInfoCassandraConfig.instance().setHost("localhost");
+    CustomerEnrichedInfoHiveConfig.instance().setHost("localhost");
   }
   
   

@@ -10,7 +10,7 @@ public class CustomerServiceGenerateOperator implements InputOperator {
   public final transient DefaultOutputPort<CustomerService> outputPort = new DefaultOutputPort<CustomerService>();
 
   private int batchSize = 10;
-  private int batchSleepTime = 10;
+  private int batchSleepTime = 2;
   private CustomerServiceDefaultGenerator generator = new CustomerServiceDefaultGenerator();
   
   @Override

@@ -18,7 +18,7 @@ public class CallDetailRecordGenerateAppTester extends CallDetailRecordGenerateA
   
   @Test
   public void test() throws Exception {
-    CustomerEnrichedInfoHBaseConfig.instance.setHost("localhost");
+    CustomerEnrichedInfoHBaseConfig.instance().setHost("localhost");
     TelecomDemoConf.instance.setCdrDir("target/CDR");
     
     LocalMode lma = LocalMode.newInstance();

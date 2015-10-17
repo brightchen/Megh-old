@@ -9,12 +9,16 @@ import org.slf4j.LoggerFactory;
 import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.hadoop.conf.Configuration;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
 import com.datatorrent.api.Context;
-import com.datatorrent.api.DAG;
-import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.Context.OperatorContext;
+import com.datatorrent.api.DAG;
 import com.datatorrent.api.DAG.Locality;
 import com.datatorrent.api.DefaultInputPort;
+import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.contrib.dimensions.AppDataSingleSchemaDimensionStoreHDHT;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
@@ -22,8 +26,6 @@ import com.datatorrent.demos.dimensions.telecom.conf.TelecomDemoConf;
 import com.datatorrent.demos.dimensions.telecom.model.EnrichedCDR;
 import com.datatorrent.demos.dimensions.telecom.operator.CDREnrichOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.CallDetailRecordGenerateOperator;
-import com.datatorrent.demos.dimensions.telecom.operator.CustomerServiceGenerateOperator;
-import com.datatorrent.demos.dimensions.telecom.operator.CustomerServiceHbaseOutputOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.EnrichedCDRCassandraOutputOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.EnrichedCDRHbaseOutputOperator;
 import com.datatorrent.lib.appdata.schemas.SchemaUtils;
@@ -34,9 +36,6 @@ import com.datatorrent.lib.dimensions.DimensionsEvent.InputEvent;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataQuery;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataResult;
 import com.datatorrent.lib.statistics.DimensionsComputationUnifierImpl;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 /**
  * Only need compute maximum Disconnects by Location (Latitude and Longitude)

@@ -17,7 +17,7 @@ public class EnrichCDRAppTester extends EnrichCDRApp{
   
   @Test
   public void test() throws Exception {
-    EnrichedCDRHBaseConfig.instance.setHost("localhost");
+    EnrichedCDRHBaseConfig.instance().setHost("localhost");
     TelecomDemoConf.instance.setCdrDir("target/CDR");
     
     LocalMode lma = LocalMode.newInstance();

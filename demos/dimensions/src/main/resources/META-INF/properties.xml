@@ -257,6 +257,10 @@
     <name>dt.application.CDRDemoV2.cassandra.host</name>
     <value>node22</value>
   </property>
+  <property>
+    <name>dt.application.CDRDemoV2.operator.CDRGenerator.batchSleepTime</name>
+    <value>1</value>
+  </property>
 
 
   <property>
@@ -278,6 +282,10 @@
   <property>
     <name>dt.application.CustomerServiceDemoV2.cassandra.host</name>
     <value>node22</value>
+  </property>
+  <property>
+    <name>dt.application.CustomerServiceDemoV2.operator.CustomerServiceGenerator.batchSleepTime</name>
+    <value>1</value>
   </property>
 
   <property>

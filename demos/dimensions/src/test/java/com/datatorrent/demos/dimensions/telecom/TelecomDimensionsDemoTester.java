@@ -21,7 +21,7 @@ private static final Logger logger = LoggerFactory.getLogger(TelecomDimensionsDe
   
   @Test
   public void test() throws Exception {
-    EnrichedCDRHBaseConfig.instance.setHost("localhost");
+    EnrichedCDRHBaseConfig.instance().setHost("localhost");
     
     Configuration conf = new Configuration(false);
     conf.set(TelecomDimensionsDemo.PROP_STORE_PATH, "target/temp");

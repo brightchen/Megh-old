@@ -187,12 +187,13 @@ public class CDRDemoV2 implements StreamingApplication {
 
       PubSubWebSocketAppDataQuery query = createAppDataQuery();
       URI queryUri = ConfigUtil.getAppDataQueryPubSubURI(dag, conf);
-      logger.info("QueryUri: {}", queryUri);
+      logger.error("QueryUri: {}", queryUri);
       query.setUri(queryUri);
       store.setEmbeddableQueryInfoProvider(query);
 
       // wsOut
       PubSubWebSocketAppDataResult wsOut = createAppDataResult();
+      wsOut.setUri(queryUri);
       dag.addOperator("QueryResult", wsOut);
       // Set remaining dag options
 

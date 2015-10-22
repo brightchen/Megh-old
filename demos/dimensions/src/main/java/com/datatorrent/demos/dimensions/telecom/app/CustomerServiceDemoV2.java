@@ -193,6 +193,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
 
       // wsOut
       PubSubWebSocketAppDataResult wsOut = createAppDataResult();
+      wsOut.setUri(queryUri);
       dag.addOperator("QueryResult", wsOut);
       // Set remaining dag options
 

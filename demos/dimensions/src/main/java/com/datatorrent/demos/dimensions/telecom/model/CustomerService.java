@@ -74,4 +74,9 @@ public class CustomerService {
     return time;
   }
 
+  public String getIssueType()
+  {
+    return issueType.name();
+  }
+
 }

@@ -35,6 +35,9 @@ public abstract class TelecomDemoCassandraOutputOperator<T> extends BaseOperator
   protected int batchSize = 100;
   protected transient Session session;
   
+  protected transient PreparedStatement preparedStatement;
+  private transient BatchStatement batchStatement;
+  
   @Override
   public void setup(OperatorContext context)
   {
@@ -74,8 +77,7 @@ public abstract class TelecomDemoCassandraOutputOperator<T> extends BaseOperator
   }
   protected abstract Statement setStatementParameters(PreparedStatement updateCommand, T tuple) throws DriverException;
   
-  protected PreparedStatement preparedStatement;
-  private BatchStatement batchStatement;
+
   public void processTuple(T tuple)
   {
     if(batchStatement == null)

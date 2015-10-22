@@ -80,8 +80,8 @@ public class CallDetailRecordRandomGenerator implements Generator<CallDetailReco
 //    //[-124, -118]
 //    record.setLon((float)(Math.random()*7-124));
     Point point = PointZipCodeRepo.instance().getRandomPoint();
-    record.setLat(point.lat);
-    record.setLon(point.lon);
+    record.setLat(point.getLat());
+    record.setLon(point.getLon());
     
     //use current time
     //recordTime += random.nextInt(100);

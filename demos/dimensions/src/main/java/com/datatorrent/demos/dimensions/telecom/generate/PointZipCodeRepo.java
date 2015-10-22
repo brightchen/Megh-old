@@ -40,25 +40,37 @@ public class PointZipCodeRepo {
   {
     public static final int SCALAR = 10000;
     //instead of use float, use int to increase performance
-    public final int lat;
-    public final int lon;
+    public final int scaledLat;
+    public final int scaledLon;
+
     
     protected Point()
     {
-      lat = 0;
-      lon = 0;
+      scaledLat = 0;
+      scaledLon = 0;
     }
     
-    public Point(int lat, int lon)
+    public Point(int scaledLat, int scaledLon)
     {
-      this.lat = lat;
-      this.lon = lon;
+      this.scaledLat = scaledLat;
+      this.scaledLon = scaledLon;
     }
     
     public Point(float lat, float lon)
     {
-      this.lat = (int)(lat*SCALAR);
-      this.lon = (int)(lon*SCALAR);
+      this.scaledLat = (int)(lat*SCALAR);
+      this.scaledLon = (int)(lon*SCALAR);
+    }
+    
+    public float getLat()
+    {
+      float lat = scaledLat;
+      return lat/SCALAR;
+    }
+    public float getLon()
+    {
+      float lon = scaledLon;
+      return lon/SCALAR;
     }
 
   }
@@ -88,13 +100,13 @@ public class PointZipCodeRepo {
 
     @Override
     public int compare(Point l1, Point l2) {
-      if(l1.lat < l2.lat)
+      if(l1.scaledLat < l2.scaledLat)
         return -1;
-      else if(l1.lat > l2.lat)
+      else if(l1.scaledLat > l2.scaledLat)
         return 1;
-      else if(l1.lon < l2.lon)
+      else if(l1.scaledLon < l2.scaledLon)
         return -1;
-      else if(l1.lon > l2.lon)
+      else if(l1.scaledLon > l2.scaledLon)
         return 1;
       return 0;
     }
@@ -138,14 +150,14 @@ public class PointZipCodeRepo {
       for(Point point : pointSet )
       {
         points[index++] = point;
-        List<Integer> lons = lanToLonList.get(point.lat);
+        List<Integer> lons = lanToLonList.get(point.scaledLat);
         if(lons == null)
         {
-          lons = Lists.newArrayList(point.lon);
-          lanToLonList.put(point.lat, lons);
+          lons = Lists.newArrayList(point.scaledLon);
+          lanToLonList.put(point.scaledLat, lons);
         }
         else
-          lons.add(point.lon);
+          lons.add(point.scaledLon);
       }
       logger.info("load(): {} of points are loaded.", points.length);
       
@@ -300,7 +312,7 @@ public class PointZipCodeRepo {
   
   public Integer getZip(Point point)
   {
-    return getZipByScaledPoint(point.lat, point.lon);
+    return getZipByScaledPoint(point.scaledLat, point.scaledLon);
   }
   
   protected Point getPoint(int lan, int lon)

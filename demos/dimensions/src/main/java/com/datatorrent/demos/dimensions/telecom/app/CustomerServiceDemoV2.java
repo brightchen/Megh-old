@@ -18,6 +18,7 @@ import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.contrib.dimensions.AppDataSingleSchemaDimensionStoreHDHT;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
+import com.datatorrent.demos.dimensions.telecom.conf.ConfigUtil;
 import com.datatorrent.demos.dimensions.telecom.conf.TelecomDemoConf;
 import com.datatorrent.demos.dimensions.telecom.model.EnrichedCustomerService;
 import com.datatorrent.demos.dimensions.telecom.operator.CustomerServiceEnrichOperator;
@@ -139,6 +140,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       {
         Map<String, String> keyToExpression = Maps.newHashMap();
         keyToExpression.put("zipCode", "getZipCode()");
+        keyToExpression.put("issueType", "getIssueType()");
         keyToExpression.put("time", "getTime()");
         dimensions.setKeyToExpression(keyToExpression);
       }
@@ -176,6 +178,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       //store.setDimensionalSchemaStubJSON(eventSchema);
 
       PubSubWebSocketAppDataQuery query = createAppDataQuery();
+      query.setUri(ConfigUtil.getAppDataQueryPubSubURI(dag, conf));
       store.setEmbeddableQueryInfoProvider(query);
 
       // wsOut

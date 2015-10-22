@@ -22,6 +22,7 @@ import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.contrib.dimensions.AppDataSingleSchemaDimensionStoreHDHT;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
+import com.datatorrent.demos.dimensions.telecom.conf.ConfigUtil;
 import com.datatorrent.demos.dimensions.telecom.conf.TelecomDemoConf;
 import com.datatorrent.demos.dimensions.telecom.model.EnrichedCDR;
 import com.datatorrent.demos.dimensions.telecom.operator.CDREnrichOperator;
@@ -142,6 +143,7 @@ public class CDRDemoV2 implements StreamingApplication {
       {
         Map<String, String> keyToExpression = Maps.newHashMap();
         keyToExpression.put("zipcode", "getZipCode()");
+        keyToExpression.put("deviceModel", "getDeviceModel()");
         keyToExpression.put("time", "getTime()");
         dimensions.setKeyToExpression(keyToExpression);
       }
@@ -150,6 +152,7 @@ public class CDRDemoV2 implements StreamingApplication {
       {
         Map<String, String> aggregateToExpression = Maps.newHashMap();
         aggregateToExpression.put("disconnectCount", "getDisconnectCount()");
+        aggregateToExpression.put("downloadBytes", "getBytes()");
         dimensions.setAggregateToExpression(aggregateToExpression);
       }
 
@@ -179,6 +182,7 @@ public class CDRDemoV2 implements StreamingApplication {
       //store.setDimensionalSchemaStubJSON(eventSchema);
 
       PubSubWebSocketAppDataQuery query = createAppDataQuery();
+      query.setUri(ConfigUtil.getAppDataQueryPubSubURI(dag, conf));
       store.setEmbeddableQueryInfoProvider(query);
 
       // wsOut

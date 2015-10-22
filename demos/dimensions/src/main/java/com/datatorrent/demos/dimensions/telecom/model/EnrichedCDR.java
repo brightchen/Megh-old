@@ -69,8 +69,8 @@ public class EnrichedCDR extends CallDetailRecord{
     deviceModel = tacInfo.model;
     
     //zip code
-    //zipCode = String.valueOf(PointZipCodeRepo.instance().getZip(this.getLat(), this.getLon()));
-    zipCode = String.valueOf(PointZipCodeRepo.instance().getRandomZipCode());
+    zipCode = String.valueOf(PointZipCodeRepo.instance().getZip(this.getLat(), this.getLon()));
+    //zipCode = String.valueOf(PointZipCodeRepo.instance().getRandomZipCode());
    
   }
   

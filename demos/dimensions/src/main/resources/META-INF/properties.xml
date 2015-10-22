@@ -241,10 +241,12 @@
     <name>dt.application.CDRDemoV2.operator.Store.fileStore.basePathPrefix</name>
     <value>CDRDemoV2/Store</value>
   </property>
+  <!-- 
   <property>
     <name>dt.application.CDRDemoV2.operator.Store.embeddableQueryInfoProvider.uri</name>
     <value>ws://node20.morado.com:10001/pubsub</value>
   </property>
+  -->
   <property>
     <name>dt.application.CDRDemoV2.operator.Store.embeddableQueryInfoProvider.topic</name>
     <value>CDRDemoV2Topic</value>
@@ -267,10 +269,12 @@
     <name>dt.application.CustomerServiceDemoV2.operator.Store.fileStore.basePathPrefix</name>
     <value>CustomerServiceDemoV2/Store</value>
   </property>
-    <property>
+  <!-- 
+  <property>
     <name>dt.application.CustomerServiceDemoV2.operator.Store.embeddableQueryInfoProvider.uri</name>
     <value>ws://node20.morado.com:10001/pubsub</value>
   </property>
+  -->
   <property>
     <name>dt.application.CustomerServiceDemoV2.operator.Store.embeddableQueryInfoProvider.topic</name>
     <value>CustomerServiceDemoDemoV2Topic</value>
@@ -287,12 +291,12 @@
     <name>dt.application.CustomerServiceDemoV2.operator.CustomerServiceGenerator.batchSleepTime</name>
     <value>1</value>
   </property>
-
+  <!-- 
   <property>
     <name>dt.gateway.listenAddress</name>
     <value>node20.morado.com:10001</value>
   </property>
-
+  -->
 
   <!-- Settings for all the apps -->
   <property>

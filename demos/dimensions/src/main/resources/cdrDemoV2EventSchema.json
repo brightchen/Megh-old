@@ -1,15 +1,18 @@
 {"keys":
   [
-    {"name":"zipcode","type":"string"}
+    {"name":"zipcode","type":"string"},
+    {"name":"deviceModel","type":"string"},
   ],
  "timeBuckets":["1m","1h","1d"],
  "values":
   [
-    {"name":"disconnectCount","type":"long","aggregators":["SUM","COUNT","AVG"]}
+    {"name":"disconnectCount","type":"long","aggregators":["SUM","COUNT","AVG"]},
+    {"name":"downloadBytes","type":"long","aggregators":["SUM","COUNT","AVG"]}
   ],
  "dimensions":
   [
   	{"combination":[]},
-    {"combination":["zipcode"]}
+    {"combination":["zipcode"]},
+    {"combination":["deviceModel"]},
   ]
 }

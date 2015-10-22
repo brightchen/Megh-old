@@ -1,7 +1,11 @@
 package com.datatorrent.demos.dimensions.telecom.app;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.hadoop.conf.Configuration;
@@ -46,7 +50,8 @@ import com.datatorrent.lib.statistics.DimensionsComputationUnifierImpl;
  */
 @ApplicationAnnotation(name = CustomerServiceDemoV2.APP_NAME)
 public class CustomerServiceDemoV2 implements StreamingApplication {
-
+  private static final transient Logger logger = LoggerFactory.getLogger(CustomerServiceDemoV2.class);
+  
   public static final String APP_NAME = "CustomerServiceDemoV2";
   public static final String EVENT_SCHEMA = "customerServiceDemoV2EventSchema.json";
   public static final String PROP_STORE_PATH = "dt.application." + APP_NAME
@@ -73,6 +78,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       {
         TelecomDemoConf.instance.setCassandraHost(cassandraHost);
       }
+      logger.info("CassandraHost: {}", TelecomDemoConf.instance.getCassandraHost());
     }
     
     {
@@ -81,14 +87,16 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       {
         TelecomDemoConf.instance.setHbaseHost(hbaseHost);
       }
+      logger.info("HbaseHost: {}", TelecomDemoConf.instance.getHbaseHost());
     }
     
     {
       final String hiveHost = conf.get(PROP_HIVE_HOST);
       if(hiveHost != null)
       {
-        TelecomDemoConf.instance.setHbaseHost(hiveHost);
+        TelecomDemoConf.instance.setHiveHost(hiveHost);
       }
+      logger.info("HiveHost: {}", TelecomDemoConf.instance.getHiveHost());
     }
         
   }
@@ -178,7 +186,9 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       //store.setDimensionalSchemaStubJSON(eventSchema);
 
       PubSubWebSocketAppDataQuery query = createAppDataQuery();
-      query.setUri(ConfigUtil.getAppDataQueryPubSubURI(dag, conf));
+      URI queryUri = ConfigUtil.getAppDataQueryPubSubURI(dag, conf);
+      logger.info("QueryUri: {}", queryUri);
+      query.setUri(queryUri);
       store.setEmbeddableQueryInfoProvider(query);
 
       // wsOut

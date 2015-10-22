@@ -1,5 +1,6 @@
 package com.datatorrent.demos.dimensions.telecom.app;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
@@ -74,6 +75,7 @@ public class CDRDemoV2 implements StreamingApplication {
       {
         TelecomDemoConf.instance.setCassandraHost(cassandraHost);
       }
+      logger.info("CassandraHost: {}", TelecomDemoConf.instance.getCassandraHost());
     }
     
     {
@@ -82,14 +84,16 @@ public class CDRDemoV2 implements StreamingApplication {
       {
         TelecomDemoConf.instance.setHbaseHost(hbaseHost);
       }
+      logger.info("HbaseHost: {}", TelecomDemoConf.instance.getHbaseHost());
     }
     
     {
       final String hiveHost = conf.get(PROP_HIVE_HOST);
       if(hiveHost != null)
       {
-        TelecomDemoConf.instance.setHbaseHost(hiveHost);
+        TelecomDemoConf.instance.setHiveHost(hiveHost);
       }
+      logger.info("HiveHost: {}", TelecomDemoConf.instance.getHiveHost());
     }
         
   }
@@ -182,7 +186,9 @@ public class CDRDemoV2 implements StreamingApplication {
       //store.setDimensionalSchemaStubJSON(eventSchema);
 
       PubSubWebSocketAppDataQuery query = createAppDataQuery();
-      query.setUri(ConfigUtil.getAppDataQueryPubSubURI(dag, conf));
+      URI queryUri = ConfigUtil.getAppDataQueryPubSubURI(dag, conf);
+      logger.info("QueryUri: {}", queryUri);
+      query.setUri(queryUri);
       store.setEmbeddableQueryInfoProvider(query);
 
       // wsOut

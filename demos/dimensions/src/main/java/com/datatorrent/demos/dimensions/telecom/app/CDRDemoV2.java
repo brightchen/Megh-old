@@ -21,11 +21,12 @@ import com.datatorrent.api.DAG.Locality;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
-import com.datatorrent.contrib.dimensions.AppDataSingleSchemaDimensionStoreHDHT;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
 import com.datatorrent.demos.dimensions.telecom.conf.ConfigUtil;
 import com.datatorrent.demos.dimensions.telecom.conf.TelecomDemoConf;
 import com.datatorrent.demos.dimensions.telecom.model.EnrichedCDR;
+import com.datatorrent.demos.dimensions.telecom.operator.AppDataSingleSchemaDimensionStoreHDHTUpdateWithList;
+import com.datatorrent.demos.dimensions.telecom.operator.AppDataSnapshotServerAggregate;
 import com.datatorrent.demos.dimensions.telecom.operator.CDREnrichOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.CallDetailRecordGenerateOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.EnrichedCDRCassandraOutputOperator;
@@ -35,6 +36,7 @@ import com.datatorrent.lib.counters.BasicCounters;
 import com.datatorrent.lib.dimensions.DimensionsComputationFlexibleSingleSchemaPOJO;
 import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
 import com.datatorrent.lib.dimensions.DimensionsEvent.InputEvent;
+import com.datatorrent.lib.dimensions.aggregator.AggregatorIncrementalType;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataQuery;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataResult;
 import com.datatorrent.lib.statistics.DimensionsComputationUnifierImpl;
@@ -51,6 +53,7 @@ public class CDRDemoV2 implements StreamingApplication {
 
   public static final String APP_NAME = "CDRDemoV2";
   public static final String EVENT_SCHEMA = "cdrDemoV2EventSchema.json";
+  public static final String SNAPSHOT_SCHEMA = "cdrDemoV2SnapshotSchema.json";
   public static final String PROP_STORE_PATH = "dt.application." + APP_NAME
       + ".operator.Store.fileStore.basePathPrefix";
   
@@ -63,7 +66,8 @@ public class CDRDemoV2 implements StreamingApplication {
   
   protected int outputMask = outputMask_Cassandra;
   
-  public String eventSchemaLocation = EVENT_SCHEMA;
+  protected String eventSchemaLocation = EVENT_SCHEMA;
+  protected String snapshotSchemaLocation = SNAPSHOT_SCHEMA;
 
   protected boolean enableDimension = true;
 
@@ -168,8 +172,8 @@ public class CDRDemoV2 implements StreamingApplication {
           8092);
 
       // store
-      AppDataSingleSchemaDimensionStoreHDHT store = dag.addOperator("Store",
-          AppDataSingleSchemaDimensionStoreHDHT.class);
+      AppDataSingleSchemaDimensionStoreHDHTUpdateWithList store = dag.addOperator("Store",
+          AppDataSingleSchemaDimensionStoreHDHTUpdateWithList.class);
       String basePath = conf.get(PROP_STORE_PATH);
       if (basePath == null || basePath.isEmpty())
         basePath = Preconditions.checkNotNull(conf.get(PROP_STORE_PATH),
@@ -182,6 +186,9 @@ public class CDRDemoV2 implements StreamingApplication {
       dag.setAttribute(store, Context.OperatorContext.COUNTERS_AGGREGATOR,
           new BasicCounters.LongAggregator<MutableLong>());
       store.setConfigurationSchemaJSON(eventSchema);
+      store.setAggregatorID(AggregatorIncrementalType.SUM.ordinal());
+      store.setDimensionDescriptorID(6);
+      
       //should not setDimensionalSchemaStubJSON 
       //store.setDimensionalSchemaStubJSON(eventSchema);
 
@@ -202,6 +209,27 @@ public class CDRDemoV2 implements StreamingApplication {
 
       dag.addStream("DimensionalStream", dimensions.output, store.input);
       dag.addStream("QueryResult", store.queryResult, wsOut.input);
+      
+      
+      //snapshot server
+      AppDataSnapshotServerAggregate snapshotServer = new AppDataSnapshotServerAggregate();
+      String snapshotServerJSON = SchemaUtils.jarResourceFileToString(snapshotSchemaLocation);
+      snapshotServer.setSnapshotSchemaJSON(snapshotServerJSON);
+      dag.addOperator("SnapshotServer", snapshotServer);
+      dag.addStream("Snapshot", store.updateWithList, snapshotServer.input);
+      
+
+      PubSubWebSocketAppDataQuery snapShotQuery = new PubSubWebSocketAppDataQuery();
+      snapShotQuery.setUri(queryUri);
+      dag.addOperator("SnapshotQuery", snapShotQuery);
+      dag.addStream("SnapshotQuery", snapShotQuery.outputPort, snapshotServer.query);
+      
+      
+      PubSubWebSocketAppDataResult snapShotQueryResult = new PubSubWebSocketAppDataResult();
+      snapShotQueryResult.setUri(queryUri);
+      dag.addOperator("SnapshotQueryResult", snapShotQueryResult);
+      dag.addStream("SnapshotQueryResult", snapshotServer.queryResult, snapShotQueryResult.input);
+      
     }
     dag.addStream("EnrichedStream", enrichOperator.outputPort, enrichedStreamSinks.toArray(new DefaultInputPort[0]));
       
@@ -225,4 +253,25 @@ public class CDRDemoV2 implements StreamingApplication {
     return new PubSubWebSocketAppDataResult();
   }
 
+  public String getEventSchemaLocation()
+  {
+    return eventSchemaLocation;
+  }
+
+  public void setEventSchemaLocation(String eventSchemaLocation)
+  {
+    this.eventSchemaLocation = eventSchemaLocation;
+  }
+
+  public String getSnapshotSchemaLocation()
+  {
+    return snapshotSchemaLocation;
+  }
+
+  public void setSnapshotSchemaLocation(String snapshotSchemaLocation)
+  {
+    this.snapshotSchemaLocation = snapshotSchemaLocation;
+  }
+
+  
 }

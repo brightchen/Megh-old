@@ -249,11 +249,19 @@
   -->
   <property>
     <name>dt.application.CDRDemoV2.operator.Store.embeddableQueryInfoProvider.topic</name>
-    <value>CDRDemoV2Topic</value>
+    <value>CDRDemoV2Dimension</value>
   </property>
   <property>
     <name>dt.application.CDRDemoV2.operator.QueryResult.topic</name>
     <value>CDRDemoV2QueryResult</value>
+  </property>
+  <property>
+    <name>dt.application.CDRDemoV2.operator.SnapshotQuery.topic</name>
+    <value>CDRDemoV2Snapshot</value>
+  </property>
+  <property>
+    <name>dt.application.CDRDemoV2.operator.SnapshotQueryResult.topic</name>
+    <value>CDRDemoV2SnapshotQueryResult</value>
   </property>
   <property>
     <name>dt.application.CDRDemoV2.cassandra.host</name>
@@ -261,7 +269,7 @@
   </property>
   <property>
     <name>dt.application.CDRDemoV2.operator.CDRGenerator.batchSleepTime</name>
-    <value>1</value>
+    <value>2</value>
   </property>
 
 
@@ -289,7 +297,7 @@
   </property>
   <property>
     <name>dt.application.CustomerServiceDemoV2.operator.CustomerServiceGenerator.batchSleepTime</name>
-    <value>1</value>
+    <value>2</value>
   </property>
   <!-- 
   <property>

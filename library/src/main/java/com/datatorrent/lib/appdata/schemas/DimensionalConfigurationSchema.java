@@ -8,6 +8,8 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,6 +29,7 @@ import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datatorrent.lib.dimensions.CustomTimeBucketRegistry;
 import com.datatorrent.lib.dimensions.DimensionsDescriptor;
 import com.datatorrent.lib.dimensions.aggregator.AggregatorRegistry;
 import com.datatorrent.lib.dimensions.aggregator.AggregatorUtils;
@@ -96,6 +99,7 @@ import com.datatorrent.lib.dimensions.aggregator.OTFAggregator;
  */
 public class DimensionalConfigurationSchema
 {
+  public static final int STARTING_TIMEBUCKET_ID = 256;
   /**
    * This is the separator that is used between a value field and the aggregator applied to that field. The
    * combined value is called an additional value and looks something like this cost:SUM.
@@ -161,6 +165,7 @@ public class DimensionalConfigurationSchema
    * The JSON key string for the dimensions section of the schema.
    */
   public static final String FIELD_DIMENSIONS = "dimensions";
+  public static final String FIELD_DIMENSIONS_ALL_COMBINATIONS = "ALL_COMBINATIONS";
   /**
    * The JSON key string for the combination subsection of the schema.
    */
@@ -253,9 +258,13 @@ public class DimensionalConfigurationSchema
    */
   private AggregatorRegistry aggregatorRegistry;
   /**
-   * The timebuckets which this schema specifies aggregations to be performed over.
+   * The time buckets which this schema specifies aggregations to be performed over.
    */
   private List<TimeBucket> timeBuckets;
+  /**
+   * The custom time buckets which this schema specifies aggregations to be performed over.
+   */
+  private List<CustomTimeBucket> customTimeBuckets;
   /**
    * This is a map from a value field to aggregations defined on that value (in the values
    * section of the JSON) to the type of the value field after aggregation is performed on it.
@@ -263,6 +272,8 @@ public class DimensionalConfigurationSchema
    * of the {@link DimensionalConfigurationSchema} not the aggregations defined in the additionalValuesSection.
    */
   private Map<String, Map<String, Type>> schemaAllValueToAggregatorToType;
+
+  private CustomTimeBucketRegistry customTimeBucketRegistry;
 
   /**
    * Constructor for serialization.
@@ -385,6 +396,15 @@ public class DimensionalConfigurationSchema
   {
     //time buckets
     this.timeBuckets = timeBuckets;
+    this.customTimeBuckets = new ArrayList<>();
+
+    customTimeBucketRegistry = new CustomTimeBucketRegistry(STARTING_TIMEBUCKET_ID);
+
+    for (TimeBucket timeBucket : timeBuckets) {
+      CustomTimeBucket customTimeBucket = new CustomTimeBucket(timeBucket);
+      customTimeBuckets.add(customTimeBucket);
+      customTimeBucketRegistry.register(customTimeBucket, timeBucket.ordinal());
+    }
 
     //Input aggregate values
 
@@ -409,7 +429,7 @@ public class DimensionalConfigurationSchema
     keyDescriptor = new FieldsDescriptor(keyFieldToType);
     Map<String, Type> fieldToTypeWithTime = Maps.newHashMap(keyFieldToType);
     keyDescriptorWithTime = keyDescriptorWithTime(fieldToTypeWithTime,
-                                                  timeBuckets);
+                                                  customTimeBuckets);
 
 
     //schemaAllValueToAggregatorToType
@@ -621,7 +641,7 @@ public class DimensionalConfigurationSchema
 
     JSONArray timeBucketArray = new JSONArray();
 
-    for(TimeBucket timeBucket: timeBuckets) {
+    for (CustomTimeBucket timeBucket : customTimeBuckets) {
       timeBucketArray.put(timeBucket.getText());
     }
 
@@ -716,32 +736,48 @@ public class DimensionalConfigurationSchema
 
     //Time Buckets
     timeBuckets = Lists.newArrayList();
+    customTimeBuckets = Lists.newArrayList();
 
     JSONArray timeBucketsJSON = jo.getJSONArray(FIELD_TIME_BUCKETS);
-    bucketsString = timeBucketsJSON.toString();
 
     if(timeBucketsJSON.length() == 0) {
       throw new IllegalArgumentException("A time bucket must be specified.");
     }
 
+    customTimeBucketRegistry = new CustomTimeBucketRegistry(STARTING_TIMEBUCKET_ID);
+
     for(int timeBucketIndex = 0;
         timeBucketIndex < timeBucketsJSON.length();
         timeBucketIndex++) {
       String timeBucketString = timeBucketsJSON.getString(timeBucketIndex);
-      TimeBucket timeBucket = TimeBucket.getBucketEx(timeBucketString);
+      CustomTimeBucket customTimeBucket = new CustomTimeBucket(timeBucketString);
 
-      if(!timeBuckets.add(timeBucket)) {
-        throw new IllegalArgumentException("The bucket " + timeBucket.getText()
-                                           + " was defined twice.");
+      if (!customTimeBuckets.add(customTimeBucket)) {
+        throw new IllegalArgumentException("The bucket " + customTimeBucket.getText() + " was defined twice.");
+      }
+
+      if (customTimeBucket.isUnit()) {
+        timeBuckets.add(customTimeBucket.getTimeBucket());
+        customTimeBucketRegistry.register(customTimeBucket, customTimeBucket.getTimeBucket().ordinal());
+      } else {
+        customTimeBucketRegistry.register(customTimeBucket);
       }
     }
+
+    JSONArray customTimeBucketsJSON = new JSONArray();
+
+    for (CustomTimeBucket customTimeBucket: customTimeBuckets) {
+      customTimeBucketsJSON.put(customTimeBucket.toString());
+    }
+
+    bucketsString = customTimeBucketsJSON.toString();
 
     //Key descriptor all
     keyDescriptor = new FieldsDescriptor(fieldToType);
 
     Map<String, Type> fieldToTypeWithTime = Maps.newHashMap(fieldToType);
     keyDescriptorWithTime = keyDescriptorWithTime(fieldToTypeWithTime,
-                                                  timeBuckets);
+                                                  customTimeBuckets);
 
     //Values
 
@@ -867,7 +903,43 @@ public class DimensionalConfigurationSchema
     JSONArray dimensionsArray;
 
     if(jo.has(FIELD_DIMENSIONS)) {
-      dimensionsArray = jo.getJSONArray(FIELD_DIMENSIONS);
+      Object dimensionsVal = jo.get(FIELD_DIMENSIONS);
+
+      if (dimensionsVal instanceof String) {
+        if (!((String)dimensionsVal).equals(FIELD_DIMENSIONS_ALL_COMBINATIONS)) {
+          throw new IllegalArgumentException(dimensionsVal + " is an invalid value for " + FIELD_DIMENSIONS);
+        }
+
+        dimensionsArray = new JSONArray();
+
+        LOG.debug("Combinations size {}", fieldToType.keySet().size());
+        Set<Set<String>> combinations = buildCombinations(fieldToType.keySet());
+        LOG.debug("Combinations size {}", combinations.size());
+        List<DimensionsDescriptor> dimensionDescriptors = Lists.newArrayList();
+
+        for (Set<String> combination : combinations) {
+          dimensionDescriptors.add(new DimensionsDescriptor(new Fields(combination)));
+        }
+
+        Collections.sort(dimensionDescriptors);
+        LOG.debug("Dimensions descriptor size {}", dimensionDescriptors.size());
+
+        for (DimensionsDescriptor dimensionsDescriptor : dimensionDescriptors) {
+          JSONObject combination = new JSONObject();
+          JSONArray combinationKeys = new JSONArray();
+
+          for (String field : dimensionsDescriptor.getFields().getFields()) {
+            combinationKeys.put(field);
+          }
+
+          combination.put(FIELD_DIMENSIONS_COMBINATIONS, combinationKeys);
+          dimensionsArray.put(combination);
+        }
+      } else if (dimensionsVal instanceof JSONArray) {
+        dimensionsArray = jo.getJSONArray(FIELD_DIMENSIONS);
+      } else {
+        throw new IllegalArgumentException("The value for " + FIELD_DIMENSIONS + " must be a string or an array.");
+      }
     }
     else {
       dimensionsArray = new JSONArray();
@@ -924,10 +996,8 @@ public class DimensionalConfigurationSchema
       dimensionsDescriptorIDToFieldToAggregatorAdditionalValues.add(fieldToAggregatorAdditionalValues);
 
       //Loop through time to generate dimension descriptors
-      for(TimeBucket timeBucket: timeBuckets) {
-        DimensionsDescriptor dimensionsDescriptor =
-        new DimensionsDescriptor(timeBucket,
-                                 dimensionDescriptorFields);
+      for (CustomTimeBucket timeBucket : customTimeBuckets) {
+        DimensionsDescriptor dimensionsDescriptor  = new DimensionsDescriptor(timeBucket, dimensionDescriptorFields);
         dimensionsDescriptorIDToKeyDescriptor.add(dimensionsDescriptor.createFieldsDescriptor(keyDescriptor));
         dimensionsDescriptorIDToDimensionsDescriptor.add(dimensionsDescriptor);
       }
@@ -1050,9 +1120,7 @@ public class DimensionalConfigurationSchema
                                            combinationFields.toString());
       }
 
-      for(int timeBucketCounter = 0;
-          timeBucketCounter < timeBuckets.size();
-          timeBucketCounter++) {
+      for(CustomTimeBucket customTimeBucket: customTimeBuckets) {
         dimensionsDescriptorIDToValueToAggregator.add(specificValueToAggregator);
         dimensionsDescriptorIDToValueToOTFAggregator.add(specificValueToOTFAggregator);
       }
@@ -1083,6 +1151,31 @@ public class DimensionalConfigurationSchema
     buildDimensionsDescriptorIDAggregatorIDMaps();
   }
 
+  private Set<Set<String>> buildCombinations(Set<String> fields)
+  {
+    if (fields.isEmpty()) {
+      Set<Set<String>> combinations = Sets.newHashSet();
+      Set<String> combination = Sets.newHashSet();
+      combinations.add(combination);
+      return combinations;
+    }
+
+    fields = Sets.newHashSet(fields);
+    String item = fields.iterator().next();
+    fields.remove(item);
+
+    Set<Set<String>> combinations = buildCombinations(fields);
+    Set<Set<String>> newCombinations = Sets.newHashSet(combinations);
+
+    for (Set<String> combination : combinations) {
+      Set<String> newCombination = Sets.newHashSet(combination);
+      newCombination.add(item);
+      newCombinations.add(newCombination);
+    }
+
+    return newCombinations;
+  }
+
   private void buildDimensionsDescriptorIDAggregatorIDMaps()
   {
     dimensionsDescriptorIDToAggregatorIDs = Lists.newArrayList();
@@ -1093,8 +1186,8 @@ public class DimensionalConfigurationSchema
         index < dimensionsDescriptorIDToAggregatorToAggregateDescriptor.size();
         index++) {
       IntArrayList aggIDList = new IntArrayList();
-      Int2ObjectMap<FieldsDescriptor> inputMap = new Int2ObjectOpenHashMap<FieldsDescriptor>();
-      Int2ObjectMap<FieldsDescriptor> outputMap = new Int2ObjectOpenHashMap<FieldsDescriptor>();
+      Int2ObjectMap<FieldsDescriptor> inputMap = new Int2ObjectOpenHashMap<>();
+      Int2ObjectMap<FieldsDescriptor> outputMap = new Int2ObjectOpenHashMap<>();
 
       dimensionsDescriptorIDToAggregatorIDs.add(aggIDList);
       dimensionsDescriptorIDToAggregatorIDToInputAggregatorDescriptor.add(inputMap);
@@ -1136,10 +1229,10 @@ public class DimensionalConfigurationSchema
   }
 
   private FieldsDescriptor keyDescriptorWithTime(Map<String, Type> fieldToTypeWithTime,
-                                                 List<TimeBucket> timeBuckets)
+                                                 List<CustomTimeBucket> customTimeBuckets)
   {
-    if(timeBuckets.size() > 1 ||
-       (!timeBuckets.isEmpty() && !timeBuckets.get(0).equals(TimeBucket.ALL))) {
+    if (customTimeBuckets.size() > 1
+        || (!customTimeBuckets.isEmpty() && !customTimeBuckets.get(0).getTimeBucket().equals(TimeBucket.ALL))) {
       fieldToTypeWithTime.put(DimensionsDescriptor.DIMENSION_TIME, DimensionsDescriptor.DIMENSION_TIME_TYPE);
     }
 
@@ -1292,10 +1385,23 @@ public class DimensionalConfigurationSchema
   /**
    * Return the time buckets used in this schema.
    * @return The timeBuckets used in this schema.
+   *
+   * @deprecated use {@link #getCustomTimeBuckets()} instead.
    */
+  @Deprecated
   public List<TimeBucket> getTimeBuckets()
   {
     return timeBuckets;
+  }
+
+  public List<CustomTimeBucket> getCustomTimeBuckets()
+  {
+    return customTimeBuckets;
+  }
+
+  public CustomTimeBucketRegistry getCustomTimeBucketRegistry()
+  {
+    return customTimeBucketRegistry;
   }
 
   /**
@@ -1340,7 +1446,7 @@ public class DimensionalConfigurationSchema
     hash = 97 * hash + (this.keysString != null ? this.keysString.hashCode() : 0);
     hash = 97 * hash + (this.bucketsString != null ? this.bucketsString.hashCode() : 0);
     hash = 97 * hash + (this.aggregatorRegistry != null ? this.aggregatorRegistry.hashCode() : 0);
-    hash = 97 * hash + (this.timeBuckets != null ? this.timeBuckets.hashCode() : 0);
+    hash = 97 * hash + (this.customTimeBuckets != null ? this.customTimeBuckets.hashCode() : 0);
     hash = 97 * hash + (this.schemaAllValueToAggregatorToType != null ? this.schemaAllValueToAggregatorToType.hashCode() : 0);
     return hash;
   }
@@ -1409,13 +1515,10 @@ public class DimensionalConfigurationSchema
     if(this.aggregatorRegistry != other.aggregatorRegistry && (this.aggregatorRegistry == null || !this.aggregatorRegistry.equals(other.aggregatorRegistry))) {
       return false;
     }
-    if(this.timeBuckets != other.timeBuckets && (this.timeBuckets == null || !this.timeBuckets.equals(other.timeBuckets))) {
+    if(this.customTimeBuckets != other.customTimeBuckets && (this.customTimeBuckets == null || !this.customTimeBuckets.equals(other.customTimeBuckets))) {
       return false;
     }
-    if(this.schemaAllValueToAggregatorToType != other.schemaAllValueToAggregatorToType && (this.schemaAllValueToAggregatorToType == null || !this.schemaAllValueToAggregatorToType.equals(other.schemaAllValueToAggregatorToType))) {
-      return false;
-    }
-    return true;
+    return !(this.schemaAllValueToAggregatorToType != other.schemaAllValueToAggregatorToType && (this.schemaAllValueToAggregatorToType == null || !this.schemaAllValueToAggregatorToType.equals(other.schemaAllValueToAggregatorToType)));
   }
 
   /**

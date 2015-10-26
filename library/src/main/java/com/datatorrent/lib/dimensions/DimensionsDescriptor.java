@@ -7,6 +7,7 @@ package com.datatorrent.lib.dimensions;
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -16,6 +17,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.datatorrent.lib.appdata.schemas.CustomTimeBucket;
 import com.datatorrent.lib.appdata.schemas.Fields;
 import com.datatorrent.lib.appdata.schemas.FieldsDescriptor;
 import com.datatorrent.lib.appdata.schemas.TimeBucket;
@@ -53,7 +58,7 @@ import com.datatorrent.lib.appdata.schemas.Type;
  * @since 3.1.0
  *
  */
-public class DimensionsDescriptor implements Serializable
+public class DimensionsDescriptor implements Serializable, Comparable<DimensionsDescriptor>
 {
   private static final long serialVersionUID = 201506251237L;
 
@@ -102,6 +107,10 @@ public class DimensionsDescriptor implements Serializable
    */
   private TimeBucket timeBucket;
   /**
+   * The custom time bucket used for this dimension combination.
+   */
+  private CustomTimeBucket customTimeBucket;
+  /**
    * The set of key fields which compose this dimension combination.
    */
   private Fields fields;
@@ -125,14 +134,39 @@ public class DimensionsDescriptor implements Serializable
   }
 
   /**
-   * Creates a dimensions descriptor (dimensions combination) with the given timebucket and key fields.
-   * @param timeBucket The timebucket that this dimensions combination represents.
+   * Creates a dimensions descriptor (dimensions combination) with the given {@link TimeBucket} and key fields.
+   * @param timeBucket The {@link TimeBucket} that this dimensions combination represents.
    * @param fields The key fields included in this dimensions combination.
+   *
+   * @deprecated use {@link #DimensionsDescriptor(com.datatorrent.lib.appdata.schemas.CustomTimeBucket, com.datatorrent.lib.appdata.schemas.Fields)} instead.
    */
+  @Deprecated
   public DimensionsDescriptor(TimeBucket timeBucket,
                               Fields fields)
   {
     setTimeBucket(timeBucket);
+    setFields(fields);
+  }
+
+  /**
+   * Creates a dimensions descriptor (dimensions combination) with the given {@link CustomTimeBucket} and key fields.
+   *
+   * @param timeBucket The {@link CustomTimeBucket} that this dimensions combination represents.
+   * @param fields The key fields included in this dimensions combination.
+   */
+  public DimensionsDescriptor(CustomTimeBucket timeBucket,
+                              Fields fields)
+  {
+    setCustomTimeBucket(timeBucket);
+    setFields(fields);
+  }
+
+  /**
+   * Creates a dimensions descriptor (dimensions combination) with the given key fields.
+   * @param fields The key fields included in this dimensions combination.
+   */
+  public DimensionsDescriptor(Fields fields)
+  {
     setFields(fields);
   }
 
@@ -191,15 +225,39 @@ public class DimensionsDescriptor implements Serializable
   {
     Preconditions.checkNotNull(timeBucket);
     this.timeBucket = timeBucket;
+    this.customTimeBucket = new CustomTimeBucket(timeBucket);
+  }
+
+  /**
+   * This is a helper method which sets and validates the {@link CustomTimeBucket}.
+   * @param customTimeBucket The {@link CustomTimeBucket} to set and validate.
+   */
+  private void setCustomTimeBucket(CustomTimeBucket customTimeBucket)
+  {
+    Preconditions.checkNotNull(customTimeBucket);
+    this.customTimeBucket = customTimeBucket;
+    this.timeBucket = customTimeBucket.getTimeBucket();
   }
 
   /**
    * Gets the {@link TimeBucket} for this {@link DimensionsDescriptor} object.
    * @return The {@link TimeBucket} for this {@link DimensionsDescriptor} object.
+   *
+   * @deprecated use {@link #getCustomTimeBucket()} instead.
    */
+  @Deprecated
   public TimeBucket getTimeBucket()
   {
     return timeBucket;
+  }
+
+  /**
+   * Gets the {@link CustomTimeBucket} for this {@link DimensionsDescriptor} object.
+   * @return The {@link CustomTimeBucket} for this {@link DimensionsDescriptor} object.
+   */
+  public CustomTimeBucket getCustomTimeBucket()
+  {
+    return customTimeBucket;
   }
 
   /**
@@ -256,7 +314,7 @@ public class DimensionsDescriptor implements Serializable
   public int hashCode()
   {
     int hash = 7;
-    hash = 83 * hash + (this.timeBucket != null ? this.timeBucket.hashCode() : 0);
+    hash = 83 * hash + (this.customTimeBucket != null ? this.customTimeBucket.hashCode() : 0);
     hash = 83 * hash + (this.fields != null ? this.fields.hashCode() : 0);
     return hash;
   }
@@ -271,7 +329,7 @@ public class DimensionsDescriptor implements Serializable
       return false;
     }
     final DimensionsDescriptor other = (DimensionsDescriptor)obj;
-    if(this.timeBucket != other.timeBucket) {
+    if(!this.customTimeBucket.equals(other.customTimeBucket)) {
       return false;
     }
     if(this.fields != other.fields && (this.fields == null || !this.fields.equals(other.fields))) {
@@ -283,6 +341,54 @@ public class DimensionsDescriptor implements Serializable
   @Override
   public String toString()
   {
-    return "DimensionsDescriptor{" + "timeBucket=" + timeBucket + ", fields=" + fields + '}';
+    return "DimensionsDescriptor{" + "timeBucket=" + customTimeBucket + ", fields=" + fields + '}';
   }
+
+  @Override
+  public int compareTo(DimensionsDescriptor other)
+  {
+    if (this == other) {
+      return 0;
+    }
+
+    List<String> thisFieldList = this.getFields().getFieldsList();
+    List<String> otherFieldList = other.getFields().getFieldsList();
+
+    if (thisFieldList != otherFieldList) {
+      int compare = thisFieldList.size() - otherFieldList.size();
+
+      if (compare != 0) {
+        return compare;
+      }
+
+      Collections.sort(thisFieldList);
+      Collections.sort(otherFieldList);
+
+      for (int index = 0; index < thisFieldList.size(); index++) {
+        String thisField = thisFieldList.get(index);
+        String otherField = otherFieldList.get(index);
+
+        int fieldCompare = thisField.compareTo(otherField);
+
+        if (fieldCompare != 0) {
+          return fieldCompare;
+        }
+      }
+    }
+
+    CustomTimeBucket thisBucket = this.getCustomTimeBucket();
+    CustomTimeBucket otherBucket = other.getCustomTimeBucket();
+
+    if (thisBucket == null && otherBucket == null) {
+      return 0;
+    } else if (thisBucket != null && otherBucket == null) {
+      return 1;
+    } else if (thisBucket == null && otherBucket != null) {
+      return -1;
+    } else {
+      return thisBucket.compareTo(otherBucket);
+    }
+  }
+
+  private static final Logger LOG = LoggerFactory.getLogger(DimensionsDescriptor.class);
 }

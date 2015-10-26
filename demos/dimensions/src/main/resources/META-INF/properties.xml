@@ -256,7 +256,7 @@
     <value>CDRDemoV2QueryResult</value>
   </property>
   <property>
-    <name>dt.application.CDRDemoV2.operator.SnapshotQuery.topic</name>
+    <name>dt.application.CDRDemoV2.operator.SnapshotServer.embeddableQueryInfoProvider.topic</name>
     <value>CDRDemoV2Snapshot</value>
   </property>
   <property>
@@ -269,7 +269,7 @@
   </property>
   <property>
     <name>dt.application.CDRDemoV2.operator.CDRGenerator.batchSleepTime</name>
-    <value>2</value>
+    <value>12</value>
   </property>
 
 
@@ -297,7 +297,7 @@
   </property>
   <property>
     <name>dt.application.CustomerServiceDemoV2.operator.CustomerServiceGenerator.batchSleepTime</name>
-    <value>2</value>
+    <value>15</value>
   </property>
   <!-- 
   <property>

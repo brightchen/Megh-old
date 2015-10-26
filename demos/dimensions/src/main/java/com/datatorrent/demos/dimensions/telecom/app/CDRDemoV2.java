@@ -21,6 +21,7 @@ import com.datatorrent.api.DAG.Locality;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
+import com.datatorrent.contrib.dimensions.DimensionStoreHDHTNonEmptyQueryResultUnifier;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
 import com.datatorrent.demos.dimensions.telecom.conf.ConfigUtil;
 import com.datatorrent.demos.dimensions.telecom.conf.TelecomDemoConf;
@@ -197,7 +198,10 @@ public class CDRDemoV2 implements StreamingApplication {
       logger.error("QueryUri: {}", queryUri);
       query.setUri(queryUri);
       store.setEmbeddableQueryInfoProvider(query);
-
+      //enable partition after Tim merge the fixing
+//      store.setPartitionCount(4);
+//      store.setQueryResultUnifier(new DimensionStoreHDHTNonEmptyQueryResultUnifier());
+      
       // wsOut
       PubSubWebSocketAppDataResult wsOut = createAppDataResult();
       wsOut.setUri(queryUri);
@@ -215,14 +219,15 @@ public class CDRDemoV2 implements StreamingApplication {
       AppDataSnapshotServerAggregate snapshotServer = new AppDataSnapshotServerAggregate();
       String snapshotServerJSON = SchemaUtils.jarResourceFileToString(snapshotSchemaLocation);
       snapshotServer.setSnapshotSchemaJSON(snapshotServerJSON);
+      snapshotServer.setEventSchema(eventSchema);
       dag.addOperator("SnapshotServer", snapshotServer);
       dag.addStream("Snapshot", store.updateWithList, snapshotServer.input);
-      
 
       PubSubWebSocketAppDataQuery snapShotQuery = new PubSubWebSocketAppDataQuery();
       snapShotQuery.setUri(queryUri);
-      dag.addOperator("SnapshotQuery", snapShotQuery);
-      dag.addStream("SnapshotQuery", snapShotQuery.outputPort, snapshotServer.query);
+      //use the EmbeddableQueryInfoProvider instead to get rid of the problem of query schema when latency is very long
+      snapshotServer.setEmbeddableQueryInfoProvider(snapShotQuery);
+      //dag.addStream("SnapshotQuery", snapShotQuery.outputPort, snapshotServer.query);
       
       
       PubSubWebSocketAppDataResult snapShotQueryResult = new PubSubWebSocketAppDataResult();

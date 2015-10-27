@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.commons.lang.mutable.MutableLong;
+import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.hadoop.conf.Configuration;
 
 import com.google.common.base.Preconditions;
@@ -25,15 +26,19 @@ import com.datatorrent.contrib.hdht.tfile.TFileImpl;
 import com.datatorrent.demos.dimensions.telecom.conf.ConfigUtil;
 import com.datatorrent.demos.dimensions.telecom.conf.TelecomDemoConf;
 import com.datatorrent.demos.dimensions.telecom.model.EnrichedCustomerService;
+import com.datatorrent.demos.dimensions.telecom.operator.AppDataSingleSchemaDimensionStoreHDHTUpdateWithList;
+import com.datatorrent.demos.dimensions.telecom.operator.AppDataSnapshotServerAggregate;
 import com.datatorrent.demos.dimensions.telecom.operator.CustomerServiceEnrichOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.CustomerServiceGenerateOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.EnrichedCustomerServiceCassandraOutputOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.EnrichedCustomerServiceHbaseOutputOperator;
 import com.datatorrent.lib.appdata.schemas.SchemaUtils;
+import com.datatorrent.lib.appdata.schemas.Type;
 import com.datatorrent.lib.counters.BasicCounters;
 import com.datatorrent.lib.dimensions.DimensionsComputationFlexibleSingleSchemaPOJO;
 import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
 import com.datatorrent.lib.dimensions.DimensionsEvent.InputEvent;
+import com.datatorrent.lib.dimensions.aggregator.AggregatorIncrementalType;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataQuery;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataResult;
 import com.datatorrent.lib.statistics.DimensionsComputationUnifierImpl;
@@ -54,6 +59,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   
   public static final String APP_NAME = "CustomerServiceDemoV2";
   public static final String EVENT_SCHEMA = "customerServiceDemoV2EventSchema.json";
+  public static final String SNAPSHOT_SCHEMA = "customerServiceDemoV2SnapshotSchema.json";
   public static final String PROP_STORE_PATH = "dt.application." + APP_NAME
       + ".operator.Store.fileStore.basePathPrefix";
   
@@ -67,6 +73,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   protected int outputMask = outputMask_Cassandra;
   
   public String eventSchemaLocation = EVENT_SCHEMA;
+  protected String snapshotSchemaLocation = SNAPSHOT_SCHEMA;
 
   protected boolean enableDimension = true;
 
@@ -169,8 +176,8 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
           8092);
 
       // store
-      AppDataSingleSchemaDimensionStoreHDHT store = dag.addOperator("Store",
-          AppDataSingleSchemaDimensionStoreHDHT.class);
+      AppDataSingleSchemaDimensionStoreHDHTUpdateWithList store = dag.addOperator("Store",
+          AppDataSingleSchemaDimensionStoreHDHTUpdateWithList.class);
       String basePath = conf.get(PROP_STORE_PATH);
       if (basePath == null || basePath.isEmpty())
         basePath = Preconditions.checkNotNull(conf.get(PROP_STORE_PATH),
@@ -183,6 +190,8 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       dag.setAttribute(store, Context.OperatorContext.COUNTERS_AGGREGATOR,
           new BasicCounters.LongAggregator<MutableLong>());
       store.setConfigurationSchemaJSON(eventSchema);
+      store.setAggregatorID(AggregatorIncrementalType.COUNT.ordinal());
+      store.setDimensionDescriptorID(6);
       //store.setDimensionalSchemaStubJSON(eventSchema);
 
       PubSubWebSocketAppDataQuery query = createAppDataQuery();
@@ -202,6 +211,31 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
 
       dag.addStream("DimensionalStream", dimensions.output, store.input);
       dag.addStream("QueryResult", store.queryResult, wsOut.input);
+      
+      //snapshot server
+      AppDataSnapshotServerAggregate snapshotServer = new AppDataSnapshotServerAggregate();
+      String snapshotServerJSON = SchemaUtils.jarResourceFileToString(snapshotSchemaLocation);
+      snapshotServer.setSnapshotSchemaJSON(snapshotServerJSON);
+      snapshotServer.setEventSchema(eventSchema);
+      {
+        Map<MutablePair<String, Type>, MutablePair<String, Type>> keyValueMap = Maps.newHashMap();
+        keyValueMap.put(new MutablePair<String, Type>("issueType", Type.STRING), new MutablePair<String, Type>("serviceCall", Type.LONG));
+        snapshotServer.setKeyValueMap(keyValueMap);
+      }
+      dag.addOperator("SnapshotServer", snapshotServer);
+      dag.addStream("Snapshot", store.updateWithList, snapshotServer.input);
+
+      PubSubWebSocketAppDataQuery snapShotQuery = new PubSubWebSocketAppDataQuery();
+      snapShotQuery.setUri(queryUri);
+      //use the EmbeddableQueryInfoProvider instead to get rid of the problem of query schema when latency is very long
+      snapshotServer.setEmbeddableQueryInfoProvider(snapShotQuery);
+      //dag.addStream("SnapshotQuery", snapShotQuery.outputPort, snapshotServer.query);
+      
+      
+      PubSubWebSocketAppDataResult snapShotQueryResult = new PubSubWebSocketAppDataResult();
+      snapShotQueryResult.setUri(queryUri);
+      dag.addOperator("SnapshotQueryResult", snapShotQueryResult);
+      dag.addStream("SnapshotQueryResult", snapshotServer.queryResult, snapShotQueryResult.input);
     }
     
     dag.addStream("EnrichedCustomerService", enrichOperator.outputPort, sustomerServiceStreamSinks.toArray(new DefaultInputPort[0]));
@@ -222,4 +256,14 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   protected PubSubWebSocketAppDataResult createAppDataResult() {
     return new PubSubWebSocketAppDataResult();
   }
+  
+  public int getOutputMask()
+  {
+    return outputMask;
+  }
+  public void setOutputMask(int outputMask)
+  {
+    this.outputMask = outputMask;
+  }
+
 }

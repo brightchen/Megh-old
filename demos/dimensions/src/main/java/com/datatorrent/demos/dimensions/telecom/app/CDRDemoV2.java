@@ -1,6 +1,7 @@
 package com.datatorrent.demos.dimensions.telecom.app;
 
 import java.net.URI;
+import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
 
@@ -8,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.commons.lang.mutable.MutableLong;
+import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.hadoop.conf.Configuration;
 
 import com.google.common.base.Preconditions;
@@ -41,6 +43,7 @@ import com.datatorrent.lib.dimensions.aggregator.AggregatorIncrementalType;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataQuery;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataResult;
 import com.datatorrent.lib.statistics.DimensionsComputationUnifierImpl;
+import com.datatorrent.lib.appdata.schemas.Type;
 
 /**
  * Only need compute maximum Disconnects by Location (Latitude and Longitude)
@@ -220,6 +223,11 @@ public class CDRDemoV2 implements StreamingApplication {
       String snapshotServerJSON = SchemaUtils.jarResourceFileToString(snapshotSchemaLocation);
       snapshotServer.setSnapshotSchemaJSON(snapshotServerJSON);
       snapshotServer.setEventSchema(eventSchema);
+      {
+        Map<MutablePair<String, Type>, MutablePair<String, Type>> keyValueMap = Maps.newHashMap();
+        keyValueMap.put(new MutablePair<String, Type>("deviceModel", Type.STRING), new MutablePair<String, Type>("downloadBytes", Type.LONG));
+        snapshotServer.setKeyValueMap(keyValueMap);
+      }
       dag.addOperator("SnapshotServer", snapshotServer);
       dag.addStream("Snapshot", store.updateWithList, snapshotServer.input);
 
@@ -276,6 +284,16 @@ public class CDRDemoV2 implements StreamingApplication {
   public void setSnapshotSchemaLocation(String snapshotSchemaLocation)
   {
     this.snapshotSchemaLocation = snapshotSchemaLocation;
+  }
+
+  public int getOutputMask()
+  {
+    return outputMask;
+  }
+
+  public void setOutputMask(int outputMask)
+  {
+    this.outputMask = outputMask;
   }
 
   

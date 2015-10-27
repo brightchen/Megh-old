@@ -222,6 +222,14 @@
     <value>CustomerServiceDemoV2QueryResult</value>
   </property>
   <property>
+    <name>dt.application.CustomerServiceDemoV2.operator.SnapshotServer.embeddableQueryInfoProvider.topic</name>
+    <value>CustomerServiceDemoV2SnapshotQueryResult</value>
+  </property>
+  <property>
+    <name>dt.application.CustomerServiceDemoV2.operator.SnapshotQueryResult.topic</name>
+    <value>CustomerServiceDemoV2SnapshotQueryResult</value>
+  </property>
+  <property>
     <name>dt.application.CustomerServiceDemoV2.cassandra.host</name>
     <value>node22</value>
   </property>

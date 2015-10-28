@@ -21,15 +21,14 @@ import com.datatorrent.api.DAG;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
-import com.datatorrent.contrib.dimensions.AppDataSingleSchemaDimensionStoreHDHT;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
 import com.datatorrent.demos.dimensions.telecom.conf.ConfigUtil;
 import com.datatorrent.demos.dimensions.telecom.conf.TelecomDemoConf;
 import com.datatorrent.demos.dimensions.telecom.model.EnrichedCustomerService;
-import com.datatorrent.demos.dimensions.telecom.operator.AppDataSingleSchemaDimensionStoreHDHTUpdateWithList;
 import com.datatorrent.demos.dimensions.telecom.operator.AppDataSnapshotServerAggregate;
 import com.datatorrent.demos.dimensions.telecom.operator.CustomerServiceEnrichOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.CustomerServiceGenerateOperator;
+import com.datatorrent.demos.dimensions.telecom.operator.CustomerServiceStore;
 import com.datatorrent.demos.dimensions.telecom.operator.EnrichedCustomerServiceCassandraOutputOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.EnrichedCustomerServiceHbaseOutputOperator;
 import com.datatorrent.lib.appdata.schemas.SchemaUtils;
@@ -176,8 +175,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
           8092);
 
       // store
-      AppDataSingleSchemaDimensionStoreHDHTUpdateWithList store = dag.addOperator("Store",
-          AppDataSingleSchemaDimensionStoreHDHTUpdateWithList.class);
+      CustomerServiceStore store = dag.addOperator("Store", CustomerServiceStore.class);
       String basePath = conf.get(PROP_STORE_PATH);
       if (basePath == null || basePath.isEmpty())
         basePath = Preconditions.checkNotNull(conf.get(PROP_STORE_PATH),
@@ -190,8 +188,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       dag.setAttribute(store, Context.OperatorContext.COUNTERS_AGGREGATOR,
           new BasicCounters.LongAggregator<MutableLong>());
       store.setConfigurationSchemaJSON(eventSchema);
-      store.setAggregatorID(AggregatorIncrementalType.COUNT.ordinal());
-      store.setDimensionDescriptorID(6);
+      store.setAggregatorInfoForBandwidthUsage(AggregatorIncrementalType.COUNT.ordinal(), 6);
       //store.setDimensionalSchemaStubJSON(eventSchema);
 
       PubSubWebSocketAppDataQuery query = createAppDataQuery();
@@ -223,7 +220,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
         snapshotServer.setKeyValueMap(keyValueMap);
       }
       dag.addOperator("SnapshotServer", snapshotServer);
-      dag.addStream("Snapshot", store.updateWithList, snapshotServer.input);
+      dag.addStream("Snapshot", store.bandwidthUsageOutputPort, snapshotServer.input);
 
       PubSubWebSocketAppDataQuery snapShotQuery = new PubSubWebSocketAppDataQuery();
       snapShotQuery.setUri(queryUri);

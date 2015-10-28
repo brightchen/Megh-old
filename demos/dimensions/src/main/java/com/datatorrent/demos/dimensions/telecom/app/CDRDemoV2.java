@@ -1,7 +1,6 @@
 package com.datatorrent.demos.dimensions.telecom.app;
 
 import java.net.URI;
-import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
 
@@ -23,18 +22,18 @@ import com.datatorrent.api.DAG.Locality;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
-import com.datatorrent.contrib.dimensions.DimensionStoreHDHTNonEmptyQueryResultUnifier;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
 import com.datatorrent.demos.dimensions.telecom.conf.ConfigUtil;
 import com.datatorrent.demos.dimensions.telecom.conf.TelecomDemoConf;
 import com.datatorrent.demos.dimensions.telecom.model.EnrichedCDR;
-import com.datatorrent.demos.dimensions.telecom.operator.AppDataSingleSchemaDimensionStoreHDHTUpdateWithList;
 import com.datatorrent.demos.dimensions.telecom.operator.AppDataSnapshotServerAggregate;
 import com.datatorrent.demos.dimensions.telecom.operator.CDREnrichOperator;
+import com.datatorrent.demos.dimensions.telecom.operator.CDRStore;
 import com.datatorrent.demos.dimensions.telecom.operator.CallDetailRecordGenerateOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.EnrichedCDRCassandraOutputOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.EnrichedCDRHbaseOutputOperator;
 import com.datatorrent.lib.appdata.schemas.SchemaUtils;
+import com.datatorrent.lib.appdata.schemas.Type;
 import com.datatorrent.lib.counters.BasicCounters;
 import com.datatorrent.lib.dimensions.DimensionsComputationFlexibleSingleSchemaPOJO;
 import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
@@ -43,7 +42,6 @@ import com.datatorrent.lib.dimensions.aggregator.AggregatorIncrementalType;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataQuery;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataResult;
 import com.datatorrent.lib.statistics.DimensionsComputationUnifierImpl;
-import com.datatorrent.lib.appdata.schemas.Type;
 
 /**
  * Only need compute maximum Disconnects by Location (Latitude and Longitude)
@@ -176,8 +174,7 @@ public class CDRDemoV2 implements StreamingApplication {
           8092);
 
       // store
-      AppDataSingleSchemaDimensionStoreHDHTUpdateWithList store = dag.addOperator("Store",
-          AppDataSingleSchemaDimensionStoreHDHTUpdateWithList.class);
+      CDRStore store = dag.addOperator("Store", CDRStore.class);
       String basePath = conf.get(PROP_STORE_PATH);
       if (basePath == null || basePath.isEmpty())
         basePath = Preconditions.checkNotNull(conf.get(PROP_STORE_PATH),
@@ -190,8 +187,7 @@ public class CDRDemoV2 implements StreamingApplication {
       dag.setAttribute(store, Context.OperatorContext.COUNTERS_AGGREGATOR,
           new BasicCounters.LongAggregator<MutableLong>());
       store.setConfigurationSchemaJSON(eventSchema);
-      store.setAggregatorID(AggregatorIncrementalType.SUM.ordinal());
-      store.setDimensionDescriptorID(6);
+      store.addAggregatorsInfo(AggregatorIncrementalType.SUM.ordinal(), 6);
       
       //should not setDimensionalSchemaStubJSON 
       //store.setDimensionalSchemaStubJSON(eventSchema);

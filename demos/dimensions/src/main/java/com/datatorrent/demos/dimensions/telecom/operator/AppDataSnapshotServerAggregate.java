@@ -29,9 +29,10 @@ public class AppDataSnapshotServerAggregate extends AbstractAppDataSnapshotServe
    * 
    */
   private Map<MutablePair<String, Type>, MutablePair<String, Type>> keyValueMap;
-  protected transient FieldsDescriptor fieldsDescriptor;
+  protected GPOMutable staticFields;
   
-  private transient DimensionalConfigurationSchema dimensitionSchema;
+  protected transient FieldsDescriptor fieldsDescriptor;
+  protected transient DimensionalConfigurationSchema dimensitionSchema;
   
   @Override
   public void setup(OperatorContext context)
@@ -84,7 +85,13 @@ public class AppDataSnapshotServerAggregate extends AbstractAppDataSnapshotServe
      * return gpo; }
      */
 
-    GPOMutable gpo = new GPOMutable(getFieldsDescriptor());
+    GPOMutable gpo;
+    if(staticFields != null)
+    {
+      gpo = new GPOMutable(staticFields);
+    }
+    else
+      gpo = new GPOMutable(getFieldsDescriptor());
 
     for (Map.Entry<MutablePair<String, Type>, MutablePair<String, Type>> entry : keyValueMap.entrySet()) {
       for (int i = 0; i < 2; ++i) {
@@ -158,6 +165,26 @@ public class AppDataSnapshotServerAggregate extends AbstractAppDataSnapshotServe
   public void setKeyValueMap(Map<MutablePair<String, Type>, MutablePair<String, Type>> keyValueMap)
   {
     this.keyValueMap = keyValueMap;
+  }
+
+  //the staticFields depends on the schema, create the staticFields here and let the client populate the value.
+  //this method should be called after set the keyValueMap
+  public GPOMutable getStaticFields()
+  {
+    if(staticFields==null)
+    {
+      synchronized(this)
+      {
+        if(staticFields==null)
+        {
+          FieldsDescriptor fd = getFieldsDescriptor();
+          if(fd == null)
+            throw new RuntimeException("Please setKeyValueMap() first.");
+          staticFields = new GPOMutable(fd);
+        }
+      }
+    }
+    return staticFields;
   }
 
 }

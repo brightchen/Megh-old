@@ -1,0 +1,3 @@
+{
+  "values": [{"name": "satisfaction", "type": "long"}, {"name": "min", "type": "long"}, {"name": "max", "type": "long"}, {"name": "barrier", "type": "long"}]
+}

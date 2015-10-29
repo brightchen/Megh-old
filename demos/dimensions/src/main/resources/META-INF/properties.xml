@@ -167,6 +167,7 @@
   </property>
   
   <!-- settings for telecom demos -->
+  <!-- CDRDemoV2 -->
   <property>
     <name>dt.application.CDRDemoV2.operator.Store.fileStore.basePathPrefix</name>
     <value>CDRDemoV2/Store</value>
@@ -202,7 +203,7 @@
     <value>12</value>
   </property>
 
-
+  <!-- CustomerServiceDemoV2 -->
   <property>
     <name>dt.application.CustomerServiceDemoV2.operator.Store.fileStore.basePathPrefix</name>
     <value>CustomerServiceDemoV2/Store</value>
@@ -221,14 +222,33 @@
     <name>dt.application.CustomerServiceDemoV2.operator.QueryResult.topic</name>
     <value>CustomerServiceDemoV2QueryResult</value>
   </property>
+  
   <property>
-    <name>dt.application.CustomerServiceDemoV2.operator.SnapshotServer.embeddableQueryInfoProvider.topic</name>
-    <value>CustomerServiceDemoV2SnapshotQueryResult</value>
+    <name>dt.application.CustomerServiceDemoV2.operator.BandwidthSnapshotServer.embeddableQueryInfoProvider.topic</name>
+    <value>BandwidthSnapshotServerQuery</value>
   </property>
   <property>
-    <name>dt.application.CustomerServiceDemoV2.operator.SnapshotQueryResult.topic</name>
-    <value>CustomerServiceDemoV2SnapshotQueryResult</value>
+    <name>dt.application.CustomerServiceDemoV2.operator.BandwidthSnapshotQueryResult.topic</name>
+    <value>BandwidthSnapshotServerQueryResult</value>
   </property>
+  <property>
+    <name>dt.application.CustomerServiceDemoV2.operator.SatisfactionSnapshotServer.embeddableQueryInfoProvider.topic</name>
+    <value>SatisfactionSnapshotServerQuery</value>
+  </property>
+  <property>
+    <name>dt.application.CustomerServiceDemoV2.operator.SatisfactionSnapshotQueryResult.topic</name>
+    <value>SatisfactionSnapshotServerQueryResult</value>
+  </property>
+  
+  <property>
+    <name>dt.application.CustomerServiceDemoV2.operator.WaittimeSnapshotServer.embeddableQueryInfoProvider.topic</name>
+    <value>WaittimeSnapshotServerQuery</value>
+  </property>
+  <property>
+    <name>dt.application.CustomerServiceDemoV2.operator.WaittimeSnapshotQueryResult.topic</name>
+    <value>WaittimeSnapshotServerQueryResult</value>
+  </property>
+  
   <property>
     <name>dt.application.CustomerServiceDemoV2.cassandra.host</name>
     <value>node22</value>

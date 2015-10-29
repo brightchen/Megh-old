@@ -8,6 +8,7 @@
   [
     {"name":"serviceCall","type":"long","aggregators":["SUM","COUNT","AVG"]},
     {"name":"wait","type":"long","aggregators":["SUM","COUNT","AVG"]},
+    {"name":"satisfaction","type":"long","aggregators":["AVG"]},
   ],
  "dimensions":
   [

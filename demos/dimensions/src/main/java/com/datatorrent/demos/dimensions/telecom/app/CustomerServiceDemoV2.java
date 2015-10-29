@@ -25,6 +25,7 @@ import com.datatorrent.contrib.hdht.tfile.TFileImpl;
 import com.datatorrent.demos.dimensions.telecom.conf.ConfigUtil;
 import com.datatorrent.demos.dimensions.telecom.conf.TelecomDemoConf;
 import com.datatorrent.demos.dimensions.telecom.model.EnrichedCustomerService;
+import com.datatorrent.demos.dimensions.telecom.operator.AppDataSimpleConfigurableSnapshotServer;
 import com.datatorrent.demos.dimensions.telecom.operator.AppDataSnapshotServerAggregate;
 import com.datatorrent.demos.dimensions.telecom.operator.CustomerServiceEnrichOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.CustomerServiceGenerateOperator;
@@ -58,7 +59,10 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   
   public static final String APP_NAME = "CustomerServiceDemoV2";
   public static final String EVENT_SCHEMA = "customerServiceDemoV2EventSchema.json";
-  public static final String SNAPSHOT_SCHEMA = "customerServiceDemoV2SnapshotSchema.json";
+  public static final String BANDWIDTH_USAGE_SCHEMA = "bandwidthUsageSnapshotSchema.json";
+  public static final String SATISFACTION_RATING_SCHEMA = "satisfactionRatingSnapshotSchema.json";
+  public static final String AVERAGE_WAITTIME_SCHEMA = "averageWaittimeSnapshotSchema.json";
+  
   public static final String PROP_STORE_PATH = "dt.application." + APP_NAME
       + ".operator.Store.fileStore.basePathPrefix";
   
@@ -72,8 +76,10 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   protected int outputMask = outputMask_Cassandra;
   
   public String eventSchemaLocation = EVENT_SCHEMA;
-  protected String snapshotSchemaLocation = SNAPSHOT_SCHEMA;
-
+  protected String bandwidthUsageSchemaLocation = BANDWIDTH_USAGE_SCHEMA;
+  protected String satisfactionRatingSchemaLocation = SATISFACTION_RATING_SCHEMA;
+  protected String averageWaittimeSchemaLocation = AVERAGE_WAITTIME_SCHEMA;
+  
   protected boolean enableDimension = true;
 
   protected void populateConfig(Configuration conf)
@@ -164,6 +170,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
         Map<String, String> aggregateToExpression = Maps.newHashMap();
         aggregateToExpression.put("serviceCall", "getServiceCallCount()");
         aggregateToExpression.put("wait", "getWait()");
+        aggregateToExpression.put("satisfaction", "getSatisfaction()");
         dimensions.setAggregateToExpression(aggregateToExpression);
       }
 
@@ -188,8 +195,8 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       dag.setAttribute(store, Context.OperatorContext.COUNTERS_AGGREGATOR,
           new BasicCounters.LongAggregator<MutableLong>());
       store.setConfigurationSchemaJSON(eventSchema);
-      store.setAggregatorInfoForBandwidthUsage(AggregatorIncrementalType.COUNT.ordinal(), 6);
-      //store.setDimensionalSchemaStubJSON(eventSchema);
+      //for bandwidth usage
+      store.addAggregatorsInfo(AggregatorIncrementalType.COUNT.ordinal(), 6);
 
       PubSubWebSocketAppDataQuery query = createAppDataQuery();
       URI queryUri = ConfigUtil.getAppDataQueryPubSubURI(dag, conf);
@@ -209,32 +216,102 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       dag.addStream("DimensionalStream", dimensions.output, store.input);
       dag.addStream("QueryResult", store.queryResult, wsOut.input);
       
-      //snapshot server
-      AppDataSnapshotServerAggregate snapshotServer = new AppDataSnapshotServerAggregate();
-      String snapshotServerJSON = SchemaUtils.jarResourceFileToString(snapshotSchemaLocation);
-      snapshotServer.setSnapshotSchemaJSON(snapshotServerJSON);
-      snapshotServer.setEventSchema(eventSchema);
+      //snapshot servers
+      //bandwidth
       {
-        Map<MutablePair<String, Type>, MutablePair<String, Type>> keyValueMap = Maps.newHashMap();
-        keyValueMap.put(new MutablePair<String, Type>("issueType", Type.STRING), new MutablePair<String, Type>("serviceCall", Type.LONG));
-        snapshotServer.setKeyValueMap(keyValueMap);
+        AppDataSnapshotServerAggregate snapshotServer = new AppDataSnapshotServerAggregate();
+        String snapshotServerJSON = SchemaUtils.jarResourceFileToString(bandwidthUsageSchemaLocation);
+        snapshotServer.setSnapshotSchemaJSON(snapshotServerJSON);
+        snapshotServer.setEventSchema(eventSchema);
+        {
+          Map<MutablePair<String, Type>, MutablePair<String, Type>> keyValueMap = Maps.newHashMap();
+          keyValueMap.put(new MutablePair<String, Type>("issueType", Type.STRING), new MutablePair<String, Type>("serviceCall", Type.LONG));
+          snapshotServer.setKeyValueMap(keyValueMap);
+        }
+        dag.addOperator("BandwidthSnapshotServer", snapshotServer);
+        dag.addStream("BandwidthSnapshot", store.bandwidthUsageOutputPort, snapshotServer.input);
+  
+        PubSubWebSocketAppDataQuery snapShotQuery = new PubSubWebSocketAppDataQuery();
+        snapShotQuery.setUri(queryUri);
+        //use the EmbeddableQueryInfoProvider instead to get rid of the problem of query schema when latency is very long
+        snapshotServer.setEmbeddableQueryInfoProvider(snapShotQuery);
+        //dag.addStream("SnapshotQuery", snapShotQuery.outputPort, snapshotServer.query);
+        
+        
+        PubSubWebSocketAppDataResult snapShotQueryResult = new PubSubWebSocketAppDataResult();
+        snapShotQueryResult.setUri(queryUri);
+        dag.addOperator("BandwidthSnapshotQueryResult", snapShotQueryResult);
+        dag.addStream("BandwidthSnapshotQueryResult", snapshotServer.queryResult, snapShotQueryResult.input);
       }
-      dag.addOperator("SnapshotServer", snapshotServer);
-      dag.addStream("Snapshot", store.bandwidthUsageOutputPort, snapshotServer.input);
+      
+      //satisfaction rating
+      {
+        AppDataSimpleConfigurableSnapshotServer snapshotServer = new AppDataSimpleConfigurableSnapshotServer();
+        String snapshotServerJSON = SchemaUtils.jarResourceFileToString(this.satisfactionRatingSchemaLocation);
+        snapshotServer.setSnapshotSchemaJSON(snapshotServerJSON);
+        snapshotServer.addStaticFieldInfo("min", 0L);
+        snapshotServer.addStaticFieldInfo("max", 100L);
+        snapshotServer.addStaticFieldInfo("barrier", 80L);
+        //snapshotServer.setEventSchema(eventSchema);
+        {
+          Map<String, Type> fieldInfo = Maps.newHashMap();
+          fieldInfo.put("satisfaction", Type.LONG);
+          fieldInfo.put("min", Type.LONG);
+          fieldInfo.put("max", Type.LONG);
+          fieldInfo.put("barrier", Type.LONG);
+          snapshotServer.setFieldInfoMap(fieldInfo);
+        }
+        dag.addOperator("SatisfactionSnapshotServer", snapshotServer);
+        dag.addStream("SatisfactionSnapshot", store.satisfactionRatingOutputPort, snapshotServer.input);
+  
+        PubSubWebSocketAppDataQuery snapShotQuery = new PubSubWebSocketAppDataQuery();
+        snapShotQuery.setUri(queryUri);
+        //use the EmbeddableQueryInfoProvider instead to get rid of the problem of query schema when latency is very long
+        snapshotServer.setEmbeddableQueryInfoProvider(snapShotQuery);
+        //dag.addStream("SnapshotQuery", snapShotQuery.outputPort, snapshotServer.query);
+        
+        
+        PubSubWebSocketAppDataResult snapShotQueryResult = new PubSubWebSocketAppDataResult();
+        snapShotQueryResult.setUri(queryUri);
+        dag.addOperator("SatisfactionSnapshotQueryResult", snapShotQueryResult);
+        dag.addStream("SatisfactionSnapshotQueryResult", snapshotServer.queryResult, snapShotQueryResult.input);
+      }
 
-      PubSubWebSocketAppDataQuery snapShotQuery = new PubSubWebSocketAppDataQuery();
-      snapShotQuery.setUri(queryUri);
-      //use the EmbeddableQueryInfoProvider instead to get rid of the problem of query schema when latency is very long
-      snapshotServer.setEmbeddableQueryInfoProvider(snapShotQuery);
-      //dag.addStream("SnapshotQuery", snapShotQuery.outputPort, snapshotServer.query);
-      
-      
-      PubSubWebSocketAppDataResult snapShotQueryResult = new PubSubWebSocketAppDataResult();
-      snapShotQueryResult.setUri(queryUri);
-      dag.addOperator("SnapshotQueryResult", snapShotQueryResult);
-      dag.addStream("SnapshotQueryResult", snapshotServer.queryResult, snapShotQueryResult.input);
-    }
     
+      //Wait time
+      {
+        AppDataSimpleConfigurableSnapshotServer snapshotServer = new AppDataSimpleConfigurableSnapshotServer();
+        String snapshotServerJSON = SchemaUtils.jarResourceFileToString(this.averageWaittimeSchemaLocation);
+        snapshotServer.setSnapshotSchemaJSON(snapshotServerJSON);
+        snapshotServer.addStaticFieldInfo("min", 0L);
+        snapshotServer.addStaticFieldInfo("max", 200L);
+        snapshotServer.addStaticFieldInfo("barrier", 30L);
+        //snapshotServer.setEventSchema(eventSchema);
+        {
+          Map<String, Type> fieldInfo = Maps.newHashMap();
+          fieldInfo.put("wait", Type.LONG);
+          fieldInfo.put("min", Type.LONG);
+          fieldInfo.put("max", Type.LONG);
+          fieldInfo.put("barrier", Type.LONG);
+          snapshotServer.setFieldInfoMap(fieldInfo);
+        }
+        dag.addOperator("WaittimeSnapshotServer", snapshotServer);
+        dag.addStream("WaittimeSnapshot", store.averageWaitTimeOutputPort, snapshotServer.input);
+  
+        PubSubWebSocketAppDataQuery snapShotQuery = new PubSubWebSocketAppDataQuery();
+        snapShotQuery.setUri(queryUri);
+        //use the EmbeddableQueryInfoProvider instead to get rid of the problem of query schema when latency is very long
+        snapshotServer.setEmbeddableQueryInfoProvider(snapShotQuery);
+        //dag.addStream("SnapshotQuery", snapShotQuery.outputPort, snapshotServer.query);
+        
+        
+        PubSubWebSocketAppDataResult snapShotQueryResult = new PubSubWebSocketAppDataResult();
+        snapShotQueryResult.setUri(queryUri);
+        dag.addOperator("WaittimeSnapshotQueryResult", snapShotQueryResult);
+        dag.addStream("WaittimeSnapshotQueryResult", snapshotServer.queryResult, snapShotQueryResult.input);
+      }
+    }
+  
     dag.addStream("EnrichedCustomerService", enrichOperator.outputPort, sustomerServiceStreamSinks.toArray(new DefaultInputPort[0]));
   }
 

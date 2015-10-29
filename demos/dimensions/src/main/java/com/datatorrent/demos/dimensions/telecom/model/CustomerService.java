@@ -78,5 +78,10 @@ public class CustomerService {
   {
     return issueType.name();
   }
-
+  
+  //return 100 is satisfied, else 0
+  public long getSatisfaction()
+  {
+    return satisfied ? 100 : 0;
+  }
 }

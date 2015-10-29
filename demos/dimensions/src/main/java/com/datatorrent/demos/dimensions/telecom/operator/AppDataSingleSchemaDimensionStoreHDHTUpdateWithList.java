@@ -13,6 +13,8 @@ import com.google.common.collect.Lists;
 import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
 import com.datatorrent.contrib.dimensions.AppDataSingleSchemaDimensionStoreHDHT;
+import com.datatorrent.lib.appdata.schemas.TimeBucket;
+import com.datatorrent.lib.dimensions.DimensionsDescriptor;
 import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
 import com.datatorrent.lib.dimensions.DimensionsEvent.EventKey;
 import com.datatorrent.lib.dimensions.aggregator.AggregatorIncrementalType;
@@ -59,6 +61,7 @@ public abstract class AppDataSingleSchemaDimensionStoreHDHTUpdateWithList extend
         if(aggregatorID == entry.getKey().getAggregatorID() && entry.getKey().getDimensionDescriptorID() == dimensionDescriptorID)
           updatingAggregates.add(entry.getValue());
       }
+
       outputPort.emit(updatingAggregates);
     }
   }

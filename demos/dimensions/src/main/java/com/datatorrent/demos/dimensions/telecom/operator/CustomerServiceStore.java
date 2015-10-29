@@ -1,7 +1,11 @@
 package com.datatorrent.demos.dimensions.telecom.operator;
 
+import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -18,6 +22,8 @@ import com.datatorrent.lib.dimensions.aggregator.AggregatorIncrementalType;
 
 public class CustomerServiceStore extends AppDataSingleSchemaDimensionStoreHDHTUpdateWithList
 {
+  private static final transient Logger logger = LoggerFactory.getLogger(CustomerServiceStore.class);
+  
   private static final long serialVersionUID = -7354676382869813092L;
 
   @OutputPortFieldAnnotation(optional = true)
@@ -30,7 +36,8 @@ public class CustomerServiceStore extends AppDataSingleSchemaDimensionStoreHDHTU
   public final transient DefaultOutputPort<List<Aggregate>> bandwidthUsageOutputPort = new DefaultOutputPort<>();
   
   //1 minute
-  protected int timeBucket;
+  protected transient int timeBucket;
+  protected static final String TIME_FIELD_NAME = "time";
   
   @Override
   public void setup(OperatorContext context)
@@ -43,13 +50,14 @@ public class CustomerServiceStore extends AppDataSingleSchemaDimensionStoreHDHTU
   protected void emitUpdates()
   {
     super.emitUpdates();
-    emitUpdatesAverageFor("satisfaction", satisfactionRatingOutputPort);
-    emitUpdatesAverageFor("wait", averageWaitTimeOutputPort);
+    emitUpdatesAverageFor("satisfaction", 0, satisfactionRatingOutputPort);
+    emitUpdatesAverageFor("wait", 0, averageWaitTimeOutputPort);
   }
   
   final protected Map<String, Long> fieldValue = Maps.newHashMap();
+  @SuppressWarnings("unchecked")
   final protected List<Map<String, Long>> averageTuple = Lists.newArrayList(fieldValue);
-  protected void emitUpdatesAverageFor(String fieldName, DefaultOutputPort<List<Map<String, Long>>> output)
+  protected void emitUpdatesAverageFor(String fieldName, int dimensionDesciptionId, DefaultOutputPort<List<Map<String, Long>>> output)
   {
     if(!output.isConnected())
       return;
@@ -57,13 +65,24 @@ public class CustomerServiceStore extends AppDataSingleSchemaDimensionStoreHDHTU
     long sum = 0;
     long count = 0;
     for (Map.Entry<EventKey, Aggregate> entry : cache.entrySet()) {
+      //check the dimension id;
+      if(entry.getKey().getDimensionDescriptorID() != dimensionDesciptionId)
+        continue;
+      //time bucket is 1 minute
       if(entry.getKey().getKey().getFieldInt(DimensionsDescriptor.DIMENSION_TIME_BUCKET) != timeBucket)
         continue;
+      //the time is most recent time
+      long time = entry.getKey().getKey().getFieldLong(TIME_FIELD_NAME);
+      if(time != getMaxTimestamp())
+        continue;
+      
+      //this is the qualified entry 
       int aggregatorId = entry.getKey().getAggregatorID();
       if(AggregatorIncrementalType.COUNT.ordinal() == aggregatorId)
         count = entry.getValue().getAggregates().getFieldLong(fieldName);
       if(AggregatorIncrementalType.SUM.ordinal() == aggregatorId)
-        count = entry.getValue().getAggregates().getFieldLong(fieldName);
+        sum = entry.getValue().getAggregates().getFieldLong(fieldName);
+      
       if(sum != 0 && count != 0)
         break;
     }
@@ -73,7 +92,7 @@ public class CustomerServiceStore extends AppDataSingleSchemaDimensionStoreHDHTU
       fieldValue.put(fieldName, sum/count);
       output.emit(averageTuple);
     }
-    
+    logger.info("field name: {}; sum={}; count={}", fieldName, sum, count); 
   }
 
   @Override

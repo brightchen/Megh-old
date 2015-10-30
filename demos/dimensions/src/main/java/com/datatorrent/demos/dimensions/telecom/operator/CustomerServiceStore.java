@@ -32,8 +32,9 @@ public class CustomerServiceStore extends AppDataSingleSchemaDimensionStoreHDHTU
   @OutputPortFieldAnnotation(optional = true)
   public final transient DefaultOutputPort<List<Map<String, Long>>> averageWaitTimeOutputPort = new DefaultOutputPort<>();
   
+  //service call don't need extra information
   @OutputPortFieldAnnotation(optional = true)
-  public final transient DefaultOutputPort<List<Aggregate>> bandwidthUsageOutputPort = new DefaultOutputPort<>();
+  public final transient DefaultOutputPort<List<Aggregate>> serviceCallOutputPort = new DefaultOutputPort<>();
   
   //1 minute
   protected transient int timeBucket;
@@ -98,7 +99,7 @@ public class CustomerServiceStore extends AppDataSingleSchemaDimensionStoreHDHTU
   @Override
   protected DefaultOutputPort<List<Aggregate>> getOutputPort(int index, int aggregatorID, int dimensionDescriptorID)
   {
-    return bandwidthUsageOutputPort;
+    return serviceCallOutputPort;
   }
   
 

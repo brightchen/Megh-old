@@ -37,7 +37,7 @@ public class CDRDemoV2Tester extends CDRDemoV2{
   @Test
   public void test() throws Exception {
     Configuration conf = new Configuration(false);
-    conf.set(CDRDemoV2.PROP_STORE_PATH, "target/temp");
+    conf.set(PROP_STORE_PATH, "target/temp");
     
     LocalMode lma = LocalMode.newInstance();
     DAG dag = lma.getDAG();

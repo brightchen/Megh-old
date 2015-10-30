@@ -56,12 +56,14 @@ public class CDRDemoV2 implements StreamingApplication {
   public static final String APP_NAME = "CDRDemoV2";
   public static final String EVENT_SCHEMA = "cdrDemoV2EventSchema.json";
   public static final String SNAPSHOT_SCHEMA = "cdrDemoV2SnapshotSchema.json";
-  public static final String PROP_STORE_PATH = "dt.application." + APP_NAME
-      + ".operator.Store.fileStore.basePathPrefix";
   
-  public static final String PROP_CASSANDRA_HOST = "dt.application." + APP_NAME + ".cassandra.host";
-  public static final String PROP_HBASE_HOST = "dt.application." + APP_NAME + ".hbase.host";
-  public static final String PROP_HIVE_HOST = "dt.application." + APP_NAME + ".hive.host";
+  
+
+  public final String appName;
+  protected String PROP_STORE_PATH;
+  protected String PROP_CASSANDRA_HOST;
+  protected String PROP_HBASE_HOST;
+  protected String PROP_HIVE_HOST;
   
   public static final int outputMask_HBase = 0x01;
   public static final int outputMask_Cassandra = 0x100;
@@ -72,6 +74,22 @@ public class CDRDemoV2 implements StreamingApplication {
   protected String snapshotSchemaLocation = SNAPSHOT_SCHEMA;
 
   protected boolean enableDimension = true;
+  
+  public CDRDemoV2()
+  {
+    this(APP_NAME);
+  }
+  
+  public CDRDemoV2(String appName)
+  {
+    this.appName = appName;
+    PROP_CASSANDRA_HOST = "dt.application." + appName + ".cassandra.host";
+    PROP_HBASE_HOST = "dt.application." + appName + ".hbase.host";
+    PROP_HIVE_HOST = "dt.application." + appName + ".hive.host";
+    
+    PROP_STORE_PATH = "dt.application." + appName + ".operator.CDRStore.fileStore.basePathPrefix";
+  }
+  
 
   protected void populateConfig(Configuration conf)
   {
@@ -127,13 +145,13 @@ public class CDRDemoV2 implements StreamingApplication {
     {
       // HBase
       EnrichedCDRHbaseOutputOperator cdrPersist = new EnrichedCDRHbaseOutputOperator();
-      dag.addOperator("EnrichedCDR-HBase-Persist", cdrPersist);
+      dag.addOperator("CDRHBasePersist", cdrPersist);
       enrichedStreamSinks.add(cdrPersist.input);
     }
     if((outputMask & outputMask_Cassandra) != 0)
     {
       EnrichedCDRCassandraOutputOperator cdrPersist = new EnrichedCDRCassandraOutputOperator();
-      dag.addOperator("EnrichedCDR-Canssandra-Persist", cdrPersist);
+      dag.addOperator("CDRCanssandraPersist", cdrPersist);
       enrichedStreamSinks.add(cdrPersist.input);
     }
     
@@ -141,7 +159,7 @@ public class CDRDemoV2 implements StreamingApplication {
     DimensionsComputationFlexibleSingleSchemaPOJO dimensions = null;
     if (enableDimension) {
       // dimension
-      dimensions = dag.addOperator("DimensionsComputation",
+      dimensions = dag.addOperator("CDRDimensionsComputation",
           DimensionsComputationFlexibleSingleSchemaPOJO.class);
       dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.APPLICATION_WINDOW_COUNT, 4);
       dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.CHECKPOINT_WINDOW_COUNT, 4);
@@ -174,7 +192,7 @@ public class CDRDemoV2 implements StreamingApplication {
           8092);
 
       // store
-      CDRStore store = dag.addOperator("Store", CDRStore.class);
+      CDRStore store = dag.addOperator("CDRStore", CDRStore.class);
       String basePath = conf.get(PROP_STORE_PATH);
       if (basePath == null || basePath.isEmpty())
         basePath = Preconditions.checkNotNull(conf.get(PROP_STORE_PATH),
@@ -194,7 +212,7 @@ public class CDRDemoV2 implements StreamingApplication {
 
       PubSubWebSocketAppDataQuery query = createAppDataQuery();
       URI queryUri = ConfigUtil.getAppDataQueryPubSubURI(dag, conf);
-      logger.error("QueryUri: {}", queryUri);
+      logger.info("QueryUri: {}", queryUri);
       query.setUri(queryUri);
       store.setEmbeddableQueryInfoProvider(query);
       //enable partition after Tim merge the fixing
@@ -204,14 +222,14 @@ public class CDRDemoV2 implements StreamingApplication {
       // wsOut
       PubSubWebSocketAppDataResult wsOut = createAppDataResult();
       wsOut.setUri(queryUri);
-      dag.addOperator("QueryResult", wsOut);
+      dag.addOperator("CDRQueryResult", wsOut);
       // Set remaining dag options
 
       dag.setAttribute(store, Context.OperatorContext.COUNTERS_AGGREGATOR,
           new BasicCounters.LongAggregator<MutableLong>());
 
-      dag.addStream("DimensionalStream", dimensions.output, store.input);
-      dag.addStream("QueryResult", store.queryResult, wsOut.input);
+      dag.addStream("CDRDimensionalStream", dimensions.output, store.input);
+      dag.addStream("CDRQueryResult", store.queryResult, wsOut.input);
       
       
       //snapshot server
@@ -224,8 +242,8 @@ public class CDRDemoV2 implements StreamingApplication {
         keyValueMap.put(new MutablePair<String, Type>("deviceModel", Type.STRING), new MutablePair<String, Type>("downloadBytes", Type.LONG));
         snapshotServer.setKeyValueMap(keyValueMap);
       }
-      dag.addOperator("SnapshotServer", snapshotServer);
-      dag.addStream("Snapshot", store.updateWithList, snapshotServer.input);
+      dag.addOperator("BandwidthServer", snapshotServer);
+      dag.addStream("Bandwidth", store.updateWithList, snapshotServer.input);
 
       PubSubWebSocketAppDataQuery snapShotQuery = new PubSubWebSocketAppDataQuery();
       snapShotQuery.setUri(queryUri);
@@ -236,11 +254,11 @@ public class CDRDemoV2 implements StreamingApplication {
       
       PubSubWebSocketAppDataResult snapShotQueryResult = new PubSubWebSocketAppDataResult();
       snapShotQueryResult.setUri(queryUri);
-      dag.addOperator("SnapshotQueryResult", snapShotQueryResult);
-      dag.addStream("SnapshotQueryResult", snapshotServer.queryResult, snapShotQueryResult.input);
+      dag.addOperator("BandwidthQueryResult", snapShotQueryResult);
+      dag.addStream("BandwidthQueryResult", snapshotServer.queryResult, snapShotQueryResult.input);
       
     }
-    dag.addStream("EnrichedStream", enrichOperator.outputPort, enrichedStreamSinks.toArray(new DefaultInputPort[0]));
+    dag.addStream("CDREnriched", enrichOperator.outputPort, enrichedStreamSinks.toArray(new DefaultInputPort[0]));
       
   }
 

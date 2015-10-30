@@ -167,10 +167,14 @@
   </property>
   
   <!-- settings for telecom demos -->
+  <property>
+    <name>dt.application.TelecomDemoV2.cassandra.host</name>
+    <value>node22</value>
+  </property>
   <!-- CDRDemoV2 -->
   <property>
-    <name>dt.application.CDRDemoV2.operator.Store.fileStore.basePathPrefix</name>
-    <value>CDRDemoV2/Store</value>
+    <name>dt.application.TelecomDemoV2.operator.CDRStore.fileStore.basePathPrefix</name>
+    <value>CDR/Store</value>
   </property>
   <!-- 
   <property>
@@ -179,82 +183,75 @@
   </property>
   -->
   <property>
-    <name>dt.application.CDRDemoV2.operator.Store.embeddableQueryInfoProvider.topic</name>
-    <value>CDRDemoV2Dimension</value>
+    <name>dt.application.TelecomDemoV2.operator.CDRStore.embeddableQueryInfoProvider.topic</name>
+    <value>CDRDimension</value>
   </property>
   <property>
-    <name>dt.application.CDRDemoV2.operator.QueryResult.topic</name>
-    <value>CDRDemoV2QueryResult</value>
+    <name>dt.application.TelecomDemoV2.operator.CDRQueryResult.topic</name>
+    <value>CDRQueryResult</value>
   </property>
   <property>
-    <name>dt.application.CDRDemoV2.operator.SnapshotServer.embeddableQueryInfoProvider.topic</name>
-    <value>CDRDemoV2Snapshot</value>
+    <name>dt.application.TelecomDemoV2.operator.BandwidthServer.embeddableQueryInfoProvider.topic</name>
+    <value>Bandwidth</value>
   </property>
   <property>
-    <name>dt.application.CDRDemoV2.operator.SnapshotQueryResult.topic</name>
-    <value>CDRDemoV2SnapshotQueryResult</value>
+    <name>dt.application.TelecomDemoV2.operator.BandwidthQueryResult.topic</name>
+    <value>BandwidthQueryResult</value>
   </property>
+
   <property>
-    <name>dt.application.CDRDemoV2.cassandra.host</name>
-    <value>node22</value>
-  </property>
-  <property>
-    <name>dt.application.CDRDemoV2.operator.CDRGenerator.batchSleepTime</name>
+    <name>dt.application.TelecomDemoV2.operator.CDRGenerator.batchSleepTime</name>
     <value>12</value>
   </property>
 
   <!-- CustomerServiceDemoV2 -->
   <property>
-    <name>dt.application.CustomerServiceDemoV2.operator.Store.fileStore.basePathPrefix</name>
-    <value>CustomerServiceDemoV2/Store</value>
+    <name>dt.application.TelecomDemoV2.operator.CSStore.fileStore.basePathPrefix</name>
+    <value>CS/Store</value>
   </property>
   <!-- 
   <property>
-    <name>dt.application.CustomerServiceDemoV2.operator.Store.embeddableQueryInfoProvider.uri</name>
+    <name>dt.application.TelecomDemoV2.operator.Store.embeddableQueryInfoProvider.uri</name>
     <value>ws://node20.morado.com:10001/pubsub</value>
   </property>
   -->
   <property>
-    <name>dt.application.CustomerServiceDemoV2.operator.Store.embeddableQueryInfoProvider.topic</name>
-    <value>CustomerServiceDemoDemoV2Topic</value>
+    <name>dt.application.TelecomDemoV2.operator.CSStore.embeddableQueryInfoProvider.topic</name>
+    <value>CSTopic</value>
   </property>
   <property>
-    <name>dt.application.CustomerServiceDemoV2.operator.QueryResult.topic</name>
-    <value>CustomerServiceDemoV2QueryResult</value>
-  </property>
-  
-  <property>
-    <name>dt.application.CustomerServiceDemoV2.operator.BandwidthSnapshotServer.embeddableQueryInfoProvider.topic</name>
-    <value>BandwidthSnapshotServerQuery</value>
-  </property>
-  <property>
-    <name>dt.application.CustomerServiceDemoV2.operator.BandwidthSnapshotQueryResult.topic</name>
-    <value>BandwidthSnapshotServerQueryResult</value>
-  </property>
-  <property>
-    <name>dt.application.CustomerServiceDemoV2.operator.SatisfactionSnapshotServer.embeddableQueryInfoProvider.topic</name>
-    <value>SatisfactionSnapshotServerQuery</value>
-  </property>
-  <property>
-    <name>dt.application.CustomerServiceDemoV2.operator.SatisfactionSnapshotQueryResult.topic</name>
-    <value>SatisfactionSnapshotServerQueryResult</value>
+    <name>dt.application.TelecomDemoV2.operator.QueryResult.topic</name>
+    <value>CSQueryResult</value>
   </property>
   
   <property>
-    <name>dt.application.CustomerServiceDemoV2.operator.WaittimeSnapshotServer.embeddableQueryInfoProvider.topic</name>
-    <value>WaittimeSnapshotServerQuery</value>
+    <name>dt.application.TelecomDemoV2.operator.ServiceCallServer.embeddableQueryInfoProvider.topic</name>
+    <value>ServiceCallQuery</value>
   </property>
   <property>
-    <name>dt.application.CustomerServiceDemoV2.operator.WaittimeSnapshotQueryResult.topic</name>
-    <value>WaittimeSnapshotServerQueryResult</value>
+    <name>dt.application.TelecomDemoV2.operator.ServiceCallQueryResult.topic</name>
+    <value>ServiceCallQueryResult</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.SatisfactionServer.embeddableQueryInfoProvider.topic</name>
+    <value>SatisfactionQuery</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.SatisfactionQueryResult.topic</name>
+    <value>SatisfactionQueryResult</value>
   </property>
   
   <property>
-    <name>dt.application.CustomerServiceDemoV2.cassandra.host</name>
-    <value>node22</value>
+    <name>dt.application.TelecomDemoV2.operator.WaittimeServer.embeddableQueryInfoProvider.topic</name>
+    <value>WaittimeQuery</value>
   </property>
   <property>
-    <name>dt.application.CustomerServiceDemoV2.operator.CustomerServiceGenerator.batchSleepTime</name>
+    <name>dt.application.TelecomDemoV2.operator.WaittimeQueryResult.topic</name>
+    <value>WaittimeQueryResult</value>
+  </property>
+  
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.CustomerServiceGenerator.batchSleepTime</name>
     <value>15</value>
   </property>
   <!-- 

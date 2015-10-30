@@ -59,16 +59,16 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   
   public static final String APP_NAME = "CustomerServiceDemoV2";
   public static final String EVENT_SCHEMA = "customerServiceDemoV2EventSchema.json";
-  public static final String BANDWIDTH_USAGE_SCHEMA = "bandwidthUsageSnapshotSchema.json";
+  public static final String SERVICE_CALL_SCHEMA = "serviceCallSnapshotSchema.json";
   public static final String SATISFACTION_RATING_SCHEMA = "satisfactionRatingSnapshotSchema.json";
   public static final String AVERAGE_WAITTIME_SCHEMA = "averageWaittimeSnapshotSchema.json";
   
-  public static final String PROP_STORE_PATH = "dt.application." + APP_NAME
-      + ".operator.Store.fileStore.basePathPrefix";
+  public final String appName;
+  protected String PROP_STORE_PATH;
+  protected String PROP_CASSANDRA_HOST;
+  protected String PROP_HBASE_HOST;
+  protected String PROP_HIVE_HOST;
   
-  public static final String PROP_CASSANDRA_HOST = "dt.application." + APP_NAME + ".cassandra.host";
-  public static final String PROP_HBASE_HOST = "dt.application." + APP_NAME + ".hbase.host";
-  public static final String PROP_HIVE_HOST = "dt.application." + APP_NAME + ".hive.host";
   
   public static final int outputMask_HBase = 0x01;
   public static final int outputMask_Cassandra = 0x100;
@@ -76,12 +76,27 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   protected int outputMask = outputMask_Cassandra;
   
   public String eventSchemaLocation = EVENT_SCHEMA;
-  protected String bandwidthUsageSchemaLocation = BANDWIDTH_USAGE_SCHEMA;
+  protected String serviceCallSchemaLocation = SERVICE_CALL_SCHEMA;
   protected String satisfactionRatingSchemaLocation = SATISFACTION_RATING_SCHEMA;
   protected String averageWaittimeSchemaLocation = AVERAGE_WAITTIME_SCHEMA;
   
   protected boolean enableDimension = true;
 
+
+  public CustomerServiceDemoV2()
+  {
+    this(APP_NAME);
+  }
+  
+  public CustomerServiceDemoV2(String appName)
+  {
+    this.appName = appName;
+    PROP_CASSANDRA_HOST = "dt.application." + appName + ".cassandra.host";
+    PROP_HBASE_HOST = "dt.application." + appName + ".hbase.host";
+    PROP_HIVE_HOST = "dt.application." + appName + ".hive.host";
+    PROP_STORE_PATH = "dt.application." + appName + ".operator.CSStore.fileStore.basePathPrefix";
+  }
+  
   protected void populateConfig(Configuration conf)
   {
     {
@@ -134,7 +149,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     {
       // HBase
       EnrichedCustomerServiceHbaseOutputOperator customerServicePersist = new EnrichedCustomerServiceHbaseOutputOperator();
-      dag.addOperator("HBasePersist", customerServicePersist);
+      dag.addOperator("CSHBasePersist", customerServicePersist);
       sustomerServiceStreamSinks.add(customerServicePersist.input);
     }
     if((outputMask & outputMask_Cassandra) != 0)
@@ -142,14 +157,14 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       // Cassandra
       EnrichedCustomerServiceCassandraOutputOperator customerServicePersist = new EnrichedCustomerServiceCassandraOutputOperator();
       //dag.addOperator("CustomerService-Cassandra-Persist", customerServicePersist);
-      dag.addOperator("CassandraPersist", customerServicePersist);
+      dag.addOperator("CSCassandraPersist", customerServicePersist);
       sustomerServiceStreamSinks.add(customerServicePersist.input);
     }
     
     DimensionsComputationFlexibleSingleSchemaPOJO dimensions = null;
     if (enableDimension) {
       // dimension
-      dimensions = dag.addOperator("DimensionsComputation",
+      dimensions = dag.addOperator("CSDimensionsComputation",
           DimensionsComputationFlexibleSingleSchemaPOJO.class);
       dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.APPLICATION_WINDOW_COUNT, 4);
       dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.CHECKPOINT_WINDOW_COUNT, 4);
@@ -182,7 +197,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
           8092);
 
       // store
-      CustomerServiceStore store = dag.addOperator("Store", CustomerServiceStore.class);
+      CustomerServiceStore store = dag.addOperator("CSStore", CustomerServiceStore.class);
       String basePath = conf.get(PROP_STORE_PATH);
       if (basePath == null || basePath.isEmpty())
         basePath = Preconditions.checkNotNull(conf.get(PROP_STORE_PATH),
@@ -213,14 +228,14 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       dag.setAttribute(store, Context.OperatorContext.COUNTERS_AGGREGATOR,
           new BasicCounters.LongAggregator<MutableLong>());
 
-      dag.addStream("DimensionalStream", dimensions.output, store.input);
-      dag.addStream("QueryResult", store.queryResult, wsOut.input);
+      dag.addStream("CSDimensionalStream", dimensions.output, store.input);
+      dag.addStream("CSQueryResult", store.queryResult, wsOut.input);
       
       //snapshot servers
-      //bandwidth
+      //ServiceCall
       {
         AppDataSnapshotServerAggregate snapshotServer = new AppDataSnapshotServerAggregate();
-        String snapshotServerJSON = SchemaUtils.jarResourceFileToString(bandwidthUsageSchemaLocation);
+        String snapshotServerJSON = SchemaUtils.jarResourceFileToString(serviceCallSchemaLocation);
         snapshotServer.setSnapshotSchemaJSON(snapshotServerJSON);
         snapshotServer.setEventSchema(eventSchema);
         {
@@ -228,8 +243,8 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
           keyValueMap.put(new MutablePair<String, Type>("issueType", Type.STRING), new MutablePair<String, Type>("serviceCall", Type.LONG));
           snapshotServer.setKeyValueMap(keyValueMap);
         }
-        dag.addOperator("BandwidthSnapshotServer", snapshotServer);
-        dag.addStream("BandwidthSnapshot", store.bandwidthUsageOutputPort, snapshotServer.input);
+        dag.addOperator("ServiceCallServer", snapshotServer);
+        dag.addStream("ServiceCallSnapshot", store.serviceCallOutputPort, snapshotServer.input);
   
         PubSubWebSocketAppDataQuery snapShotQuery = new PubSubWebSocketAppDataQuery();
         snapShotQuery.setUri(queryUri);
@@ -240,8 +255,8 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
         
         PubSubWebSocketAppDataResult snapShotQueryResult = new PubSubWebSocketAppDataResult();
         snapShotQueryResult.setUri(queryUri);
-        dag.addOperator("BandwidthSnapshotQueryResult", snapShotQueryResult);
-        dag.addStream("BandwidthSnapshotQueryResult", snapshotServer.queryResult, snapShotQueryResult.input);
+        dag.addOperator("ServiceCallQueryResult", snapShotQueryResult);
+        dag.addStream("ServiceCallResult", snapshotServer.queryResult, snapShotQueryResult.input);
       }
       
       //satisfaction rating
@@ -261,8 +276,8 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
           fieldInfo.put("barrier", Type.LONG);
           snapshotServer.setFieldInfoMap(fieldInfo);
         }
-        dag.addOperator("SatisfactionSnapshotServer", snapshotServer);
-        dag.addStream("SatisfactionSnapshot", store.satisfactionRatingOutputPort, snapshotServer.input);
+        dag.addOperator("SatisfactionServer", snapshotServer);
+        dag.addStream("Satisfaction", store.satisfactionRatingOutputPort, snapshotServer.input);
   
         PubSubWebSocketAppDataQuery snapShotQuery = new PubSubWebSocketAppDataQuery();
         snapShotQuery.setUri(queryUri);
@@ -273,8 +288,8 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
         
         PubSubWebSocketAppDataResult snapShotQueryResult = new PubSubWebSocketAppDataResult();
         snapShotQueryResult.setUri(queryUri);
-        dag.addOperator("SatisfactionSnapshotQueryResult", snapShotQueryResult);
-        dag.addStream("SatisfactionSnapshotQueryResult", snapshotServer.queryResult, snapShotQueryResult.input);
+        dag.addOperator("SatisfactionQueryResult", snapShotQueryResult);
+        dag.addStream("SatisfactionQueryResult", snapshotServer.queryResult, snapShotQueryResult.input);
       }
 
     
@@ -295,8 +310,8 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
           fieldInfo.put("barrier", Type.LONG);
           snapshotServer.setFieldInfoMap(fieldInfo);
         }
-        dag.addOperator("WaittimeSnapshotServer", snapshotServer);
-        dag.addStream("WaittimeSnapshot", store.averageWaitTimeOutputPort, snapshotServer.input);
+        dag.addOperator("WaittimeServer", snapshotServer);
+        dag.addStream("Waittime", store.averageWaitTimeOutputPort, snapshotServer.input);
   
         PubSubWebSocketAppDataQuery snapShotQuery = new PubSubWebSocketAppDataQuery();
         snapShotQuery.setUri(queryUri);
@@ -307,12 +322,12 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
         
         PubSubWebSocketAppDataResult snapShotQueryResult = new PubSubWebSocketAppDataResult();
         snapShotQueryResult.setUri(queryUri);
-        dag.addOperator("WaittimeSnapshotQueryResult", snapShotQueryResult);
-        dag.addStream("WaittimeSnapshotQueryResult", snapshotServer.queryResult, snapShotQueryResult.input);
+        dag.addOperator("WaittimeQueryResult", snapShotQueryResult);
+        dag.addStream("WaittimeQueryResult", snapshotServer.queryResult, snapShotQueryResult.input);
       }
     }
   
-    dag.addStream("EnrichedCustomerService", enrichOperator.outputPort, sustomerServiceStreamSinks.toArray(new DefaultInputPort[0]));
+    dag.addStream("CSEnriched", enrichOperator.outputPort, sustomerServiceStreamSinks.toArray(new DefaultInputPort[0]));
   }
 
   public boolean isEnableDimension() {

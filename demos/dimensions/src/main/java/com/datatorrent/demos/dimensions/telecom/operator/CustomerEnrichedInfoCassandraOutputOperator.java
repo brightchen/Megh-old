@@ -9,7 +9,6 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.DriverException;
 
-import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.demos.dimensions.telecom.conf.CustomerEnrichedInfoCassandraConfig;
 import com.datatorrent.demos.dimensions.telecom.model.CustomerEnrichedInfo.SingleRecord;
 

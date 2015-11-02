@@ -168,6 +168,10 @@
   
   <!-- settings for telecom demos -->
   <property>
+    <name>dt.application.TelecomDemoV2.cdroutputmask</name>
+    <value>0</value>
+  </property>
+  <property>
     <name>dt.application.TelecomDemoV2.cassandra.host</name>
     <value>node22</value>
   </property>
@@ -205,6 +209,10 @@
   </property>
 
   <!-- CustomerServiceDemoV2 -->
+  <property>
+    <name>dt.application.TelecomDemoV2.csoutputmask</name>
+    <value>0</value>
+  </property>
   <property>
     <name>dt.application.TelecomDemoV2.operator.CSStore.fileStore.basePathPrefix</name>
     <value>CS/Store</value>

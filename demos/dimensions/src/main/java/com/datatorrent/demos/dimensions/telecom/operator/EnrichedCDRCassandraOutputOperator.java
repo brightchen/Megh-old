@@ -1,7 +1,5 @@
 package com.datatorrent.demos.dimensions.telecom.operator;
 
-import java.util.Calendar;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,7 +9,6 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.DriverException;
 
-import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.demos.dimensions.telecom.conf.EnrichedCDRCassandraConfig;
 import com.datatorrent.demos.dimensions.telecom.generate.GeneratorUtil;
 import com.datatorrent.demos.dimensions.telecom.model.EnrichedCDR;
@@ -19,6 +16,7 @@ import com.datatorrent.demos.dimensions.telecom.model.EnrichedCDR;
 public class EnrichedCDRCassandraOutputOperator extends TelecomDemoCassandraOutputOperator<EnrichedCDR>
 {
   private static final transient Logger logger = LoggerFactory.getLogger(EnrichedCDRCassandraOutputOperator.class);
+  private int ttl = 24*60*60;   //default one day
   
   public EnrichedCDRCassandraOutputOperator()
   {
@@ -41,7 +39,7 @@ public class EnrichedCDRCassandraOutputOperator extends TelecomDemoCassandraOutp
     sqlCommand = "INSERT INTO " + cassandraConfig.getDatabase() + "."
         + cassandraConfig.getTableName()
         + " ( id, imsi, isdn, imei, plan, callType, correspType, correspIsdn, duration, bytes, dr, lat, lon, date, time, drLabel, operatorCode, deviceBrand, deviceModel, zipcode ) "
-        + "VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? );";
+        + "VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ) USING TTL " + ttl + ";";
     return sqlCommand;
   }
   
@@ -76,7 +74,15 @@ public class EnrichedCDRCassandraOutputOperator extends TelecomDemoCassandraOutp
     
     //or boundStatement.bind();
     return boundStmnt;
-    
   }
 
+  public int getTtl()
+  {
+    return ttl;
+  }
+  public void setTtl(int ttl)
+  {
+    this.ttl = ttl;
+  }
+  
 }

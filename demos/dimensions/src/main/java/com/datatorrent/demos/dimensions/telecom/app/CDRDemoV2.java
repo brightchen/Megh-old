@@ -64,6 +64,7 @@ public class CDRDemoV2 implements StreamingApplication {
   protected String PROP_CASSANDRA_HOST;
   protected String PROP_HBASE_HOST;
   protected String PROP_HIVE_HOST;
+  protected String PROP_OUTPUT_MASK;
   
   public static final int outputMask_HBase = 0x01;
   public static final int outputMask_Cassandra = 0x100;
@@ -88,11 +89,28 @@ public class CDRDemoV2 implements StreamingApplication {
     PROP_HIVE_HOST = "dt.application." + appName + ".hive.host";
     
     PROP_STORE_PATH = "dt.application." + appName + ".operator.CDRStore.fileStore.basePathPrefix";
+    PROP_OUTPUT_MASK = "dt.application." + appName + ".cdroutputmask";
   }
   
 
   protected void populateConfig(Configuration conf)
   {
+    {
+      final String sOutputMask = conf.get(PROP_OUTPUT_MASK);
+      if(sOutputMask != null)
+      {
+        try
+        {
+          outputMask = Integer.valueOf(sOutputMask);
+          logger.info("outputMask: {}", outputMask);
+        }
+        catch(Exception e)
+        {
+          logger.error("Invalid outputmask: {}", sOutputMask);
+        }
+      }
+    }
+      
     {
       final String cassandraHost = conf.get(PROP_CASSANDRA_HOST);
       if(cassandraHost != null)

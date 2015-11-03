@@ -283,14 +283,14 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
         snapshotServer.setSnapshotSchemaJSON(snapshotServerJSON);
         snapshotServer.addStaticFieldInfo("min", 0L);
         snapshotServer.addStaticFieldInfo("max", 100L);
-        snapshotServer.addStaticFieldInfo("barrier", 80L);
+        snapshotServer.addStaticFieldInfo("threshold", 80L);
         //snapshotServer.setEventSchema(eventSchema);
         {
           Map<String, Type> fieldInfo = Maps.newHashMap();
-          fieldInfo.put("satisfaction", Type.LONG);
+          fieldInfo.put("current", Type.LONG);
           fieldInfo.put("min", Type.LONG);
           fieldInfo.put("max", Type.LONG);
-          fieldInfo.put("barrier", Type.LONG);
+          fieldInfo.put("threshold", Type.LONG);
           snapshotServer.setFieldInfoMap(fieldInfo);
         }
         dag.addOperator("SatisfactionServer", snapshotServer);
@@ -317,14 +317,14 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
         snapshotServer.setSnapshotSchemaJSON(snapshotServerJSON);
         snapshotServer.addStaticFieldInfo("min", 0L);
         snapshotServer.addStaticFieldInfo("max", 200L);
-        snapshotServer.addStaticFieldInfo("barrier", 30L);
+        snapshotServer.addStaticFieldInfo("threshold", 30L);
         //snapshotServer.setEventSchema(eventSchema);
         {
           Map<String, Type> fieldInfo = Maps.newHashMap();
-          fieldInfo.put("wait", Type.LONG);
+          fieldInfo.put("current", Type.LONG);
           fieldInfo.put("min", Type.LONG);
           fieldInfo.put("max", Type.LONG);
-          fieldInfo.put("barrier", Type.LONG);
+          fieldInfo.put("threshold", Type.LONG);
           snapshotServer.setFieldInfoMap(fieldInfo);
         }
         dag.addOperator("WaittimeServer", snapshotServer);

@@ -1,6 +1,5 @@
 package com.datatorrent.demos.dimensions.telecom.operator;
 
-import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 
@@ -90,7 +89,8 @@ public class CustomerServiceStore extends AppDataSingleSchemaDimensionStoreHDHTU
     if(count != 0)
     {
       fieldValue.clear();
-      fieldValue.put(fieldName, sum/count);
+      //fieldValue.put(fieldName, sum/count);
+      fieldValue.put("current", sum/count);   //change the field name to current
       output.emit(averageTuple);
     }
     logger.info("field name: {}; sum={}; count={}", fieldName, sum, count); 

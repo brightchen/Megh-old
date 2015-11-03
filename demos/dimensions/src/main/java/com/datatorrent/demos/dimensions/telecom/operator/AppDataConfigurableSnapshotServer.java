@@ -2,8 +2,6 @@ package com.datatorrent.demos.dimensions.telecom.operator;
 
 import java.util.Map;
 
-import org.apache.commons.lang3.tuple.MutablePair;
-
 import com.google.common.collect.Maps;
 
 import com.datatorrent.api.Context.OperatorContext;

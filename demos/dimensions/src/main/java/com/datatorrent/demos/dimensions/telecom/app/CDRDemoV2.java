@@ -67,7 +67,7 @@ public class CDRDemoV2 implements StreamingApplication {
   protected String PROP_OUTPUT_MASK;
   
   public static final int outputMask_HBase = 0x01;
-  public static final int outputMask_Cassandra = 0x100;
+  public static final int outputMask_Cassandra = 0x04;
   
   protected int outputMask = outputMask_Cassandra;
   

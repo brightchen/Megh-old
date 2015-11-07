@@ -22,8 +22,13 @@ import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
+import com.datatorrent.contrib.hive.HiveStore;
 import com.datatorrent.demos.dimensions.telecom.conf.ConfigUtil;
+import com.datatorrent.demos.dimensions.telecom.conf.EnrichedCDRHiveConfig;
+import com.datatorrent.demos.dimensions.telecom.conf.EnrichedCustomerServiceHiveConfig;
 import com.datatorrent.demos.dimensions.telecom.conf.TelecomDemoConf;
+import com.datatorrent.demos.dimensions.telecom.hive.TelecomHiveExecuteOperator;
+import com.datatorrent.demos.dimensions.telecom.hive.TelecomHiveOutputOperator;
 import com.datatorrent.demos.dimensions.telecom.model.EnrichedCustomerService;
 import com.datatorrent.demos.dimensions.telecom.operator.AppDataSimpleConfigurableSnapshotServer;
 import com.datatorrent.demos.dimensions.telecom.operator.AppDataSnapshotServerAggregate;
@@ -69,8 +74,11 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   protected String PROP_HBASE_HOST;
   protected String PROP_HIVE_HOST;
   protected String PROP_OUTPUT_MASK;
+  protected String PROP_HIVE_TEMP_PATH;
+  protected String PROP_HIVE_TEMP_FILE;
   
   public static final int outputMask_HBase = 0x01;
+  public static final int outputMask_Hive = 0x02;
   public static final int outputMask_Cassandra = 0x04;
   
   protected int outputMask = outputMask_Cassandra;
@@ -81,8 +89,13 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   protected String averageWaittimeSchemaLocation = AVERAGE_WAITTIME_SCHEMA;
   
   protected boolean enableDimension = true;
-
-
+  protected String hiveTmpPath = "~/tmp/cs";
+  protected String hiveTmpFile = "cs";
+  protected String enrichedCSTableSchema 
+  = "CREATE TABLE IF NOT EXISTS %s ( imsi string, isdn string, imei string, totalDuration string, wait string, zipCode string, " +
+    " issueType string, satisfied string, operatorCode string, deviceBrand string,  deviceModel string )" +
+    " ROW FORMAT DELIMITED FIELDS TERMINATED BY \",\"";  
+  
   public CustomerServiceDemoV2()
   {
     this(APP_NAME);
@@ -96,6 +109,8 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     PROP_HIVE_HOST = "dt.application." + appName + ".hive.host";
     PROP_STORE_PATH = "dt.application." + appName + ".operator.CSStore.fileStore.basePathPrefix";
     PROP_OUTPUT_MASK = "dt.application." + appName + ".csoutputmask";
+    PROP_HIVE_TEMP_PATH = "dt.application." + appName + ".cshivetmppath";
+    PROP_HIVE_TEMP_FILE = "dt.application." + appName + ".cshivetmpfile";
   }
   
   protected void populateConfig(Configuration conf)
@@ -142,7 +157,18 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       }
       logger.info("HiveHost: {}", TelecomDemoConf.instance.getHiveHost());
     }
-        
+    {
+      final String hiveTmpPath = conf.get(PROP_HIVE_TEMP_PATH);
+      if(hiveTmpPath != null )
+        this.hiveTmpPath = hiveTmpPath;
+      logger.info("hiveTmpPath: {}", hiveTmpPath);
+    }
+    {
+      final String hiveTmpFile = conf.get(PROP_HIVE_TEMP_FILE);
+      if(hiveTmpFile != null )
+        this.hiveTmpFile = hiveTmpFile;
+      logger.info("hiveTmpFile: {}", hiveTmpFile);
+    }
   }
   
   @Override
@@ -176,6 +202,33 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       //dag.addOperator("CustomerService-Cassandra-Persist", customerServicePersist);
       dag.addOperator("CSCassandraPersist", customerServicePersist);
       sustomerServiceStreamSinks.add(customerServicePersist.input);
+    }
+    if((outputMask & outputMask_Hive) != 0)
+    {
+      TelecomHiveOutputOperator hiveOutput = new TelecomHiveOutputOperator();
+      if(hiveTmpPath != null)
+        hiveOutput.setFilePath(hiveTmpPath);
+      if(hiveTmpFile != null)
+        hiveOutput.setOutputFileName(hiveTmpFile);
+      hiveOutput.setMaxLength(1024*1024);
+      hiveOutput.setFilePermission((short)511);
+
+      dag.addOperator("CSHiveOutput", hiveOutput);
+      sustomerServiceStreamSinks.add(hiveOutput.input);
+      
+      TelecomHiveExecuteOperator hiveExecute = new TelecomHiveExecuteOperator();
+
+      {
+        HiveStore hiveStore = new HiveStore();
+        if(hiveTmpPath != null)
+          hiveStore.setFilepath(hiveTmpPath);
+        hiveExecute.setHivestore(hiveStore);
+      }
+      hiveExecute.setHiveConfig(EnrichedCDRHiveConfig.instance());
+      String createTableSql = String.format( enrichedCSTableSchema,  EnrichedCustomerServiceHiveConfig.instance().getDatabase() + "." + EnrichedCustomerServiceHiveConfig.instance().getTableName() );
+      hiveExecute.setCreateTableSql(createTableSql);
+      dag.addOperator("CSHiveExecute", hiveExecute);
+      dag.addStream("CSHiveLoadData", hiveOutput.hiveCmdOutput, hiveExecute.input);
     }
     
     DimensionsComputationFlexibleSingleSchemaPOJO dimensions = null;

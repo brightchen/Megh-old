@@ -54,6 +54,22 @@ public class CustomerService {
     this(other.imsi, other.isdn, other.imei, other.totalDuration, other.wait, other.zipCode, other.issueType, other.satisfied);
   }
 
+  @Override
+  public String toString()
+  {
+    StringBuilder sb = new StringBuilder();
+    sb.append(imsi).append(delimiter);
+    sb.append(isdn).append(delimiter);
+    sb.append(imei).append(delimiter);
+    sb.append(totalDuration).append(delimiter);
+    sb.append(wait).append(delimiter);
+    sb.append(zipCode).append(delimiter);
+    sb.append(issueType).append(delimiter);
+    sb.append(satisfied).append(delimiter);
+    
+    return sb.toString();
+  }
+  
   public int getServiceCallCount()
   {
     return 1;

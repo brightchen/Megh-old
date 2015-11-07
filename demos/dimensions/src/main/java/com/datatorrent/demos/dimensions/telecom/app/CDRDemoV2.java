@@ -23,8 +23,12 @@ import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
+import com.datatorrent.contrib.hive.HiveStore;
 import com.datatorrent.demos.dimensions.telecom.conf.ConfigUtil;
+import com.datatorrent.demos.dimensions.telecom.conf.EnrichedCDRHiveConfig;
 import com.datatorrent.demos.dimensions.telecom.conf.TelecomDemoConf;
+import com.datatorrent.demos.dimensions.telecom.hive.TelecomHiveExecuteOperator;
+import com.datatorrent.demos.dimensions.telecom.hive.TelecomHiveOutputOperator;
 import com.datatorrent.demos.dimensions.telecom.model.EnrichedCDR;
 import com.datatorrent.demos.dimensions.telecom.operator.AppDataSnapshotServerAggregate;
 import com.datatorrent.demos.dimensions.telecom.operator.CDREnrichOperator;
@@ -65,8 +69,11 @@ public class CDRDemoV2 implements StreamingApplication {
   protected String PROP_HBASE_HOST;
   protected String PROP_HIVE_HOST;
   protected String PROP_OUTPUT_MASK;
+  protected String PROP_HIVE_TEMP_PATH;
+  protected String PROP_HIVE_TEMP_FILE;
   
   public static final int outputMask_HBase = 0x01;
+  public static final int outputMask_Hive = 0x02;
   public static final int outputMask_Cassandra = 0x04;
   
   protected int outputMask = outputMask_Cassandra;
@@ -75,7 +82,15 @@ public class CDRDemoV2 implements StreamingApplication {
   protected String snapshotSchemaLocation = SNAPSHOT_SCHEMA;
 
   protected boolean enableDimension = true;
-  
+  protected String hiveTmpPath = "~/tmp/cdr";
+  protected String hiveTmpFile = "cdr";
+  protected String enrichedCDRTableSchema 
+    = "CREATE TABLE IF NOT EXISTS %s ( isdn string, imsi string, imei string, plan string, callType string, correspType string, " +
+      " correspIsdn string, duration string, bytes string, dr string, lat string, lon string, " +
+      " drLable string, operatorCode string, deviceBrand string, deviceModel string, zipCode string )" + 
+      " ROW FORMAT DELIMITED FIELDS TERMINATED BY \",\"";  
+
+
   public CDRDemoV2()
   {
     this(APP_NAME);
@@ -90,6 +105,8 @@ public class CDRDemoV2 implements StreamingApplication {
     
     PROP_STORE_PATH = "dt.application." + appName + ".operator.CDRStore.fileStore.basePathPrefix";
     PROP_OUTPUT_MASK = "dt.application." + appName + ".cdroutputmask";
+    PROP_HIVE_TEMP_PATH = "dt.application." + appName + ".cdrhivetmppath";
+    PROP_HIVE_TEMP_FILE = "dt.application." + appName + ".cdrhivetmpfile";
   }
   
 
@@ -138,6 +155,18 @@ public class CDRDemoV2 implements StreamingApplication {
       logger.info("HiveHost: {}", TelecomDemoConf.instance.getHiveHost());
     }
         
+    {
+      final String hiveTmpPath = conf.get(PROP_HIVE_TEMP_PATH);
+      if(hiveTmpPath != null )
+        this.hiveTmpPath = hiveTmpPath;
+      logger.info("hiveTmpPath: {}", hiveTmpPath);
+    }
+    {
+      final String hiveTmpFile = conf.get(PROP_HIVE_TEMP_FILE);
+      if(hiveTmpFile != null )
+        this.hiveTmpFile = hiveTmpFile;
+      logger.info("hiveTmpFile: {}", hiveTmpFile);
+    }
   }
   
   @Override
@@ -172,7 +201,33 @@ public class CDRDemoV2 implements StreamingApplication {
       dag.addOperator("CDRCanssandraPersist", cdrPersist);
       enrichedStreamSinks.add(cdrPersist.input);
     }
-    
+    if((outputMask & outputMask_Hive) != 0)
+    {
+      TelecomHiveOutputOperator hiveOutput = new TelecomHiveOutputOperator();
+      if(hiveTmpPath != null)
+        hiveOutput.setFilePath(hiveTmpPath);
+      if(hiveTmpFile != null)
+        hiveOutput.setOutputFileName(hiveTmpFile);
+      hiveOutput.setMaxLength(1024*1024);
+      hiveOutput.setFilePermission((short)511);
+
+      dag.addOperator("CDRHiveOutput", hiveOutput);
+      enrichedStreamSinks.add(hiveOutput.input);
+      
+      TelecomHiveExecuteOperator hiveExecute = new TelecomHiveExecuteOperator();
+
+      {
+        HiveStore hiveStore = new HiveStore();
+        if(hiveTmpPath != null)
+          hiveStore.setFilepath(hiveTmpPath);
+        hiveExecute.setHivestore(hiveStore);
+      }
+      hiveExecute.setHiveConfig(EnrichedCDRHiveConfig.instance());
+      String createTableSql = String.format( enrichedCDRTableSchema,  EnrichedCDRHiveConfig.instance().getDatabase() + "." + EnrichedCDRHiveConfig.instance().getTableName() );
+      hiveExecute.setCreateTableSql(createTableSql);
+      dag.addOperator("CDRHiveExecute", hiveExecute);
+      dag.addStream("CDRHiveLoadData", hiveOutput.hiveCmdOutput, hiveExecute.input);
+    }
     
     DimensionsComputationFlexibleSingleSchemaPOJO dimensions = null;
     if (enableDimension) {
@@ -327,6 +382,5 @@ public class CDRDemoV2 implements StreamingApplication {
   {
     this.outputMask = outputMask;
   }
-
   
 }

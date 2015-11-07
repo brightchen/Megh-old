@@ -11,7 +11,7 @@ public class TelecomDemoConf {
   public static TelecomDemoConf instance = new TelecomDemoConf();
   
   //for Hive
-  protected String hiveHost = "node23";
+  protected String hiveHost = "node22";
   protected int hivePort = 10000;
   protected String hiveUserName = "bright";
   protected String hivePassword = "";

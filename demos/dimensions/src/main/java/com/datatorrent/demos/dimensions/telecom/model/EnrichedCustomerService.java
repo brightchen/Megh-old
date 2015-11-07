@@ -3,7 +3,7 @@ package com.datatorrent.demos.dimensions.telecom.model;
 import com.datatorrent.demos.dimensions.telecom.generate.MNCRepo;
 import com.datatorrent.demos.dimensions.telecom.generate.TACRepo;
 
-public class EnrichedCustomerService extends CustomerService
+public class EnrichedCustomerService extends CustomerService implements BytesSupport
 {
   public final String operatorCode;
   public final String deviceBrand;
@@ -49,6 +49,12 @@ public class EnrichedCustomerService extends CustomerService
     sb.append(deviceModel);
     
     return sb.toString();
+  }
+  
+  @Override
+  public byte[] toBytes()
+  {
+    return toLine().getBytes();
   }
   
   public String toLine()

@@ -7,8 +7,8 @@ import java.util.Map;
 
 import org.apache.hadoop.hbase.util.Bytes;
 
-public class CallDetailRecord {
-  public static final String delimiter = ";";
+public class CallDetailRecord implements BytesSupport{
+  public static final String delimiter = ",";
   public static final int COLUMN_NUM = 14;
   
   private String isdn;
@@ -221,7 +221,13 @@ public class CallDetailRecord {
 
     return sb.toString();
   }
-
+  
+  @Override
+  public byte[] toBytes()
+  {
+    return toLine().getBytes();
+  }
+  
   public static CallDetailRecord fromLine(String line) {
     if (line.endsWith("\n"))
       line = line.substring(0, line.length() - 1);

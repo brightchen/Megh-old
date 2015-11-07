@@ -1,25 +1,111 @@
 package com.datatorrent.demos.dimensions.telecom.hive;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Set;
 
-import com.datatorrent.contrib.hive.AbstractFSRollingOutputOperator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import org.apache.hadoop.fs.Path;
+
+import com.google.common.collect.Lists;
+
+import com.datatorrent.api.Context.OperatorContext;
+import com.datatorrent.api.DefaultOutputPort;
+import com.datatorrent.contrib.hive.AbstractFSRollingOutputOperator.FilePartitionMapping;
+import com.datatorrent.demos.dimensions.telecom.model.BytesSupport;
+import com.datatorrent.lib.io.fs.AbstractFileInputOperator.DirectoryScanner;
+import com.datatorrent.lib.io.fs.AbstractSingleFileOutputOperator;
 
 
-public class TelecomHiveOutputOperator<T> extends AbstractFSRollingOutputOperator<T>
+public class TelecomHiveOutputOperator<T extends BytesSupport> extends AbstractSingleFileOutputOperator<T> //AbstractFileOutputOperator<byte[]>
 {
-
-  @Override
-  public ArrayList<String> getHivePartition(T arg0)
+  private static final transient Logger logger = LoggerFactory.getLogger(TelecomHiveOutputOperator.class);
+      
+  public final transient DefaultOutputPort<FilePartitionMapping> hiveCmdOutput = new DefaultOutputPort<FilePartitionMapping>();
+  protected static final String NON_TMP_PATTERN = "\\S+\\.\\d+$";
+  
+  public TelecomHiveOutputOperator()
   {
-    // TODO Auto-generated method stub
-    return null;
+//    setMaxLength(64*1024*1024);
+//    setOutputFileName("cdr");
+  }
+  
+  @Override
+  protected void processTuple(T tuple)
+  {
+    //FIXME: for test, do nothing
   }
 
   @Override
-  protected byte[] getBytesForTuple(T arg0)
+  public void setup(OperatorContext context)
   {
-    // TODO Auto-generated method stub
-    return null;
+    super.setup(context);
   }
 
+  @Override
+  public byte[] getBytesForTuple(T t)
+  {
+    return t.toBytes();
+  }
+  
+  @Override
+  public void endWindow()
+  {
+    super.endWindow();
+    sendLoadDataToHiveCmd();
+  }
+  
+  /**
+   * send tuple to Hive to move the file to the Hive
+   */
+  protected final ArrayList<String> emptyPartition = Lists.newArrayList();
+  protected void sendLoadDataToHiveCmd()
+  {
+    Set<Path> pathes = getFilePathes();
+    for(Path path : pathes)
+    {
+      FilePartitionMapping mapping = new FilePartitionMapping();
+      //use relative path.
+      //mapping.setFilename(path.getName());
+      //use absolute path
+      mapping.setFilename(path.toUri().getPath()); 
+      mapping.setPartition(emptyPartition);
+      hiveCmdOutput.emit(mapping);
+      logger.info("load data from file: {}", path.getName());
+    }
+    logger.info("{} files loaded.", pathes.size());
+  }
+  
+  protected transient DirectoryScanner scanner;
+  protected transient Path scanPath;
+  
+  protected Set<Path> getFilePathes()
+  {
+    if(scanner == null)
+      scanner = buildScanner();
+    if(scanPath == null)
+      scanPath = new Path(filePath);
+    return scanner.scan(fs, scanPath, Collections.<String>emptySet());
+  }
+  
+  protected transient String filePatternRegexp;   // = ".*cdr\\.\\d+\\z";
+  protected DirectoryScanner buildScanner()
+  {
+    if(filePatternRegexp == null)
+      filePatternRegexp = buildFilePatternRegexp();
+    if(scanner == null)
+    {
+      scanner = new DirectoryScanner();
+      scanner.setFilePatternRegexp(filePatternRegexp);
+    }
+    return scanner;
+  }
+  
+  protected String buildFilePatternRegexp()
+  {
+    filePatternRegexp = NON_TMP_PATTERN;
+    return filePatternRegexp;
+  }
 }

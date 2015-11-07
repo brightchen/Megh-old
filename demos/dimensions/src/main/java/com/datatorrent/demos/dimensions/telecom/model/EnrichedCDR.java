@@ -7,6 +7,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import com.datatorrent.demos.dimensions.telecom.generate.MNCRepo;
 import com.datatorrent.demos.dimensions.telecom.generate.PointZipCodeRepo;
 import com.datatorrent.demos.dimensions.telecom.generate.TACRepo;
+import com.datatorrent.netlet.util.Slice;
 
 /**
  * Append other information
@@ -17,7 +18,8 @@ import com.datatorrent.demos.dimensions.telecom.generate.TACRepo;
  * @author bright
  *
  */
-public class EnrichedCDR extends CallDetailRecord{
+public class EnrichedCDR extends CallDetailRecord implements BytesSupport
+{
   private String drLabel;
   private String operatorCode;
   private String deviceBrand;
@@ -92,6 +94,12 @@ public class EnrichedCDR extends CallDetailRecord{
     
     sb.append(zipCode);
     return sb.toString();
+  }
+  
+  @Override
+  public byte[] toBytes()
+  {
+    return toLine().getBytes();
   }
   
   public String toLine()

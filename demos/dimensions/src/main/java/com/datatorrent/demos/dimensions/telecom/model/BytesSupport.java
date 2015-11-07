@@ -1,7 +1,5 @@
 package com.datatorrent.demos.dimensions.telecom.model;
 
-import com.datatorrent.netlet.util.Slice;
-
 public interface BytesSupport
 {
   /**
@@ -9,5 +7,4 @@ public interface BytesSupport
    * @return
    */
   public byte[] toBytes();
-  public Slice toBytes(byte[] bytes);
 }

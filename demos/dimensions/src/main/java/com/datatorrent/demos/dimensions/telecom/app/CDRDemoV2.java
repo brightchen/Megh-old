@@ -82,7 +82,8 @@ public class CDRDemoV2 implements StreamingApplication {
   protected String snapshotSchemaLocation = SNAPSHOT_SCHEMA;
 
   protected boolean enableDimension = true;
-  protected String hiveTmpPath = "~/tmp/cdr";
+  //use absolute path or rename from tmp files will be failed due to different directory.
+  protected String hiveTmpPath = "/user/cdrtmp";
   protected String hiveTmpFile = "cdr";
   protected String enrichedCDRTableSchema 
     = "CREATE TABLE IF NOT EXISTS %s ( isdn string, imsi string, imei string, plan string, callType string, correspType string, " +

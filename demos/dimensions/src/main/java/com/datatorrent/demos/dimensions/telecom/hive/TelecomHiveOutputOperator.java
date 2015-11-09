@@ -28,14 +28,12 @@ public class TelecomHiveOutputOperator<T extends BytesSupport> extends AbstractS
   
   public TelecomHiveOutputOperator()
   {
-//    setMaxLength(64*1024*1024);
-//    setOutputFileName("cdr");
   }
   
   @Override
   protected void processTuple(T tuple)
   {
-    //FIXME: for test, do nothing
+    super.processTuple(tuple);
   }
 
   @Override
@@ -73,9 +71,9 @@ public class TelecomHiveOutputOperator<T extends BytesSupport> extends AbstractS
       mapping.setFilename(path.toUri().getPath()); 
       mapping.setPartition(emptyPartition);
       hiveCmdOutput.emit(mapping);
-      logger.info("load data from file: {}", path.getName());
+      logger.info("loadding data from file: {}", mapping.getFilename());
     }
-    logger.info("{} files loaded.", pathes.size());
+    logger.debug("{} files loaded.", pathes.size());
   }
   
   protected transient DirectoryScanner scanner;

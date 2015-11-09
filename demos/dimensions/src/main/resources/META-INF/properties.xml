@@ -202,12 +202,16 @@
     <name>dt.application.TelecomDemoV2.operator.BandwidthQueryResult.topic</name>
     <value>BandwidthQueryResult</value>
   </property>
-
   <property>
     <name>dt.application.TelecomDemoV2.operator.CDRGenerator.batchSleepTime</name>
     <value>12</value>
   </property>
-
+  <property>
+    <name>dt.application.TelecomDemoV2.cdrhivetmppath</name>
+    <value>/user/cdrtmp</value>
+  </property>
+  
+  
   <!-- CustomerServiceDemoV2 -->
   <property>
     <name>dt.application.TelecomDemoV2.csoutputmask</name>
@@ -261,6 +265,10 @@
   <property>
     <name>dt.application.TelecomDemoV2.operator.CustomerServiceGenerator.batchSleepTime</name>
     <value>15</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.cshivetmppath</name>
+    <value>/user/cstmp</value>
   </property>
   <!-- 
   <property>

@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 import com.datatorrent.api.Context.OperatorContext;
@@ -18,28 +20,47 @@ import com.datatorrent.contrib.hive.AbstractFSRollingOutputOperator.FilePartitio
 import com.datatorrent.contrib.hive.HiveOperator;
 import com.datatorrent.demos.dimensions.telecom.conf.DataWarehouseConfig;
 
+import jline.internal.Log;
+
 public class TelecomHiveExecuteOperator extends HiveOperator
 {
   private static final Logger logger = LoggerFactory.getLogger(TelecomHiveExecuteOperator.class);
   
   protected DataWarehouseConfig hiveConfig;
   
-  protected String localString = "local";
+  protected String localString = "";
   protected String createTableSql;
   
   @Override
   public void setup(OperatorContext context)
   {
-    //this class keep the url information, set to the store just to get rid of exception.
-    store.setDatabaseUrl(getJdbcUrl());
+    try {
+      //this class keep the url information, set to the store just to get rid of exception.
+      store.setDatabaseUrl(getJdbcUrl());
 
-    super.setup(context);
+      super.setup(context);
 
-    //syn tablename
-    if(tablename == null && tablename.isEmpty())
-      tablename = hiveConfig.getTableName();
-    else
-      hiveConfig.setTableName(tablename);
+      checkIsHDFS();
+
+      //syn tablename
+      if (tablename == null || tablename.isEmpty())
+        tablename = hiveConfig.getTableName();
+      else
+        hiveConfig.setTableName(tablename);
+    } catch (IOException e) {
+      logger.error("Got exception in setup.", e);
+      throw new RuntimeException(e);
+    }
+  }
+  
+  protected boolean checkIsHDFS() throws IOException
+  {
+    FileSystem tempFS = FileSystem.newInstance(new Path(hivestore.filepath).toUri(), new Configuration());
+    if (!tempFS.getScheme().equalsIgnoreCase("hdfs")) {
+      localString = " local";
+      return false;
+    }
+    return true;
   }
   
   protected void createBusinessTables()
@@ -48,8 +69,11 @@ public class TelecomHiveExecuteOperator extends HiveOperator
       return;
 
     try {
+      logger.info("creating table using sql: ");
+      logger.info(createTableSql);
       Statement stmt = getConnection().createStatement(); 
       stmt.execute(createTableSql);
+      logger.info("table created.");
     }
     catch (SQLException ex) {
       logger.warn("create table failed. sql is '{}'; exception: {}", createTableSql, ex.getMessage());
@@ -180,6 +204,5 @@ public class TelecomHiveExecuteOperator extends HiveOperator
   {
     this.createTableSql = createTableSql;
   }
-  
   
 }

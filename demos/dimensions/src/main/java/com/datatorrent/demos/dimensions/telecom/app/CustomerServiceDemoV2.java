@@ -89,7 +89,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   protected String averageWaittimeSchemaLocation = AVERAGE_WAITTIME_SCHEMA;
   
   protected boolean enableDimension = true;
-  protected String hiveTmpPath = "~/tmp/cs";
+  protected String hiveTmpPath = "/user/cstmp";
   protected String hiveTmpFile = "cs";
   protected String enrichedCSTableSchema 
   = "CREATE TABLE IF NOT EXISTS %s ( imsi string, isdn string, imei string, totalDuration string, wait string, zipCode string, " +

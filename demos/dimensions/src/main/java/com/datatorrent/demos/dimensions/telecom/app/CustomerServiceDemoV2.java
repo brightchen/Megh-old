@@ -24,7 +24,6 @@ import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
 import com.datatorrent.contrib.hive.HiveStore;
 import com.datatorrent.demos.dimensions.telecom.conf.ConfigUtil;
-import com.datatorrent.demos.dimensions.telecom.conf.EnrichedCDRHiveConfig;
 import com.datatorrent.demos.dimensions.telecom.conf.EnrichedCustomerServiceHiveConfig;
 import com.datatorrent.demos.dimensions.telecom.conf.TelecomDemoConf;
 import com.datatorrent.demos.dimensions.telecom.hive.TelecomHiveExecuteOperator;
@@ -224,7 +223,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
           hiveStore.setFilepath(hiveTmpPath);
         hiveExecute.setHivestore(hiveStore);
       }
-      hiveExecute.setHiveConfig(EnrichedCDRHiveConfig.instance());
+      hiveExecute.setHiveConfig(EnrichedCustomerServiceHiveConfig.instance());
       String createTableSql = String.format( enrichedCSTableSchema,  EnrichedCustomerServiceHiveConfig.instance().getDatabase() + "." + EnrichedCustomerServiceHiveConfig.instance().getTableName() );
       hiveExecute.setCreateTableSql(createTableSql);
       dag.addOperator("CSHiveExecute", hiveExecute);

@@ -86,7 +86,6 @@ public class TelecomHiveExecuteOperator extends HiveOperator
     String command = getHiveCommand(tuple);
     logger.debug("command is {}",command);
     //should not put comma and the end of the sql
-    //command = "load data local inpath '/Users/bright/src/bright/Megh/demos/dimensions/target/Hive.bak/hivedata.1' into table tempmap";
     if (command != null) {
       Statement stmt;
       try {
@@ -144,7 +143,7 @@ public class TelecomHiveExecuteOperator extends HiveOperator
     String filename = tuple.getFilename();
     ArrayList<String> partition = tuple.getPartition();
     String filepath = isAbsolutePath(filename) ? filename : hivestore.getFilepath() + Path.SEPARATOR + filename;
-    logger.info("processing {} filepath", filepath);
+    logger.info("processing file '{}'.", filepath);
     return filepath;
   }
   
@@ -177,6 +176,8 @@ public class TelecomHiveExecuteOperator extends HiveOperator
           command = "load data " + localString + " inpath '" + filepath + "' into table " + tablename;
         }
       }
+      else
+        logger.warn("Path '{}' not exists.", filepath);
     }
     catch (IOException e) {
       throw new RuntimeException(e);

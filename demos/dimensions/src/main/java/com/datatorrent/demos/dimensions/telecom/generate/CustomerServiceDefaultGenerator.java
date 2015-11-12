@@ -12,6 +12,7 @@ import com.datatorrent.demos.dimensions.telecom.model.CustomerService.IssueType;
 public class CustomerServiceDefaultGenerator implements Generator<CustomerService> {
   public static enum RepoType
   {
+    Embeded,
     HBase,
     Cassandra
   }
@@ -19,7 +20,7 @@ public class CustomerServiceDefaultGenerator implements Generator<CustomerServic
   private static final transient Logger logger = LoggerFactory.getLogger(CustomerServiceDefaultGenerator.class);
   public static final int MAX_DURATION = 100;
   protected CustomerEnrichedInfoProvider customerEnrichedInfoProvider = null;
-  protected RepoType repoType = RepoType.Cassandra;
+  protected RepoType repoType = RepoType.Embeded;
 
   @Override
   public CustomerService next()
@@ -46,6 +47,8 @@ public class CustomerServiceDefaultGenerator implements Generator<CustomerServic
       customerEnrichedInfoProvider = CustomerEnrichedInfoHbaseRepo.createInstance(CustomerEnrichedInfoHBaseConfig.instance());
     else if(RepoType.Cassandra == repoType )
       customerEnrichedInfoProvider = CustomerEnrichedInfoCassandraRepo.createInstance(CustomerEnrichedInfoCassandraConfig.instance());
+    else  // default (RepoType.Embeded == repoType)
+      customerEnrichedInfoProvider = CustomerEnrichedInfoEmbededRepo.instance();
     logger.info("repoType={}, customerEnrichedInfoProvider={}", repoType, customerEnrichedInfoProvider);
     return customerEnrichedInfoProvider;
   }
@@ -59,7 +62,7 @@ public class CustomerServiceDefaultGenerator implements Generator<CustomerServic
   {
     this.repoType = RepoType.valueOf(repoType);
     if(this.repoType == null)
-      this.repoType = RepoType.Cassandra;
+      this.repoType = RepoType.Embeded;
   }
 
   public CustomerEnrichedInfoProvider getCustomerEnrichedInfoProvider()

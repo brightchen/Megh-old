@@ -7,6 +7,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Calendar;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,16 +21,17 @@ import com.datatorrent.contrib.hive.AbstractFSRollingOutputOperator.FilePartitio
 import com.datatorrent.contrib.hive.HiveOperator;
 import com.datatorrent.demos.dimensions.telecom.conf.DataWarehouseConfig;
 
-import jline.internal.Log;
-
 public class TelecomHiveExecuteOperator extends HiveOperator
 {
   private static final Logger logger = LoggerFactory.getLogger(TelecomHiveExecuteOperator.class);
   
   protected DataWarehouseConfig hiveConfig;
-  
-  protected String localString = "";
   protected String createTableSql;
+  protected int timeToLiveInMinutes = -1;
+  protected int dataCleanupSpanInSeconds = 120;
+  
+  protected transient String localString = "";
+
   
   @Override
   public void setup(OperatorContext context)
@@ -51,6 +53,17 @@ public class TelecomHiveExecuteOperator extends HiveOperator
       logger.error("Got exception in setup.", e);
       throw new RuntimeException(e);
     }
+  }
+  
+  /**
+   * need to remove the data
+   */
+  @Override
+  public void endWindow()
+  {
+    super.endWindow();
+    if(timeToLiveInMinutes >= 0)
+      removeOutOfLiveData();
   }
   
   protected boolean checkIsHDFS() throws IOException
@@ -85,22 +98,28 @@ public class TelecomHiveExecuteOperator extends HiveOperator
   {
     String command = getHiveCommand(tuple);
     logger.debug("command is {}",command);
+    
     //should not put comma and the end of the sql
-    if (command != null) {
+    executeSqlCommand(command);
+    
+    String filePath = getFilePath(tuple);
+    handleProcessedFile(filePath);
+  }
+  
+  protected void executeSqlCommand(String sqlCommand)
+  {
+    if(sqlCommand == null || sqlCommand.isEmpty())
+      return;
+    
       Statement stmt;
       try {
         //The HiveStore has problem with user.
         stmt = getConnection().createStatement(); 
-        //stmt = hivestore.getConnection().createStatement();
-        stmt.execute(command);
-        
-        String filePath = getFilePath(tuple);
-        handleProcessedFile(filePath);
+        stmt.execute(sqlCommand);
       }
       catch (SQLException ex) {
-        logger.warn("Moving file into hive failed", ex);
+        logger.warn("execute sql command '{}' failed. reason: {}", sqlCommand, ex.getMessage());
       }
-    }
   }
   
   protected void handleProcessedFile(String filePath)
@@ -157,19 +176,8 @@ public class TelecomHiveExecuteOperator extends HiveOperator
     String command = null;
     try {
       if (fs.exists(new Path(filepath))) {
-        if (numPartitions > 0) {
-          StringBuilder partitionString = new StringBuilder(hivePartitionColumns.get(0) + "='" + partition.get(0) + "'");
-          int i = 0;
-          while (i < numPartitions) {
-            i++;
-            if (i == numPartitions) {
-              break;
-            }
-            partitionString.append(",").append(hivePartitionColumns.get(i)).append("='").append(partition.get(i)).append("'");
-          }
-          if (i < hivePartitionColumns.size()) {
-            partitionString.append(",").append(hivePartitionColumns.get(i));
-          }
+        String partitionString = createPartitionString(); 
+        if (partitionString != null && !partitionString.isEmpty() ) {
           command = "load data " + localString + " inpath '" + filepath + "' into table " + tablename + " PARTITION" + "( " + partitionString + " )";
         }
         else {
@@ -185,6 +193,28 @@ public class TelecomHiveExecuteOperator extends HiveOperator
     logger.info("command is {}" , command);
     return command;
   }
+  
+  protected String createPartitionString()
+  {
+    return "createdtime=" + Calendar.getInstance().getTimeInMillis();
+  }
+  
+  /**
+   * the data was stored partitioned by 'createdtime'
+   */
+  protected transient long dataCleanupTime = 0;
+  protected void removeOutOfLiveData()
+  {
+    long curTime = Calendar.getInstance().getTimeInMillis();
+    if(curTime < dataCleanupTime + 1000*dataCleanupSpanInSeconds )
+      return;
+    
+    String cleanupSql = "alter table %s drop partition(createdtime<%d)".format(tablename, curTime - timeToLiveInMinutes*60*1000);
+    this.executeSqlCommand(cleanupSql);
+    
+    dataCleanupTime = curTime; 
+  }
+  
 
   public DataWarehouseConfig getHiveConfig()
   {
@@ -204,6 +234,16 @@ public class TelecomHiveExecuteOperator extends HiveOperator
   public void setCreateTableSql(String createTableSql)
   {
     this.createTableSql = createTableSql;
+  }
+
+  public int getTimeToLiveHour()
+  {
+    return timeToLiveInMinutes;
+  }
+
+  public void setTimeToLiveHour(int timeToLiveHour)
+  {
+    this.timeToLiveInMinutes = timeToLiveHour;
   }
   
 }

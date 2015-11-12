@@ -7,9 +7,11 @@
         ( isdn string, imsi string, imei string, plan string, callType string, correspType string, 
         correspIsdn string, duration string, bytes string, dr string, lat string, lon string, 
         drLable string, operatorCode string, deviceBrand string, deviceModel string, zipCode string )
+        PARTITIONED BY( createdtime bigint )
           ROW FORMAT DELIMITED FIELDS TERMINATED BY ",";  
     - customer service:
       CREATE TABLE IF NOT EXISTS telecomdemo.EnrichedCustomerService 
         ( imsi string, isdn string, imei string, totalDuration string, wait string, zipCode string, 
         issueType string, satisfied string, operatorCode string, deviceBrand string,  deviceModel string )
+        PARTITIONED BY( createdtime bigint )
           ROW FORMAT DELIMITED FIELDS TERMINATED BY ",";  

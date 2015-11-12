@@ -88,7 +88,8 @@ public class CDRDemoV2 implements StreamingApplication {
   protected String enrichedCDRTableSchema 
     = "CREATE TABLE IF NOT EXISTS %s ( isdn string, imsi string, imei string, plan string, callType string, correspType string, " +
       " correspIsdn string, duration string, bytes string, dr string, lat string, lon string, " +
-      " drLable string, operatorCode string, deviceBrand string, deviceModel string, zipCode string )" + 
+      " drLable string, operatorCode string, deviceBrand string, deviceModel string, zipCode string ) " + 
+      " PARTITIONED BY( createdtime long ) " +
       " ROW FORMAT DELIMITED FIELDS TERMINATED BY \",\"";  
 
 
@@ -209,7 +210,6 @@ public class CDRDemoV2 implements StreamingApplication {
         hiveOutput.setFilePath(hiveTmpPath);
       if(hiveTmpFile != null)
         hiveOutput.setOutputFileName(hiveTmpFile);
-      hiveOutput.setMaxLength(1024*1024);
       hiveOutput.setFilePermission((short)511);
 
       dag.addOperator("CDRHiveOutput", hiveOutput);

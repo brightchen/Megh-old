@@ -92,7 +92,8 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   protected String hiveTmpFile = "cs";
   protected String enrichedCSTableSchema 
   = "CREATE TABLE IF NOT EXISTS %s ( imsi string, isdn string, imei string, totalDuration string, wait string, zipCode string, " +
-    " issueType string, satisfied string, operatorCode string, deviceBrand string,  deviceModel string )" +
+    " issueType string, satisfied string, operatorCode string, deviceBrand string,  deviceModel string ) " +
+    " PARTITIONED BY( createdtime long ) " +
     " ROW FORMAT DELIMITED FIELDS TERMINATED BY \",\"";  
   
   public CustomerServiceDemoV2()
@@ -209,7 +210,6 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
         hiveOutput.setFilePath(hiveTmpPath);
       if(hiveTmpFile != null)
         hiveOutput.setOutputFileName(hiveTmpFile);
-      hiveOutput.setMaxLength(1024*1024);
       hiveOutput.setFilePermission((short)511);
 
       dag.addOperator("CSHiveOutput", hiveOutput);

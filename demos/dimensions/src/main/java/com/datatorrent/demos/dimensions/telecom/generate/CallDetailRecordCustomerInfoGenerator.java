@@ -16,6 +16,7 @@ import com.datatorrent.demos.dimensions.telecom.model.CustomerEnrichedInfo.Singl
 public class CallDetailRecordCustomerInfoGenerator implements Generator<CallDetailRecord> {
   public static enum RepoType
   {
+    Embeded,
     HBase,
     Cassandra
   }
@@ -24,7 +25,7 @@ public class CallDetailRecordCustomerInfoGenerator implements Generator<CallDeta
   
   protected CustomerEnrichedInfoProvider customerEnrichedInfoProvider = null;
   protected CallDetailRecordRandomGenerator cdrRandomGenerator = new CallDetailRecordRandomGenerator();
-  protected RepoType repoType = RepoType.Cassandra;
+  protected RepoType repoType = RepoType.Embeded;
   
   @Override
   public CallDetailRecord next() {
@@ -47,8 +48,10 @@ public class CallDetailRecordCustomerInfoGenerator implements Generator<CallDeta
   {
     if(RepoType.HBase == repoType)
       customerEnrichedInfoProvider = CustomerEnrichedInfoHbaseRepo.createInstance(CustomerEnrichedInfoHBaseConfig.instance());
-    else if(RepoType.Cassandra == repoType )
+    else if(RepoType.Cassandra == repoType)
       customerEnrichedInfoProvider = CustomerEnrichedInfoCassandraRepo.createInstance(CustomerEnrichedInfoCassandraConfig.instance());
+    else    // default (RepoType.Embeded == repoType)
+      customerEnrichedInfoProvider = CustomerEnrichedInfoEmbededRepo.instance();
     logger.info("repoType={}, customerEnrichedInfoProvider={}", repoType, customerEnrichedInfoProvider);
     return customerEnrichedInfoProvider;
   }
@@ -62,7 +65,7 @@ public class CallDetailRecordCustomerInfoGenerator implements Generator<CallDeta
   {
     this.repoType = RepoType.valueOf(repoType);
     if(this.repoType == null)
-      this.repoType = RepoType.Cassandra;
+      this.repoType = RepoType.Embeded;
   }
 
   public CustomerEnrichedInfoProvider getCustomerEnrichedInfoProvider()

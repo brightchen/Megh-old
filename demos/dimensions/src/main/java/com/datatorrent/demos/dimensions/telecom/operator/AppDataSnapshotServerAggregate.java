@@ -29,8 +29,8 @@ public class AppDataSnapshotServerAggregate extends AbstractAppDataSnapshotServe
    * 
    */
   private Map<MutablePair<String, Type>, MutablePair<String, Type>> keyValueMap;
-  protected GPOMutable staticFields;
   
+  protected transient GPOMutable staticFields;
   protected transient FieldsDescriptor fieldsDescriptor;
   protected transient DimensionalConfigurationSchema dimensitionSchema;
   

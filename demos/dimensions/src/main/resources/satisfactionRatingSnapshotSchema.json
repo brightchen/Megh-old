@@ -1,3 +1,8 @@
 {
-  "values": [{"name": "current", "type": "long"}, {"name": "min", "type": "long"}, {"name": "max", "type": "long"}, {"name": "threshold", "type": "long"}]
+  "values": [
+    {"name": "current", "type": "long", "tags": ["current"]}, 
+    {"name": "min", "type": "long", "tags": ["min"]}, 
+    {"name": "max", "type": "long", "tags": ["max"]}, 
+    {"name": "threshold", "type": "long", "tags": ["threshold"]}
+  ]
 }

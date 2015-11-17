@@ -14,6 +14,7 @@ import org.apache.hadoop.conf.Configuration;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import com.datatorrent.api.Context;
 import com.datatorrent.api.Context.OperatorContext;
@@ -66,6 +67,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   public static final String SERVICE_CALL_SCHEMA = "serviceCallSnapshotSchema.json";
   public static final String SATISFACTION_RATING_SCHEMA = "satisfactionRatingSnapshotSchema.json";
   public static final String AVERAGE_WAITTIME_SCHEMA = "averageWaittimeSnapshotSchema.json";
+  public static final String BULLETIN_TAG = "bulletin";
   
   public final String appName;
   protected String PROP_STORE_PATH;
@@ -333,6 +335,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
         AppDataSimpleConfigurableSnapshotServer snapshotServer = new AppDataSimpleConfigurableSnapshotServer();
         String snapshotServerJSON = SchemaUtils.jarResourceFileToString(this.satisfactionRatingSchemaLocation);
         snapshotServer.setSnapshotSchemaJSON(snapshotServerJSON);
+        snapshotServer.setTags(Sets.newHashSet(BULLETIN_TAG));
         snapshotServer.addStaticFieldInfo("min", 0L);
         snapshotServer.addStaticFieldInfo("max", 100L);
         snapshotServer.addStaticFieldInfo("threshold", 80L);
@@ -367,6 +370,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
         AppDataSimpleConfigurableSnapshotServer snapshotServer = new AppDataSimpleConfigurableSnapshotServer();
         String snapshotServerJSON = SchemaUtils.jarResourceFileToString(this.averageWaittimeSchemaLocation);
         snapshotServer.setSnapshotSchemaJSON(snapshotServerJSON);
+        snapshotServer.setTags(Sets.newHashSet(BULLETIN_TAG));
         snapshotServer.addStaticFieldInfo("min", 0L);
         snapshotServer.addStaticFieldInfo("max", 200L);
         snapshotServer.addStaticFieldInfo("threshold", 30L);

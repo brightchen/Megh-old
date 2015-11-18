@@ -77,7 +77,7 @@ public class EnrichedCDR extends CallDetailRecord implements BytesSupport
     //enrich location info
     LocationInfo li = LocationRepo.instance().getCloseLocationInfo(getLat(), getLon());
     //zip code
-    zipCode = String.valueOf(li.zipCode);
+    zipCode = li.getZipCodeAsString();
     stateCode = li.stateCode;
     state = li.state;
     city = li.city;
@@ -189,4 +189,28 @@ public class EnrichedCDR extends CallDetailRecord implements BytesSupport
     this.city = city;
   }
   
+  /**
+   * use 2 letter of zip as the region 
+   * @return
+   */
+  public String getRegionZip2()
+  {
+    return getZipSubString(2);
+  }
+  
+  /**
+   * use 2 letter of zip as the region 
+   * @return
+   */
+  public String getRegionZip3()
+  {
+    return getZipSubString(3);
+  }
+  
+  protected String getZipSubString(int length)
+  {
+    if(length > zipCode.length())
+      throw new IllegalArgumentException("The length of the zipCode ( " + zipCode.length() + ") is less than begin length: (" + length + ")." );
+    return zipCode.substring(0, length);
+  }
 }

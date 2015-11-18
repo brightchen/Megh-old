@@ -22,6 +22,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import com.datatorrent.demos.dimensions.telecom.model.ZipCodeHelper;
+
 /**
  * This class keep the map between location(lan, lon) and zipcode.
  * for simplicity, we treat the area of zipcode is a circle. 
@@ -118,6 +120,11 @@ public class LocationRepo {
     public final String state;       //"California"
     public final String stateCode;   //"CA"
     public final String city;
+    
+    public String getZipCodeAsString()
+    {
+      return ZipCodeHelper.usZipCodeHelper.toString(zipCode);
+    }
   }
   
   private static LocationRepo instance = null;
@@ -270,7 +277,8 @@ public class LocationRepo {
     String[] items = line.split(",");
     try
     {
-      addLocaationInfo(Float.valueOf(trimItem(items[2])), Float.valueOf(trimItem(items[3])), Integer.valueOf(trimItem(items[0])), 
+      addLocaationInfo(Float.valueOf(trimItem(items[2])), Float.valueOf(trimItem(items[3])), 
+          ZipCodeHelper.usZipCodeHelper.toInt(trimItem(items[0])), 
           trimItem(items[1]), trimItem(items[5]), trimItem(items[4]));
     }
     catch(Exception e)

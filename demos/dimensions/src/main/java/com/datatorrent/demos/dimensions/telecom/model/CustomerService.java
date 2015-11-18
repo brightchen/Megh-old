@@ -100,4 +100,29 @@ public class CustomerService {
   {
     return satisfied ? 100 : 0;
   }
+  
+  /**
+   * use 2 letter of zip as the region 
+   * @return
+   */
+  public String getRegionZip2()
+  {
+    return getZipSubString(2);
+  }
+  
+  /**
+   * use 2 letter of zip as the region 
+   * @return
+   */
+  public String getRegionZip3()
+  {
+    return getZipSubString(3);
+  }
+  
+  protected String getZipSubString(int length)
+  {
+    if(length > zipCode.length())
+      throw new IllegalArgumentException("The length of the zipCode ( " + zipCode.length() + ") is less than begin length: (" + length + ")." );
+    return zipCode.substring(0, length);
+  }
 }

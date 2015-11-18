@@ -419,5 +419,45 @@ public class DimensionalConfigurationSchemaTest
     Assert.assertEquals(dimensionsDescriptors, actualDimensionsDescriptors);
   }
 
+  public void testLoadingSchemaWithNoTimeBucket()
+  {
+    DimensionalConfigurationSchema schema = new DimensionalConfigurationSchema(SchemaUtils.jarResourceFileToString("adsGenericEventSchemaNoTime.json"),
+                                                                               AggregatorRegistry.DEFAULT_AGGREGATOR_REGISTRY);
+
+    Assert.assertEquals(1, schema.getTimeBuckets().size());
+    Assert.assertEquals(TimeBucket.ALL, schema.getTimeBuckets().get(0));
+  }
+
+  /**
+   * A schema illustrating this corner case is as follows:
+   * <br/>
+   * <pre>
+   * {@code
+   * {"keys":[{"name":"publisher","type":"string"},
+   *      {"name":"advertiser","type":"string"},
+   *      {"name":"location","type":"string"}],
+   *  "timeBuckets":["1m"],
+   *  "values":
+   * [{"name":"impressions","type":"long","aggregators":["SUM"]},
+   *  {"name":"clicks","type":"long","aggregators":["SUM"]},
+   *  {"name":"cost","type":"double","aggregators":["SUM"]},
+   *  {"name":"revenue","type":"double"}],
+   *  "dimensions":
+   * [{"combination":[]},
+   *  {"combination":["location"],"additionalValues":["revenue:SUM"]}]
+   * }
+   * }
+   * </pre>
+   */
+  @Test
+  public void testAdditionalValuesOneCornerCase()
+  {
+    DimensionalConfigurationSchema schema = new DimensionalConfigurationSchema(SchemaUtils.jarResourceFileToString("adsGenericEventSchemaAdditionalOne.json"), AggregatorRegistry.DEFAULT_AGGREGATOR_REGISTRY);
+    int sumID = AggregatorRegistry.DEFAULT_AGGREGATOR_REGISTRY.getIncrementalAggregatorNameToID().get("SUM");
+
+    Assert.assertEquals(3, schema.getDimensionsDescriptorIDToAggregatorIDToOutputAggregatorDescriptor().get(0).get(sumID).getFieldList().size());
+    Assert.assertEquals(4, schema.getDimensionsDescriptorIDToAggregatorIDToOutputAggregatorDescriptor().get(1).get(sumID).getFieldList().size());
+  }
+
   private static final Logger LOG = LoggerFactory.getLogger(DimensionalConfigurationSchemaTest.class);
 }

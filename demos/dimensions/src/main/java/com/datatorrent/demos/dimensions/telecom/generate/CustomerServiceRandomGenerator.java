@@ -17,7 +17,7 @@ public class CustomerServiceRandomGenerator implements Generator<CustomerService
     
     int totalDuration = Generator.random.nextInt(MAX_DURATION);
     int wait = (int)(totalDuration * Math.random());
-    String zipCode = PointZipCodeRepo.instance().getRandomZipCode();
+    String zipCode = LocationRepo.instance().getRandomZipCode();
     IssueType issueType = IssueType.values()[Generator.random.nextInt(IssueType.values().length)];
     boolean satisfied = ( Generator.random.nextInt(1) == 0 );
     return new CustomerService(imsi, isdn, imei, totalDuration, wait, zipCode, issueType, satisfied);

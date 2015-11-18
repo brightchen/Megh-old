@@ -5,9 +5,9 @@ import java.util.Map;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.datatorrent.demos.dimensions.telecom.generate.MNCRepo;
-import com.datatorrent.demos.dimensions.telecom.generate.PointZipCodeRepo;
+import com.datatorrent.demos.dimensions.telecom.generate.LocationRepo;
+import com.datatorrent.demos.dimensions.telecom.generate.LocationRepo.LocationInfo;
 import com.datatorrent.demos.dimensions.telecom.generate.TACRepo;
-import com.datatorrent.netlet.util.Slice;
 
 /**
  * Append other information
@@ -25,6 +25,10 @@ public class EnrichedCDR extends CallDetailRecord implements BytesSupport
   private String deviceBrand;
   private String deviceModel;
   private String zipCode;
+  
+  private String stateCode;
+  private String state;
+  private String city;
   
   public EnrichedCDR(){}
   
@@ -70,10 +74,13 @@ public class EnrichedCDR extends CallDetailRecord implements BytesSupport
     deviceBrand = tacInfo.manufacturer;
     deviceModel = tacInfo.model;
     
+    //enrich location info
+    LocationInfo li = LocationRepo.instance().getCloseLocationInfo(getLat(), getLon());
     //zip code
-    zipCode = String.valueOf(PointZipCodeRepo.instance().getZip(this.getLat(), this.getLon()));
-    //zipCode = String.valueOf(PointZipCodeRepo.instance().getRandomZipCode());
-   
+    zipCode = String.valueOf(li.zipCode);
+    stateCode = li.stateCode;
+    state = li.state;
+    city = li.city;
   }
   
   @Override
@@ -92,7 +99,11 @@ public class EnrichedCDR extends CallDetailRecord implements BytesSupport
     sb.append(deviceBrand).append(delimiter);
     sb.append(deviceModel).append(delimiter);
     
-    sb.append(zipCode);
+    sb.append(zipCode).append(delimiter);
+    sb.append(stateCode).append(delimiter);
+    sb.append(state).append(delimiter);
+    sb.append(city);
+    
     return sb.toString();
   }
   
@@ -143,10 +154,39 @@ public class EnrichedCDR extends CallDetailRecord implements BytesSupport
   {
     return zipCode;
   }
-
   public void setZipCode(String zipCode)
   {
     this.zipCode = zipCode;
+  }
+
+  public String getStateCode()
+  {
+    return stateCode;
+  }
+
+  public void setStateCode(String stateCode)
+  {
+    this.stateCode = stateCode;
+  }
+
+  public String getState()
+  {
+    return state;
+  }
+
+  public void setState(String state)
+  {
+    this.state = state;
+  }
+
+  public String getCity()
+  {
+    return city;
+  }
+
+  public void setCity(String city)
+  {
+    this.city = city;
   }
   
 }

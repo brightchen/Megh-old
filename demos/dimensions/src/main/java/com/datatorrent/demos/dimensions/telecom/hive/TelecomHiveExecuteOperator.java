@@ -31,7 +31,7 @@ public class TelecomHiveExecuteOperator extends HiveOperator
   protected int dataCleanupSpanInSeconds = 120;
   
   protected transient String localString = "";
-
+  protected transient Connection conn;
   
   @Override
   public void setup(OperatorContext context)
@@ -135,7 +135,6 @@ public class TelecomHiveExecuteOperator extends HiveOperator
   /**
    * The HiveStore has problem with user.
    */
-  private Connection conn;
   protected Connection getConnection()
   {
     if(conn == null)

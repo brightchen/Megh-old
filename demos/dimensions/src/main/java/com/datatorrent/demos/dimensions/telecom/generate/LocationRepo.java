@@ -31,8 +31,8 @@ import com.google.common.collect.Sets;
  * @author bright
  *
  */
-public class PointZipCodeRepo {
-  private static final transient Logger logger = LoggerFactory.getLogger(PointZipCodeRepo.class);
+public class LocationRepo {
+  private static final transient Logger logger = LoggerFactory.getLogger(LocationRepo.class);
   
   private final String LOCATION_ZIPS_FILE = "usLocationToZips.csv";
   
@@ -73,21 +73,66 @@ public class PointZipCodeRepo {
       return lon/SCALAR;
     }
 
+    @Override
+    public int hashCode()
+    {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + scaledLat;
+      result = prime * result + scaledLon;
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj)
+    {
+      if (this == obj)
+        return true;
+      if (obj == null)
+        return false;
+      if (getClass() != obj.getClass())
+        return false;
+      Point other = (Point)obj;
+      if (scaledLat != other.scaledLat)
+        return false;
+      if (scaledLon != other.scaledLon)
+        return false;
+      return true;
+    }
   }
   
-  private static PointZipCodeRepo instance = null;
+
+  public static class LocationInfo
+  {
+    public LocationInfo(Point point, int zipCode, String stateCode, String state, String city)
+    {
+      this.point = point;
+      this.zipCode = zipCode;
+      this.stateCode = stateCode;
+      this.state = state;
+      this.city = city;
+    }
+    
+    public final Point point;
+    public final int zipCode;
+    public final String state;       //"California"
+    public final String stateCode;   //"CA"
+    public final String city;
+  }
   
-  private PointZipCodeRepo(){}
+  private static LocationRepo instance = null;
   
-  public static PointZipCodeRepo instance()
+  private LocationRepo(){}
+  
+  public static LocationRepo instance()
   {
     if(instance == null)
     {
-      synchronized(PointZipCodeRepo.class)
+      synchronized(LocationRepo.class)
       {
         if(instance == null)
         {
-          instance = new PointZipCodeRepo();
+          instance = new LocationRepo();
           instance.load();
         }
       }
@@ -96,7 +141,7 @@ public class PointZipCodeRepo {
     return instance;
   }
   
-  protected SortedMap<Point, Integer> pointToZip = Maps.newTreeMap(new Comparator<Point>(){
+  protected SortedMap<Point, LocationInfo> pointToLocationInfo = Maps.newTreeMap(new Comparator<Point>(){
 
     @Override
     public int compare(Point l1, Point l2) {
@@ -112,6 +157,9 @@ public class PointZipCodeRepo {
     }
     
   });
+  
+  protected Map<Integer, LocationInfo> zipToLocationInfo = Maps.newHashMap();
+  
   
   protected Random random = new Random();
   protected SortedMap<Integer, int[]> lanToLons = Maps.newTreeMap();
@@ -138,13 +186,13 @@ public class PointZipCodeRepo {
         if(line == null)
           break;
 
-        addPointMeta(line);
+        addLocationInfo(line);
       }
-      logger.info("load(): {} of pointToZip entries are loaded.", pointToZip.size());
+      logger.info("load(): {} of pointToZip entries are loaded.", pointToLocationInfo.size());
       
       //generate LanToLons
       Map<Integer, List<Integer>> lanToLonList = Maps.newHashMap();
-      Set<Point> pointSet = pointToZip.keySet();
+      Set<Point> pointSet = pointToLocationInfo.keySet();
       points = new Point[pointSet.size()];
       int index = 0;
       for(Point point : pointSet )
@@ -174,11 +222,8 @@ public class PointZipCodeRepo {
       }
       
       //get zip codes
-      Set<Integer> zipCodeSet = Sets.newHashSet();
-      for(Map.Entry<Point, Integer> entry : pointToZip.entrySet())
-      {
-        zipCodeSet.add(entry.getValue());
-      }
+      Set<Integer> zipCodeSet = zipToLocationInfo.keySet();
+      
       zipCodes = new int[zipCodeSet.size()];
       index = 0;
       for(Integer zipCode : zipCodeSet)
@@ -212,10 +257,12 @@ public class PointZipCodeRepo {
     return array;
   }
   /**
-   * csv format
+   * csv format. example:
+   * #”zip code", "state abbreviation", "latitude", "longitude", "city", "state"
+   * "35004", "AL", " 33.606379", " -86.50249", "Moody", "Alabama"
    * @param line
    */
-  public void addPointMeta(String line)
+  public void addLocationInfo(String line)
   {
     line = line.trim();
     if(line.isEmpty() || line.startsWith("#"))
@@ -223,7 +270,8 @@ public class PointZipCodeRepo {
     String[] items = line.split(",");
     try
     {
-      addLocaationMeta(Float.valueOf(trimItem(items[2])), Float.valueOf(trimItem(items[3])), Integer.valueOf(trimItem(items[0])));
+      addLocaationInfo(Float.valueOf(trimItem(items[2])), Float.valueOf(trimItem(items[3])), Integer.valueOf(trimItem(items[0])), 
+          trimItem(items[1]), trimItem(items[5]), trimItem(items[4]));
     }
     catch(Exception e)
     {
@@ -248,10 +296,23 @@ public class PointZipCodeRepo {
     return item.trim();
   }
   
-  public void addLocaationMeta(float lan, float lon, int zip)
+  public void addLocaationInfo(float lan, float lon, int zip, String stateCode, String state, String city)
   {
-    Point location = new Point(lan, lon);
-    pointToZip.put(location, zip);
+    Point point = new Point(lan, lon);
+    LocationInfo li = new LocationInfo(point, zip, stateCode, state, city);
+    pointToLocationInfo.put(point, li);
+    zipToLocationInfo.put(zip, li);
+  }
+  
+  public LocationInfo getLocationInfoByZip(String zip)
+  {
+    int zipCode = Integer.valueOf(zip);
+    return zipToLocationInfo.get(zipCode);
+  }
+  
+  public LocationInfo getCloseLocationInfo(Point point)
+  {
+    return getCloseLocationInfo(point.getLat(), point.getLon());
   }
   
   /**
@@ -260,16 +321,25 @@ public class PointZipCodeRepo {
    * @param lon
    * @return
    */
-  public Integer getZip(float lan, float lon)
+  public LocationInfo getCloseLocationInfo(float lan, float lon)
   {
     int iLan = (int)(lan * Point.SCALAR);
     int iLon = (int)(lon * Point.SCALAR);
   
-    return getZipByScaledPoint(iLan, iLon);
+    return getLocationInfoByPoint(getClosePointByScaledPoint(iLan, iLon));
+  }
+  
+  /**
+   * @param pint The point should be exact same as the point of one record.
+   * @return
+   */
+  public LocationInfo getLocationInfoByPoint(Point pint)
+  {
+    return pointToLocationInfo.get(pint);
   }
   
   private static final int[] stepSizes = new int[]{1, -1};
-  public Integer getZipByScaledPoint(int lan, int lon)
+  public Point getClosePointByScaledPoint(int lan, int lon)
   {
     final int lanIndex = getIndexOfMostCloseToLan(lan);
     Long minDistanceSquare = Long.MAX_VALUE;
@@ -293,7 +363,7 @@ public class PointZipCodeRepo {
           break;
       }
     }
-    return pointToZip.get(getPoint(candidateLan, candidateLon));
+    return getPoint(candidateLan, candidateLon);
   }
   
   //distance of one dimension
@@ -308,11 +378,6 @@ public class PointZipCodeRepo {
     long diffLan = lan1 - lan;
     long diffLon = lon1 - lon;
     return diffLan*diffLan + diffLon*diffLon;
-  }
-  
-  public Integer getZip(Point point)
-  {
-    return getZipByScaledPoint(point.scaledLat, point.scaledLon);
   }
   
   protected Point getPoint(int lan, int lon)

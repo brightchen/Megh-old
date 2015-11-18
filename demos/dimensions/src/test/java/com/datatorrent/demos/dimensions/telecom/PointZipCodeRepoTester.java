@@ -24,8 +24,8 @@ import org.junit.Test;
 "95037", "CA", " 37.137595", "-121.66211", "Morgan Hill", "California"
 
  */
-import com.datatorrent.demos.dimensions.telecom.generate.PointZipCodeRepo;
-import com.datatorrent.demos.dimensions.telecom.generate.PointZipCodeRepo.Point;
+import com.datatorrent.demos.dimensions.telecom.generate.LocationRepo;
+import com.datatorrent.demos.dimensions.telecom.generate.LocationRepo.Point;
 import com.google.common.collect.Maps;
 
 public class PointZipCodeRepoTester {
@@ -46,10 +46,10 @@ public class PointZipCodeRepoTester {
   @Test
   public void test()
   {
-    PointZipCodeRepo repo = PointZipCodeRepo.instance();
+    LocationRepo repo = LocationRepo.instance();
     for(Map.Entry<Point, Integer> entry : pointToZipMap.entrySet())
     {
-      int actual = repo.getZip(entry.getKey());
+      int actual = repo.getCloseLocationInfo(entry.getKey()).zipCode;
       Assert.assertTrue(String.format("Point: lan=%d, lon=%d; Zip: expected: %d; actual: %d", entry.getKey().scaledLat, entry.getKey().scaledLon, entry.getValue(), actual ), 
           entry.getValue()==actual);
     }

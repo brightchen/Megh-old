@@ -11,31 +11,25 @@ import org.apache.commons.lang3.tuple.MutablePair;
 import com.google.common.collect.Lists;
 
 import com.datatorrent.api.DefaultOutputPort;
-import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
 import com.datatorrent.contrib.dimensions.AppDataSingleSchemaDimensionStoreHDHT;
-import com.datatorrent.lib.appdata.schemas.TimeBucket;
-import com.datatorrent.lib.dimensions.DimensionsDescriptor;
 import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
 import com.datatorrent.lib.dimensions.DimensionsEvent.EventKey;
-import com.datatorrent.lib.dimensions.aggregator.AggregatorIncrementalType;
 
 public abstract class AppDataSingleSchemaDimensionStoreHDHTUpdateWithList extends AppDataSingleSchemaDimensionStoreHDHT
 {
   private static final transient Logger logger = LoggerFactory.getLogger(AppDataSingleSchemaDimensionStoreHDHTUpdateWithList.class);
   
   private static final long serialVersionUID = -5870578159232945511L;
-
+  protected static final String TIME_FIELD_NAME = "time";
+  
   /*
    * a list of pair of (aggregatorID, dimensionDescriptorID)
-   * the DescriptorID is combination of ( dimensions and dimensions ), start with zero. see schema
+   * the DescriptorID is combination of ( time-bucket and dimensions ), start with zero. see schema
    */
   protected List<MutablePair<Integer, Integer>> aggregatorsInfo;
 
   //private int aggregatorID;
   
-  //the DescriptorID is combination of ( dimensions and dimensions ), start with zero. see schema
-  //private int dimensionDescriptorID;
-
   protected transient List<Aggregate> updatingAggregates = Lists.newArrayList();
   
   @Override
@@ -58,7 +52,9 @@ public abstract class AppDataSingleSchemaDimensionStoreHDHTUpdateWithList extend
       updatingAggregates.clear();
       
       for (Map.Entry<EventKey, Aggregate> entry : cache.entrySet()) {
-        if(aggregatorID == entry.getKey().getAggregatorID() && entry.getKey().getDimensionDescriptorID() == dimensionDescriptorID)
+        if(aggregatorID == entry.getKey().getAggregatorID() 
+            && entry.getKey().getDimensionDescriptorID() == dimensionDescriptorID
+            && getMaxTimestamp() == entry.getKey().getKey().getFieldLong(TIME_FIELD_NAME))
           updatingAggregates.add(entry.getValue());
       }
 

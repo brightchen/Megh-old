@@ -22,6 +22,7 @@ import com.datatorrent.api.DAG.Locality;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
+import com.datatorrent.contrib.dimensions.AppDataSingleSchemaDimensionStoreHDHT;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
 import com.datatorrent.contrib.hive.HiveStore;
 import com.datatorrent.demos.dimensions.telecom.conf.ConfigUtil;
@@ -58,9 +59,9 @@ public class CDRDemoV2 implements StreamingApplication {
   private static final transient Logger logger = LoggerFactory.getLogger(CDRDemoV2.class);
 
   public static final String APP_NAME = "CDRDemoV2";
-  public static final String EVENT_SCHEMA = "cdrDemoV2EventSchema.json";
+  public static final String CDR_DIMENSION_SCHEMA = "cdrDemoV2EventSchema.json";
   public static final String SNAPSHOT_SCHEMA = "cdrDemoV2SnapshotSchema.json";
-  
+  public static final String CDR_GEO_SCHEMA = "cdrGeoSchema.json";
   
 
   public final String appName;
@@ -78,8 +79,9 @@ public class CDRDemoV2 implements StreamingApplication {
   
   protected int outputMask = outputMask_Cassandra;
   
-  protected String eventSchemaLocation = EVENT_SCHEMA;
+  protected String cdrDimensionSchemaLocation = CDR_DIMENSION_SCHEMA;
   protected String snapshotSchemaLocation = SNAPSHOT_SCHEMA;
+  protected String cdrGeoSchemaLocation = CDR_GEO_SCHEMA;
 
   protected boolean enableDimension = true;
   //use absolute path or rename from tmp files will be failed due to different directory.
@@ -175,7 +177,7 @@ public class CDRDemoV2 implements StreamingApplication {
   public void populateDAG(DAG dag, Configuration conf) {
     
     populateConfig(conf);
-    String eventSchema = SchemaUtils.jarResourceFileToString(eventSchemaLocation);
+    String eventSchema = SchemaUtils.jarResourceFileToString(cdrDimensionSchemaLocation);
     
     // CDR generator
     CallDetailRecordGenerateOperator cdrGenerator = new CallDetailRecordGenerateOperator();
@@ -279,7 +281,8 @@ public class CDRDemoV2 implements StreamingApplication {
       dag.setAttribute(store, Context.OperatorContext.COUNTERS_AGGREGATOR,
           new BasicCounters.LongAggregator<MutableLong>());
       store.setConfigurationSchemaJSON(eventSchema);
-      store.addAggregatorsInfo(AggregatorIncrementalType.SUM.ordinal(), 6);
+      //for bandwidth usage by device
+      store.addAggregatorsInfo(AggregatorIncrementalType.SUM.ordinal(), 2);
       
       //should not setDimensionalSchemaStubJSON 
       //store.setDimensionalSchemaStubJSON(eventSchema);
@@ -331,11 +334,84 @@ public class CDRDemoV2 implements StreamingApplication {
       dag.addOperator("BandwidthQueryResult", snapShotQueryResult);
       dag.addStream("BandwidthQueryResult", snapshotServer.queryResult, snapShotQueryResult.input);
       
+    
     }
     dag.addStream("CDREnriched", enrichOperator.outputPort, enrichedStreamSinks.toArray(new DefaultInputPort[0]));
       
   }
 
+  protected void populateCdrGeoDAG(DAG dag, Configuration conf, List<DefaultInputPort<? super EnrichedCDR>> enrichedStreamSinks)
+  {
+    // dimension
+    DimensionsComputationFlexibleSingleSchemaPOJO dimensions = dag.addOperator("CDRDimensionsComputation",
+        DimensionsComputationFlexibleSingleSchemaPOJO.class);
+    dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.APPLICATION_WINDOW_COUNT, 4);
+    dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.CHECKPOINT_WINDOW_COUNT, 4);
+
+    enrichedStreamSinks.add(dimensions.input);
+    
+    // Set operator properties
+    // key expression: Point( Lat, Lon )
+    {
+      Map<String, String> keyToExpression = Maps.newHashMap();
+      keyToExpression.put("zipcode", "getZipCode()");
+      keyToExpression.put("deviceModel", "getDeviceModel()");
+      keyToExpression.put("time", "getTime()");
+      dimensions.setKeyToExpression(keyToExpression);
+    }
+
+    // aggregate expression: disconnect
+    {
+      Map<String, String> aggregateToExpression = Maps.newHashMap();
+      aggregateToExpression.put("disconnectCount", "getDisconnectCount()");
+      aggregateToExpression.put("downloadBytes", "getBytes()");
+      dimensions.setAggregateToExpression(aggregateToExpression);
+    }
+
+    // event schema
+    String cdrGeoSchema = SchemaUtils.jarResourceFileToString(cdrGeoSchemaLocation);
+    dimensions.setConfigurationSchemaJSON(cdrGeoSchema);
+
+    dimensions.setUnifier(new DimensionsComputationUnifierImpl<InputEvent, Aggregate>());
+    dag.getMeta(dimensions).getMeta(dimensions.output).getUnifierMeta().getAttributes().put(OperatorContext.MEMORY_MB,
+        8092);
+
+    // store
+    AppDataSingleSchemaDimensionStoreHDHT store = dag.addOperator("CDRStore", AppDataSingleSchemaDimensionStoreHDHT.class);
+    String basePath = conf.get(PROP_STORE_PATH);
+    if (basePath == null || basePath.isEmpty())
+      basePath = Preconditions.checkNotNull(conf.get(PROP_STORE_PATH),
+          "base path should be specified in the properties.xml");
+    TFileImpl hdsFile = new TFileImpl.DTFileImpl();
+    basePath += System.currentTimeMillis();
+    hdsFile.setBasePath(basePath);
+
+    store.setFileStore(hdsFile);
+    dag.setAttribute(store, Context.OperatorContext.COUNTERS_AGGREGATOR,
+        new BasicCounters.LongAggregator<MutableLong>());
+    
+
+    PubSubWebSocketAppDataQuery query = createAppDataQuery();
+    URI queryUri = ConfigUtil.getAppDataQueryPubSubURI(dag, conf);
+    logger.info("QueryUri: {}", queryUri);
+    query.setUri(queryUri);
+    store.setEmbeddableQueryInfoProvider(query);
+    //enable partition after Tim merge the fixing
+//    store.setPartitionCount(4);
+//    store.setQueryResultUnifier(new DimensionStoreHDHTNonEmptyQueryResultUnifier());
+    
+    // wsOut
+    PubSubWebSocketAppDataResult wsOut = createAppDataResult();
+    wsOut.setUri(queryUri);
+    dag.addOperator("CDRQueryResult", wsOut);
+    // Set remaining dag options
+
+    dag.setAttribute(store, Context.OperatorContext.COUNTERS_AGGREGATOR,
+        new BasicCounters.LongAggregator<MutableLong>());
+
+    dag.addStream("CDRDimensionalStream", dimensions.output, store.input);
+    dag.addStream("CDRQueryResult", store.queryResult, wsOut.input);
+  }
   
   public boolean isEnableDimension() {
     return enableDimension;
@@ -356,12 +432,12 @@ public class CDRDemoV2 implements StreamingApplication {
 
   public String getEventSchemaLocation()
   {
-    return eventSchemaLocation;
+    return cdrDimensionSchemaLocation;
   }
 
   public void setEventSchemaLocation(String eventSchemaLocation)
   {
-    this.eventSchemaLocation = eventSchemaLocation;
+    this.cdrDimensionSchemaLocation = eventSchemaLocation;
   }
 
   public String getSnapshotSchemaLocation()

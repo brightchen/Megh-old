@@ -55,6 +55,13 @@ public class TelecomHiveExecuteOperator extends HiveOperator
     }
   }
   
+  @Override
+  public void teardown()
+  {
+    closeConnection();
+    super.teardown();
+  }
+  
   /**
    * need to remove the data
    */
@@ -144,6 +151,18 @@ public class TelecomHiveExecuteOperator extends HiveOperator
         logger.error("connection",e);
       }
     return conn;
+  }
+  
+  protected void closeConnection()
+  {
+    if(conn != null)
+    {
+      try {
+        conn.close();
+      } catch (SQLException e) {
+        logger.warn("close connection exception: " + e.getMessage());
+      }
+    }
   }
   
   protected String getJdbcUrl()

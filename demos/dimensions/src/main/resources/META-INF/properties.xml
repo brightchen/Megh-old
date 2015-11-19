@@ -219,12 +219,6 @@
     <name>dt.application.TelecomDemoV2.operator.CDRStore.fileStore.basePathPrefix</name>
     <value>CDR/Store</value>
   </property>
-  <!-- 
-  <property>
-    <name>dt.application.CDRDemoV2.operator.Store.embeddableQueryInfoProvider.uri</name>
-    <value>ws://node20.morado.com:10001/pubsub</value>
-  </property>
-  -->
   <property>
     <name>dt.application.TelecomDemoV2.operator.CDRStore.embeddableQueryInfoProvider.topic</name>
     <value>CDRDimension</value>
@@ -253,7 +247,18 @@
     <name>dt.application.TelecomDemoV2.operator.CDRHiveOutput.maxLength</name>
     <value>10240000</value>
   </property>
-  
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.CDRGeoStore.fileStore.basePathPrefix</name>
+    <value>CDR/GeoStore</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.CDRGeoStore.embeddableQueryInfoProvider.topic</name>
+    <value>CDRGeoDimension</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.CDRGeoQueryResult.topic</name>
+    <value>CDRGeoQueryResult</value>
+  </property>
   
   <!-- CustomerServiceDemoV2 -->
   <property>
@@ -316,6 +321,18 @@
   <property>
     <name>dt.application.TelecomDemoV2.operator.CSHiveOutput.maxLength</name>
     <value>10240000</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.CSGeoStore.fileStore.basePathPrefix</name>
+    <value>CS/GeoStore</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.CSGeoStore.embeddableQueryInfoProvider.topic</name>
+    <value>CSGeoDimension</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.CSGeoQueryResult.topic</name>
+    <value>CSGeoQueryResult</value>
   </property>
   <!-- 
   <property>

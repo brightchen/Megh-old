@@ -106,13 +106,15 @@ public class LocationRepo {
 
   public static class LocationInfo
   {
-    public LocationInfo(Point point, int zipCode, String stateCode, String state, String city)
+    public LocationInfo(Point point, int zipCode, String stateCode, String state, String city, float lat, float lon)
     {
       this.point = point;
       this.zipCode = zipCode;
       this.stateCode = stateCode;
       this.state = state;
       this.city = city;
+      this.lat = lat;
+      this.lon = lon;
     }
     
     public final Point point;
@@ -120,6 +122,8 @@ public class LocationRepo {
     public final String state;       //"California"
     public final String stateCode;   //"CA"
     public final String city;
+    public final float lat;
+    public final float lon;
     
     public String getZipCodeAsString()
     {
@@ -304,10 +308,10 @@ public class LocationRepo {
     return item.trim();
   }
   
-  public void addLocaationInfo(float lan, float lon, int zip, String stateCode, String state, String city)
+  public void addLocaationInfo(float lat, float lon, int zip, String stateCode, String state, String city)
   {
-    Point point = new Point(lan, lon);
-    LocationInfo li = new LocationInfo(point, zip, stateCode, state, city);
+    Point point = new Point(lat, lon);
+    LocationInfo li = new LocationInfo(point, zip, stateCode, state, city, lat, lon);
     pointToLocationInfo.put(point, li);
     zipToLocationInfo.put(zip, li);
   }

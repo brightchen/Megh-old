@@ -22,6 +22,7 @@ import com.datatorrent.api.DAG;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
+import com.datatorrent.contrib.dimensions.AppDataSingleSchemaDimensionStoreHDHT;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
 import com.datatorrent.contrib.hive.HiveStore;
 import com.datatorrent.demos.dimensions.telecom.conf.ConfigUtil;
@@ -29,6 +30,7 @@ import com.datatorrent.demos.dimensions.telecom.conf.EnrichedCustomerServiceHive
 import com.datatorrent.demos.dimensions.telecom.conf.TelecomDemoConf;
 import com.datatorrent.demos.dimensions.telecom.hive.TelecomHiveExecuteOperator;
 import com.datatorrent.demos.dimensions.telecom.hive.TelecomHiveOutputOperator;
+import com.datatorrent.demos.dimensions.telecom.model.EnrichedCDR;
 import com.datatorrent.demos.dimensions.telecom.model.EnrichedCustomerService;
 import com.datatorrent.demos.dimensions.telecom.operator.AppDataSimpleConfigurableSnapshotServer;
 import com.datatorrent.demos.dimensions.telecom.operator.AppDataSnapshotServerAggregate;
@@ -63,7 +65,8 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   private static final transient Logger logger = LoggerFactory.getLogger(CustomerServiceDemoV2.class);
   
   public static final String APP_NAME = "CustomerServiceDemoV2";
-  public static final String EVENT_SCHEMA = "customerServiceDemoV2EventSchema.json";
+  public static final String CS_DIMENSION_SCHEMA = "customerServiceDemoV2EventSchema.json";
+  public static final String CS_GEO_SCHEMA = "csGeoSchema.json";
   public static final String SERVICE_CALL_SCHEMA = "serviceCallSnapshotSchema.json";
   public static final String SATISFACTION_RATING_SCHEMA = "satisfactionRatingSnapshotSchema.json";
   public static final String AVERAGE_WAITTIME_SCHEMA = "averageWaittimeSnapshotSchema.json";
@@ -71,6 +74,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   
   public final String appName;
   protected String PROP_STORE_PATH;
+  protected String PROP_GEO_STORE_PATH;
   protected String PROP_CASSANDRA_HOST;
   protected String PROP_HBASE_HOST;
   protected String PROP_HIVE_HOST;
@@ -84,12 +88,14 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   
   protected int outputMask = outputMask_Cassandra;
   
-  public String eventSchemaLocation = EVENT_SCHEMA;
+  protected String eventSchemaLocation = CS_DIMENSION_SCHEMA;
+  protected String csGeoSchemaLocation = CS_GEO_SCHEMA;
   protected String serviceCallSchemaLocation = SERVICE_CALL_SCHEMA;
   protected String satisfactionRatingSchemaLocation = SATISFACTION_RATING_SCHEMA;
   protected String averageWaittimeSchemaLocation = AVERAGE_WAITTIME_SCHEMA;
   
   protected boolean enableDimension = true;
+  protected boolean enableGeo = true;
   protected String hiveTmpPath = "/user/cstmp";
   protected String hiveTmpFile = "cs";
   protected String enrichedCSTableSchema 
@@ -110,6 +116,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     PROP_HBASE_HOST = "dt.application." + appName + ".hbase.host";
     PROP_HIVE_HOST = "dt.application." + appName + ".hive.host";
     PROP_STORE_PATH = "dt.application." + appName + ".operator.CSStore.fileStore.basePathPrefix";
+    PROP_GEO_STORE_PATH = "dt.application." + appName + ".operator.CSGeoStore.fileStore.basePathPrefix";
     PROP_OUTPUT_MASK = "dt.application." + appName + ".csoutputmask";
     PROP_HIVE_TEMP_PATH = "dt.application." + appName + ".cshivetmppath";
     PROP_HIVE_TEMP_FILE = "dt.application." + appName + ".cshivetmpfile";
@@ -187,7 +194,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     
     dag.addStream("CustomerService", customerServiceGenerator.outputPort, enrichOperator.inputPort);
 
-    List<DefaultInputPort<? super EnrichedCustomerService>> sustomerServiceStreamSinks = Lists.newArrayList();
+    List<DefaultInputPort<? super EnrichedCustomerService>> customerServiceStreamSinks = Lists.newArrayList();
     
     // Customer service persist
     if((outputMask & outputMask_HBase) != 0)
@@ -195,7 +202,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       // HBase
       EnrichedCustomerServiceHbaseOutputOperator customerServicePersist = new EnrichedCustomerServiceHbaseOutputOperator();
       dag.addOperator("CSHBasePersist", customerServicePersist);
-      sustomerServiceStreamSinks.add(customerServicePersist.input);
+      customerServiceStreamSinks.add(customerServicePersist.input);
     }
     if((outputMask & outputMask_Cassandra) != 0)
     {
@@ -203,7 +210,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       EnrichedCustomerServiceCassandraOutputOperator customerServicePersist = new EnrichedCustomerServiceCassandraOutputOperator();
       //dag.addOperator("CustomerService-Cassandra-Persist", customerServicePersist);
       dag.addOperator("CSCassandraPersist", customerServicePersist);
-      sustomerServiceStreamSinks.add(customerServicePersist.input);
+      customerServiceStreamSinks.add(customerServicePersist.input);
     }
     if((outputMask & outputMask_Hive) != 0)
     {
@@ -215,7 +222,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       hiveOutput.setFilePermission((short)511);
 
       dag.addOperator("CSHiveOutput", hiveOutput);
-      sustomerServiceStreamSinks.add(hiveOutput.input);
+      customerServiceStreamSinks.add(hiveOutput.input);
       
       TelecomHiveExecuteOperator hiveExecute = new TelecomHiveExecuteOperator();
 
@@ -239,7 +246,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
           DimensionsComputationFlexibleSingleSchemaPOJO.class);
       dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.APPLICATION_WINDOW_COUNT, 4);
       dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.CHECKPOINT_WINDOW_COUNT, 4);
-      sustomerServiceStreamSinks.add(dimensions.input);
+      customerServiceStreamSinks.add(dimensions.input);
       
       // Set operator properties
       // key expression
@@ -269,9 +276,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
 
       // store
       CustomerServiceStore store = dag.addOperator("CSStore", CustomerServiceStore.class);
-      String basePath = conf.get(PROP_STORE_PATH);
-      if (basePath == null || basePath.isEmpty())
-        basePath = Preconditions.checkNotNull(conf.get(PROP_STORE_PATH),
+      String basePath = Preconditions.checkNotNull(conf.get(PROP_STORE_PATH),
             "base path should be specified in the properties.xml");
       TFileImpl hdsFile = new TFileImpl.DTFileImpl();
       basePath += System.currentTimeMillis();
@@ -399,10 +404,85 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
         dag.addStream("WaittimeQueryResult", snapshotServer.queryResult, snapShotQueryResult.input);
       }
     }
+    
+    if(enableGeo)
+      populateCsGeoDAG(dag, conf, customerServiceStreamSinks);
   
-    dag.addStream("CSEnriched", enrichOperator.outputPort, sustomerServiceStreamSinks.toArray(new DefaultInputPort[0]));
+    dag.addStream("CSEnriched", enrichOperator.outputPort, customerServiceStreamSinks.toArray(new DefaultInputPort[0]));
   }
 
+  protected void populateCsGeoDAG(DAG dag, Configuration conf, List<DefaultInputPort<? super EnrichedCustomerService>> customerServiceStreamSinks)
+  {
+    // dimension
+    DimensionsComputationFlexibleSingleSchemaPOJO dimensions = dag.addOperator("CSGeoComputation",
+        DimensionsComputationFlexibleSingleSchemaPOJO.class);
+    dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.APPLICATION_WINDOW_COUNT, 4);
+    dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.CHECKPOINT_WINDOW_COUNT, 4);
+
+    customerServiceStreamSinks.add(dimensions.input);
+    
+    // Set operator properties
+    // key expression: Point( Lat, Lon )
+    {
+      Map<String, String> keyToExpression = Maps.newHashMap();
+      keyToExpression.put("zipcode", "getZipCode()");
+      keyToExpression.put("region", "getRegionZip2()");
+      keyToExpression.put("time", "getTime()");
+      dimensions.setKeyToExpression(keyToExpression);
+    }
+
+    // aggregate expression: disconnect and downloads
+    {
+      Map<String, String> aggregateToExpression = Maps.newHashMap();
+      aggregateToExpression.put("wait", "getWait()");
+      aggregateToExpression.put("lat", "getLat()");
+      aggregateToExpression.put("lon", "getLon()");
+      dimensions.setAggregateToExpression(aggregateToExpression);
+    }
+
+    // event schema
+    String geoSchema = SchemaUtils.jarResourceFileToString(csGeoSchemaLocation);
+    dimensions.setConfigurationSchemaJSON(geoSchema);
+
+    dimensions.setUnifier(new DimensionsComputationUnifierImpl<InputEvent, Aggregate>());
+    dag.getMeta(dimensions).getMeta(dimensions.output).getUnifierMeta().getAttributes().put(OperatorContext.MEMORY_MB,
+        8092);
+
+    // store
+    AppDataSingleSchemaDimensionStoreHDHT store = dag.addOperator("CSGeoStore", AppDataSingleSchemaDimensionStoreHDHT.class);
+    String basePath = Preconditions.checkNotNull(conf.get(PROP_GEO_STORE_PATH),
+          "GEO base path should be specified in the properties.xml");
+    TFileImpl hdsFile = new TFileImpl.DTFileImpl();
+    basePath += System.currentTimeMillis();
+    hdsFile.setBasePath(basePath);
+
+    store.setFileStore(hdsFile);
+    store.setConfigurationSchemaJSON(geoSchema);
+    dag.setAttribute(store, Context.OperatorContext.COUNTERS_AGGREGATOR,
+        new BasicCounters.LongAggregator<MutableLong>());
+    
+
+    PubSubWebSocketAppDataQuery query = createAppDataQuery();
+    URI queryUri = ConfigUtil.getAppDataQueryPubSubURI(dag, conf);
+    query.setUri(queryUri);
+    store.setEmbeddableQueryInfoProvider(query);
+    //enable partition after Tim merge the fixing
+//    store.setPartitionCount(4);
+//    store.setQueryResultUnifier(new DimensionStoreHDHTNonEmptyQueryResultUnifier());
+    
+    // wsOut
+    PubSubWebSocketAppDataResult wsOut = createAppDataResult();
+    wsOut.setUri(queryUri);
+    dag.addOperator("CSGeoQueryResult", wsOut);
+    // Set remaining dag options
+
+    dag.setAttribute(store, Context.OperatorContext.COUNTERS_AGGREGATOR,
+        new BasicCounters.LongAggregator<MutableLong>());
+
+    dag.addStream("CSGeoStream", dimensions.output, store.input);
+    dag.addStream("CSGeoQueryResult", store.queryResult, wsOut.input);
+  }
+  
   public boolean isEnableDimension() {
     return enableDimension;
   }

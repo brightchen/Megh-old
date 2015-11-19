@@ -66,6 +66,7 @@ public class CDRDemoV2 implements StreamingApplication {
 
   public final String appName;
   protected String PROP_STORE_PATH;
+  protected String PROP_GEO_STORE_PATH;
   protected String PROP_CASSANDRA_HOST;
   protected String PROP_HBASE_HOST;
   protected String PROP_HIVE_HOST;
@@ -84,6 +85,7 @@ public class CDRDemoV2 implements StreamingApplication {
   protected String cdrGeoSchemaLocation = CDR_GEO_SCHEMA;
 
   protected boolean enableDimension = true;
+  protected boolean enableGeo = true;
   //use absolute path or rename from tmp files will be failed due to different directory.
   protected String hiveTmpPath = "/user/cdrtmp";
   protected String hiveTmpFile = "cdr";
@@ -108,6 +110,7 @@ public class CDRDemoV2 implements StreamingApplication {
     PROP_HIVE_HOST = "dt.application." + appName + ".hive.host";
     
     PROP_STORE_PATH = "dt.application." + appName + ".operator.CDRStore.fileStore.basePathPrefix";
+    PROP_GEO_STORE_PATH = "dt.application." + appName + ".operator.CDRGeoStore.fileStore.basePathPrefix";
     PROP_OUTPUT_MASK = "dt.application." + appName + ".cdroutputmask";
     PROP_HIVE_TEMP_PATH = "dt.application." + appName + ".cdrhivetmppath";
     PROP_HIVE_TEMP_FILE = "dt.application." + appName + ".cdrhivetmpfile";
@@ -269,9 +272,7 @@ public class CDRDemoV2 implements StreamingApplication {
 
       // store
       CDRStore store = dag.addOperator("CDRStore", CDRStore.class);
-      String basePath = conf.get(PROP_STORE_PATH);
-      if (basePath == null || basePath.isEmpty())
-        basePath = Preconditions.checkNotNull(conf.get(PROP_STORE_PATH),
+      String basePath = Preconditions.checkNotNull(conf.get(PROP_STORE_PATH),
             "base path should be specified in the properties.xml");
       TFileImpl hdsFile = new TFileImpl.DTFileImpl();
       basePath += System.currentTimeMillis();
@@ -333,9 +334,10 @@ public class CDRDemoV2 implements StreamingApplication {
       snapShotQueryResult.setUri(queryUri);
       dag.addOperator("BandwidthQueryResult", snapShotQueryResult);
       dag.addStream("BandwidthQueryResult", snapshotServer.queryResult, snapShotQueryResult.input);
-      
-    
     }
+    if(enableGeo)
+      populateCdrGeoDAG(dag, conf, enrichedStreamSinks);
+    
     dag.addStream("CDREnriched", enrichOperator.outputPort, enrichedStreamSinks.toArray(new DefaultInputPort[0]));
       
   }
@@ -343,7 +345,7 @@ public class CDRDemoV2 implements StreamingApplication {
   protected void populateCdrGeoDAG(DAG dag, Configuration conf, List<DefaultInputPort<? super EnrichedCDR>> enrichedStreamSinks)
   {
     // dimension
-    DimensionsComputationFlexibleSingleSchemaPOJO dimensions = dag.addOperator("CDRDimensionsComputation",
+    DimensionsComputationFlexibleSingleSchemaPOJO dimensions = dag.addOperator("CDRGeoComputation",
         DimensionsComputationFlexibleSingleSchemaPOJO.class);
     dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.APPLICATION_WINDOW_COUNT, 4);
     dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.CHECKPOINT_WINDOW_COUNT, 4);
@@ -355,16 +357,18 @@ public class CDRDemoV2 implements StreamingApplication {
     {
       Map<String, String> keyToExpression = Maps.newHashMap();
       keyToExpression.put("zipcode", "getZipCode()");
-      keyToExpression.put("deviceModel", "getDeviceModel()");
+      keyToExpression.put("region", "getRegionZip2()");
       keyToExpression.put("time", "getTime()");
       dimensions.setKeyToExpression(keyToExpression);
     }
 
-    // aggregate expression: disconnect
+    // aggregate expression: disconnect and downloads
     {
       Map<String, String> aggregateToExpression = Maps.newHashMap();
       aggregateToExpression.put("disconnectCount", "getDisconnectCount()");
       aggregateToExpression.put("downloadBytes", "getBytes()");
+      aggregateToExpression.put("lat", "getLat()");
+      aggregateToExpression.put("lon", "getLon()");
       dimensions.setAggregateToExpression(aggregateToExpression);
     }
 
@@ -377,23 +381,21 @@ public class CDRDemoV2 implements StreamingApplication {
         8092);
 
     // store
-    AppDataSingleSchemaDimensionStoreHDHT store = dag.addOperator("CDRStore", AppDataSingleSchemaDimensionStoreHDHT.class);
-    String basePath = conf.get(PROP_STORE_PATH);
-    if (basePath == null || basePath.isEmpty())
-      basePath = Preconditions.checkNotNull(conf.get(PROP_STORE_PATH),
-          "base path should be specified in the properties.xml");
+    AppDataSingleSchemaDimensionStoreHDHT store = dag.addOperator("CDRGeoStore", AppDataSingleSchemaDimensionStoreHDHT.class);
+    String basePath = Preconditions.checkNotNull(conf.get(PROP_GEO_STORE_PATH),
+          "GEO base path should be specified in the properties.xml");
     TFileImpl hdsFile = new TFileImpl.DTFileImpl();
     basePath += System.currentTimeMillis();
     hdsFile.setBasePath(basePath);
 
     store.setFileStore(hdsFile);
+    store.setConfigurationSchemaJSON(cdrGeoSchema);
     dag.setAttribute(store, Context.OperatorContext.COUNTERS_AGGREGATOR,
         new BasicCounters.LongAggregator<MutableLong>());
     
 
     PubSubWebSocketAppDataQuery query = createAppDataQuery();
     URI queryUri = ConfigUtil.getAppDataQueryPubSubURI(dag, conf);
-    logger.info("QueryUri: {}", queryUri);
     query.setUri(queryUri);
     store.setEmbeddableQueryInfoProvider(query);
     //enable partition after Tim merge the fixing
@@ -403,14 +405,14 @@ public class CDRDemoV2 implements StreamingApplication {
     // wsOut
     PubSubWebSocketAppDataResult wsOut = createAppDataResult();
     wsOut.setUri(queryUri);
-    dag.addOperator("CDRQueryResult", wsOut);
+    dag.addOperator("CDRGeoQueryResult", wsOut);
     // Set remaining dag options
 
     dag.setAttribute(store, Context.OperatorContext.COUNTERS_AGGREGATOR,
         new BasicCounters.LongAggregator<MutableLong>());
 
-    dag.addStream("CDRDimensionalStream", dimensions.output, store.input);
-    dag.addStream("CDRQueryResult", store.queryResult, wsOut.input);
+    dag.addStream("CDRGeoStream", dimensions.output, store.input);
+    dag.addStream("CDRGeoQueryResult", store.queryResult, wsOut.input);
   }
   
   public boolean isEnableDimension() {

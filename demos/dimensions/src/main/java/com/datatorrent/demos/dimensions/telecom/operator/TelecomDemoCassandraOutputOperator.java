@@ -51,6 +51,13 @@ public abstract class TelecomDemoCassandraOutputOperator<T> extends BaseOperator
     logger.info("setup() done."); 
   }
   
+  @Override
+  public void teardown()
+  {
+    closeSession();
+    super.teardown();
+  }
+  
   protected abstract String createSqlFormat();
   
   protected void configure()
@@ -61,6 +68,12 @@ public abstract class TelecomDemoCassandraOutputOperator<T> extends BaseOperator
   {
     Cluster cluster = Cluster.builder().addContactPoint(cassandraConfig.getHost()).build();
     session = cluster.connect(cassandraConfig.getDatabase());
+  }
+  
+  protected void closeSession()
+  {
+    if(session != null)
+      session.close();
   }
   
   protected void createTables()

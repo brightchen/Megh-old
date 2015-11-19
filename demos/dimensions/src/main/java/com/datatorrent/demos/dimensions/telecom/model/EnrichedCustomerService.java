@@ -14,6 +14,8 @@ public class EnrichedCustomerService extends CustomerService implements BytesSup
   public final String stateCode;
   public final String state;
   public final String city;
+  public final float lat;
+  public final float lon;
   
   protected EnrichedCustomerService()
   {
@@ -24,10 +26,12 @@ public class EnrichedCustomerService extends CustomerService implements BytesSup
     stateCode = "";
     state = "";
     city = "";
+    lat = 0.0f;
+    lon = 0.0f;
   }
   
   public EnrichedCustomerService(CustomerService cs, String operatorCode, String deviceBrand, String deviceModel, 
-      String stateCode, String state, String city)
+      String stateCode, String state, String city, float lat, float lon)
   {
     super(cs);
     this.operatorCode = operatorCode;
@@ -36,6 +40,8 @@ public class EnrichedCustomerService extends CustomerService implements BytesSup
     this.stateCode = stateCode;
     this.state = state;
     this.city = city;
+    this.lat = lat;
+    this.lon = lon;
   }
   
   public static EnrichedCustomerService fromCustomerService(CustomerService cs)
@@ -48,10 +54,51 @@ public class EnrichedCustomerService extends CustomerService implements BytesSup
     
     LocationInfo li = LocationRepo.instance().getLocationInfoByZip(cs.zipCode);
 
-    return new EnrichedCustomerService(cs, mncInfo.carrier.operatorCode, tacInfo.manufacturer, tacInfo.model, li.stateCode, li.state, li.city);
+    return new EnrichedCustomerService(cs, mncInfo.carrier.operatorCode, tacInfo.manufacturer, tacInfo.model, li.stateCode, li.state, li.city, li.lat, li.lon);
   }
   
   
+  
+  public String getOperatorCode()
+  {
+    return operatorCode;
+  }
+
+  public String getDeviceBrand()
+  {
+    return deviceBrand;
+  }
+
+  public String getDeviceModel()
+  {
+    return deviceModel;
+  }
+
+  public String getStateCode()
+  {
+    return stateCode;
+  }
+
+  public String getState()
+  {
+    return state;
+  }
+
+  public String getCity()
+  {
+    return city;
+  }
+
+  public float getLat()
+  {
+    return lat;
+  }
+
+  public float getLon()
+  {
+    return lon;
+  }
+
   @Override
   public String toString()
   {

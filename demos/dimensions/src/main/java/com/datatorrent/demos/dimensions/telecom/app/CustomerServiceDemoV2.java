@@ -23,6 +23,7 @@ import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.contrib.dimensions.AppDataSingleSchemaDimensionStoreHDHT;
+import com.datatorrent.contrib.dimensions.DimensionStoreHDHTNonEmptyQueryResultUnifier;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
 import com.datatorrent.contrib.hive.HiveStore;
 import com.datatorrent.demos.dimensions.telecom.conf.ConfigUtil;
@@ -81,6 +82,8 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   protected String PROP_OUTPUT_MASK;
   protected String PROP_HIVE_TEMP_PATH;
   protected String PROP_HIVE_TEMP_FILE;
+  protected String PROP_CSSTORE_PARTITIONCOUNT;
+  protected String PROP_CSGEOSTORE_PARTITIONCOUNT;
   
   public static final int outputMask_HBase = 0x01;
   public static final int outputMask_Hive = 0x02;
@@ -104,6 +107,9 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     " PARTITIONED BY( createdtime long ) " +
     " ROW FORMAT DELIMITED FIELDS TERMINATED BY \",\"";  
   
+  protected int csStorePartitionCount = 2;
+  protected int csGeoStorePartitionCount = 2;
+  
   public CustomerServiceDemoV2()
   {
     this(APP_NAME);
@@ -120,6 +126,8 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     PROP_OUTPUT_MASK = "dt.application." + appName + ".csoutputmask";
     PROP_HIVE_TEMP_PATH = "dt.application." + appName + ".cshivetmppath";
     PROP_HIVE_TEMP_FILE = "dt.application." + appName + ".cshivetmpfile";
+    PROP_CSSTORE_PARTITIONCOUNT = "dt.application." + appName + ".csStorePartitionCount";
+    PROP_CSGEOSTORE_PARTITIONCOUNT = "dt.application." + appName + ".csGeoStorePartitionCount";
   }
   
   protected void populateConfig(Configuration conf)
@@ -178,6 +186,9 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
         this.hiveTmpFile = hiveTmpFile;
       logger.info("hiveTmpFile: {}", hiveTmpFile);
     }
+    
+    csStorePartitionCount = conf.getInt(PROP_CSSTORE_PARTITIONCOUNT, csStorePartitionCount);
+    csGeoStorePartitionCount = conf.getInt(PROP_CSGEOSTORE_PARTITIONCOUNT, csGeoStorePartitionCount);
   }
   
   @Override
@@ -294,7 +305,11 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       logger.info("QueryUri: {}", queryUri);
       query.setUri(queryUri);
       store.setEmbeddableQueryInfoProvider(query);
-
+      if(csStorePartitionCount > 1)
+      {
+        store.setPartitionCount(csStorePartitionCount);
+        store.setQueryResultUnifier(new DimensionStoreHDHTNonEmptyQueryResultUnifier());
+      }
       // wsOut
       PubSubWebSocketAppDataResult wsOut = createAppDataResult();
       wsOut.setUri(queryUri);
@@ -466,9 +481,11 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     URI queryUri = ConfigUtil.getAppDataQueryPubSubURI(dag, conf);
     query.setUri(queryUri);
     store.setEmbeddableQueryInfoProvider(query);
-    //enable partition after Tim merge the fixing
-//    store.setPartitionCount(4);
-//    store.setQueryResultUnifier(new DimensionStoreHDHTNonEmptyQueryResultUnifier());
+    if(csGeoStorePartitionCount > 1)
+    {
+      store.setPartitionCount(csGeoStorePartitionCount);
+      store.setQueryResultUnifier(new DimensionStoreHDHTNonEmptyQueryResultUnifier());
+    }
     
     // wsOut
     PubSubWebSocketAppDataResult wsOut = createAppDataResult();

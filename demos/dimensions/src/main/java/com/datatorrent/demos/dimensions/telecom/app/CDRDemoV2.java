@@ -23,6 +23,7 @@ import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.contrib.dimensions.AppDataSingleSchemaDimensionStoreHDHT;
+import com.datatorrent.contrib.dimensions.DimensionStoreHDHTNonEmptyQueryResultUnifier;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
 import com.datatorrent.contrib.hive.HiveStore;
 import com.datatorrent.demos.dimensions.telecom.conf.ConfigUtil;
@@ -73,6 +74,8 @@ public class CDRDemoV2 implements StreamingApplication {
   protected String PROP_OUTPUT_MASK;
   protected String PROP_HIVE_TEMP_PATH;
   protected String PROP_HIVE_TEMP_FILE;
+  protected String PROP_CDRSTORE_PARTITIONCOUNT;
+  protected String PROP_CDRGEOSTORE_PARTITIONCOUNT;
   
   public static final int outputMask_HBase = 0x01;
   public static final int outputMask_Hive = 0x02;
@@ -96,6 +99,8 @@ public class CDRDemoV2 implements StreamingApplication {
       " PARTITIONED BY( createdtime long ) " +
       " ROW FORMAT DELIMITED FIELDS TERMINATED BY \",\"";  
 
+  protected int cdrStorePartitionCount = 2;
+  protected int cdrGeoStorePartitionCount = 2;
 
   public CDRDemoV2()
   {
@@ -114,6 +119,9 @@ public class CDRDemoV2 implements StreamingApplication {
     PROP_OUTPUT_MASK = "dt.application." + appName + ".cdroutputmask";
     PROP_HIVE_TEMP_PATH = "dt.application." + appName + ".cdrhivetmppath";
     PROP_HIVE_TEMP_FILE = "dt.application." + appName + ".cdrhivetmpfile";
+    
+    PROP_CDRSTORE_PARTITIONCOUNT = "dt.application." + appName + ".cdrStorePartitionCount";
+    PROP_CDRGEOSTORE_PARTITIONCOUNT = "dt.application." + appName + ".cdrGeoStorePartitionCount";
   }
   
 
@@ -174,6 +182,9 @@ public class CDRDemoV2 implements StreamingApplication {
         this.hiveTmpFile = hiveTmpFile;
       logger.info("hiveTmpFile: {}", hiveTmpFile);
     }
+
+    cdrStorePartitionCount = conf.getInt(PROP_CDRSTORE_PARTITIONCOUNT, cdrStorePartitionCount);
+    cdrGeoStorePartitionCount = conf.getInt(PROP_CDRGEOSTORE_PARTITIONCOUNT, cdrGeoStorePartitionCount);
   }
   
   @Override
@@ -284,19 +295,17 @@ public class CDRDemoV2 implements StreamingApplication {
       store.setConfigurationSchemaJSON(eventSchema);
       //for bandwidth usage by device
       store.addAggregatorsInfo(AggregatorIncrementalType.SUM.ordinal(), 2);
-      
-      //should not setDimensionalSchemaStubJSON 
-      //store.setDimensionalSchemaStubJSON(eventSchema);
 
       PubSubWebSocketAppDataQuery query = createAppDataQuery();
       URI queryUri = ConfigUtil.getAppDataQueryPubSubURI(dag, conf);
       logger.info("QueryUri: {}", queryUri);
       query.setUri(queryUri);
       store.setEmbeddableQueryInfoProvider(query);
-      //enable partition after Tim merge the fixing
-//      store.setPartitionCount(4);
-//      store.setQueryResultUnifier(new DimensionStoreHDHTNonEmptyQueryResultUnifier());
-      
+      if(cdrStorePartitionCount > 1)
+      {
+        store.setPartitionCount(cdrStorePartitionCount);
+        store.setQueryResultUnifier(new DimensionStoreHDHTNonEmptyQueryResultUnifier());
+      }
       // wsOut
       PubSubWebSocketAppDataResult wsOut = createAppDataResult();
       wsOut.setUri(queryUri);
@@ -398,10 +407,12 @@ public class CDRDemoV2 implements StreamingApplication {
     URI queryUri = ConfigUtil.getAppDataQueryPubSubURI(dag, conf);
     query.setUri(queryUri);
     store.setEmbeddableQueryInfoProvider(query);
-    //enable partition after Tim merge the fixing
-//    store.setPartitionCount(4);
-//    store.setQueryResultUnifier(new DimensionStoreHDHTNonEmptyQueryResultUnifier());
-    
+    if(cdrGeoStorePartitionCount > 1)
+    {
+      store.setPartitionCount(cdrGeoStorePartitionCount);
+      store.setQueryResultUnifier(new DimensionStoreHDHTNonEmptyQueryResultUnifier());
+    }
+
     // wsOut
     PubSubWebSocketAppDataResult wsOut = createAppDataResult();
     wsOut.setUri(queryUri);

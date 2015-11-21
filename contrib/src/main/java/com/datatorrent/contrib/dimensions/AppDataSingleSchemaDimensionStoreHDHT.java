@@ -26,6 +26,7 @@ import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
 
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.annotation.OperatorAnnotation;
+import java.util.List;
 
 /**
  * This is a dimensions store which stores data corresponding to one {@link DimensionalSchema} into an HDHT bucket.
@@ -133,6 +134,12 @@ public class AppDataSingleSchemaDimensionStoreHDHT extends AbstractAppDataDimens
   @Override
   public void setup(OperatorContext context)
   {
+    boolean initializeSeenEnumValues = seenEnumValues == null;
+
+    if (initializeSeenEnumValues) {
+      seenEnumValues = Maps.newConcurrentMap();
+    }
+
     super.setup(context);
 
     this.buckets = Sets.newHashSet(bucketID);
@@ -147,14 +154,17 @@ public class AppDataSingleSchemaDimensionStoreHDHT extends AbstractAppDataDimens
       }
     }
 
-    if(updateEnumValues) {
-      if(seenEnumValues == null) {
-        seenEnumValues = Maps.newHashMap();
-        for(String key: configurationSchema.getKeyDescriptor().getFieldList()) {
-          @SuppressWarnings("rawtypes")
-          Set<Comparable> enumValuesSet = Sets.newHashSet();
-          seenEnumValues.put(key, enumValuesSet);
-        }
+    if (initializeSeenEnumValues) {
+      Map<String, List<Object>> keysToEnumValuesList = this.configurationSchema.getKeysToEnumValuesList();
+
+      for (String key : configurationSchema.getKeyDescriptor().getFieldList()) {
+        @SuppressWarnings("rawtypes")
+        Set<Comparable> enumValuesSet = Sets.newHashSet();
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        List<Comparable> enumValuesList = (List)keysToEnumValuesList.get(key);
+        if(enumValuesList != null)
+          enumValuesSet.addAll(enumValuesList);
+        seenEnumValues.put(key, enumValuesSet);
       }
     }
   }
@@ -198,6 +208,13 @@ public class AppDataSingleSchemaDimensionStoreHDHT extends AbstractAppDataDimens
     }
 
     return schemaRegistry.getSchemaResult(schemaQuery);
+  }
+
+  @Override
+  @SuppressWarnings("unchecked")
+  protected DimensionsQueueManager getDimensionsQueueManager()
+  {
+    return new DimensionsQueueManager(this, schemaRegistry, new SimpleDataQueryDimensionalExpander((Map) seenEnumValues));
   }
 
   @Override

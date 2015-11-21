@@ -11,6 +11,8 @@ import com.google.common.base.Preconditions;
 import com.datatorrent.lib.appdata.gpo.GPOMutable;
 import com.datatorrent.lib.appdata.gpo.GPOUtils;
 import com.datatorrent.lib.statistics.DimensionsComputation;
+import com.google.common.collect.Lists;
+import java.util.List;
 
 /**
  * <p>
@@ -486,6 +488,20 @@ public class DimensionsEvent implements Serializable
     public String toString()
     {
       return "EventKey{" + "schemaID=" + schemaID + ", dimensionDescriptorID=" + dimensionDescriptorID + ", aggregatorIndex=" + aggregatorID + ", key=" + key + '}';
+    }
+
+    public static List<EventKey> createEventKeys(int schemaId,
+                                                 int dimensionsDescriptorId,
+                                                 int aggregatorId,
+                                                 List<GPOMutable> keys)
+    {
+      List<EventKey> eventKeys = Lists.newArrayList();
+
+      for (GPOMutable key : keys) {
+        eventKeys.add(new EventKey(schemaId, dimensionsDescriptorId, aggregatorId, key));
+      }
+
+      return eventKeys;
     }
   }
 

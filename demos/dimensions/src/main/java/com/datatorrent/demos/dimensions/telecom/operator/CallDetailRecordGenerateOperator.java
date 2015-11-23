@@ -13,7 +13,7 @@ public class CallDetailRecordGenerateOperator implements InputOperator {
   private int batchSize = 10;
   private int batchSleepTime = 2;
   private CallDetailRecordCustomerInfoGenerator customerInfoGeneratorGenerator = new CallDetailRecordCustomerInfoGenerator();
-  
+
    @Override
   public void beginWindow(long windowId) {
   }

@@ -27,6 +27,7 @@ import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.annotation.OperatorAnnotation;
 import java.util.List;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 /**
  * This is a dimensions store which stores data corresponding to one {@link DimensionalSchema} into an HDHT bucket.
@@ -159,7 +160,7 @@ public class AppDataSingleSchemaDimensionStoreHDHT extends AbstractAppDataDimens
 
       for (String key : configurationSchema.getKeyDescriptor().getFieldList()) {
         @SuppressWarnings("rawtypes")
-        Set<Comparable> enumValuesSet = Sets.newHashSet();
+        Set<Comparable> enumValuesSet = new ConcurrentSkipListSet<>();
         @SuppressWarnings({"unchecked", "rawtypes"})
         List<Comparable> enumValuesList = (List)keysToEnumValuesList.get(key);
         if(enumValuesList != null)

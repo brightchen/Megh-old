@@ -51,6 +51,7 @@ public class SimpleDataQueryDimensionalExpander implements DataQueryDimensionalE
 
     if (fields.isEmpty()) {
       results.add(new GPOMutable(fd));
+      return results;
     } else {
       for (String key : fields) {
         if (seenKeyValues.get(key).isEmpty() && keyToValues.get(key).isEmpty()) {

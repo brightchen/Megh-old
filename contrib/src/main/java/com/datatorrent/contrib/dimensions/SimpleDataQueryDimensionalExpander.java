@@ -47,13 +47,18 @@ public class SimpleDataQueryDimensionalExpander implements DataQueryDimensionalE
     fields.remove(DimensionsDescriptor.DIMENSION_TIME);
     fields.remove(DimensionsDescriptor.DIMENSION_TIME_BUCKET);
 
-    for (String key : fields) {
-      if (seenKeyValues.get(key).isEmpty() && keyToValues.get(key).isEmpty()) {
-        return Lists.newArrayList();
+    List<GPOMutable> results = Lists.newArrayList();
+
+    if (fields.isEmpty()) {
+      results.add(new GPOMutable(fd));
+    } else {
+      for (String key : fields) {
+        if (seenKeyValues.get(key).isEmpty() && keyToValues.get(key).isEmpty()) {
+          return results;
+        }
       }
     }
 
-    List<GPOMutable> results = Lists.newArrayList();
     createKeyGPOsHelper(0, keyToValues, fd, fields, null, results);
     return results;
   }

@@ -52,7 +52,7 @@ import com.datatorrent.lib.io.PubSubWebSocketAppDataResult;
 import com.datatorrent.lib.statistics.DimensionsComputationUnifierImpl;
 
 /**
- * 
+ *
  * # of service calls by Zipcode
  * Top 10 Zipcodes by Service Calls -> Drill Down to get Customer records
  * # Total wait time v/s Average Wait time for Top 10 Zipcodes
@@ -64,7 +64,7 @@ import com.datatorrent.lib.statistics.DimensionsComputationUnifierImpl;
 @ApplicationAnnotation(name = CustomerServiceDemoV2.APP_NAME)
 public class CustomerServiceDemoV2 implements StreamingApplication {
   private static final transient Logger logger = LoggerFactory.getLogger(CustomerServiceDemoV2.class);
-  
+
   public static final String APP_NAME = "CustomerServiceDemoV2";
   public static final String CS_DIMENSION_SCHEMA = "customerServiceDemoV2EventSchema.json";
   public static final String CS_GEO_SCHEMA = "csGeoSchema.json";
@@ -72,7 +72,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   public static final String SATISFACTION_RATING_SCHEMA = "satisfactionRatingSnapshotSchema.json";
   public static final String AVERAGE_WAITTIME_SCHEMA = "averageWaittimeSnapshotSchema.json";
   public static final String BULLETIN_TAG = "bulletin";
-  
+
   public final String appName;
   protected String PROP_STORE_PATH;
   protected String PROP_GEO_STORE_PATH;
@@ -84,37 +84,37 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   protected String PROP_HIVE_TEMP_FILE;
   protected String PROP_CSSTORE_PARTITIONCOUNT;
   protected String PROP_CSGEOSTORE_PARTITIONCOUNT;
-  
+
   public static final int outputMask_HBase = 0x01;
   public static final int outputMask_Hive = 0x02;
   public static final int outputMask_Cassandra = 0x04;
-  
+
   protected int outputMask = outputMask_Cassandra;
-  
+
   protected String eventSchemaLocation = CS_DIMENSION_SCHEMA;
   protected String csGeoSchemaLocation = CS_GEO_SCHEMA;
   protected String serviceCallSchemaLocation = SERVICE_CALL_SCHEMA;
   protected String satisfactionRatingSchemaLocation = SATISFACTION_RATING_SCHEMA;
   protected String averageWaittimeSchemaLocation = AVERAGE_WAITTIME_SCHEMA;
-  
+
   protected boolean enableDimension = true;
   protected boolean enableGeo = true;
   protected String hiveTmpPath = "/user/cstmp";
   protected String hiveTmpFile = "cs";
-  protected String enrichedCSTableSchema 
+  protected String enrichedCSTableSchema
   = "CREATE TABLE IF NOT EXISTS %s ( imsi string, isdn string, imei string, totalDuration string, wait string, zipCode string, " +
     " issueType string, satisfied string, operatorCode string, deviceBrand string,  deviceModel string ) " +
     " PARTITIONED BY( createdtime long ) " +
-    " ROW FORMAT DELIMITED FIELDS TERMINATED BY \",\"";  
-  
+    " ROW FORMAT DELIMITED FIELDS TERMINATED BY \",\"";
+
   protected int csStorePartitionCount = 2;
   protected int csGeoStorePartitionCount = 2;
-  
+
   public CustomerServiceDemoV2()
   {
     this(APP_NAME);
   }
-  
+
   public CustomerServiceDemoV2(String appName)
   {
     this.appName = appName;
@@ -129,7 +129,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     PROP_CSSTORE_PARTITIONCOUNT = "dt.application." + appName + ".csStorePartitionCount";
     PROP_CSGEOSTORE_PARTITIONCOUNT = "dt.application." + appName + ".csGeoStorePartitionCount";
   }
-  
+
   protected void populateConfig(Configuration conf)
   {
     {
@@ -146,7 +146,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
           logger.error("Invalid outputmask: {}", sOutputMask);
         }
       }
-      
+
     }
     {
       final String cassandraHost = conf.get(PROP_CASSANDRA_HOST);
@@ -156,7 +156,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       }
       logger.info("CassandraHost: {}", TelecomDemoConf.instance.getCassandraHost());
     }
-    
+
     {
       final String hbaseHost = conf.get(PROP_HBASE_HOST);
       if(hbaseHost != null)
@@ -165,7 +165,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       }
       logger.info("HbaseHost: {}", TelecomDemoConf.instance.getHbaseHost());
     }
-    
+
     {
       final String hiveHost = conf.get(PROP_HIVE_HOST);
       if(hiveHost != null)
@@ -186,11 +186,11 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
         this.hiveTmpFile = hiveTmpFile;
       logger.info("hiveTmpFile: {}", hiveTmpFile);
     }
-    
+
     csStorePartitionCount = conf.getInt(PROP_CSSTORE_PARTITIONCOUNT, csStorePartitionCount);
     csGeoStorePartitionCount = conf.getInt(PROP_CSGEOSTORE_PARTITIONCOUNT, csGeoStorePartitionCount);
   }
-  
+
   @Override
   public void populateDAG(DAG dag, Configuration conf) {
     populateConfig(conf);
@@ -199,14 +199,14 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     // Customer service generator
     CustomerServiceGenerateOperator customerServiceGenerator = new CustomerServiceGenerateOperator();
     dag.addOperator("CustomerServiceGenerator", customerServiceGenerator);
-    
+
     CustomerServiceEnrichOperator enrichOperator = new CustomerServiceEnrichOperator();
     dag.addOperator("Enrich", enrichOperator);
-    
+
     dag.addStream("CustomerService", customerServiceGenerator.outputPort, enrichOperator.inputPort);
 
     List<DefaultInputPort<? super EnrichedCustomerService>> customerServiceStreamSinks = Lists.newArrayList();
-    
+
     // Customer service persist
     if((outputMask & outputMask_HBase) != 0)
     {
@@ -234,7 +234,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
 
       dag.addOperator("CSHiveOutput", hiveOutput);
       customerServiceStreamSinks.add(hiveOutput.input);
-      
+
       TelecomHiveExecuteOperator hiveExecute = new TelecomHiveExecuteOperator();
 
       {
@@ -249,7 +249,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       dag.addOperator("CSHiveExecute", hiveExecute);
       dag.addStream("CSHiveLoadData", hiveOutput.hiveCmdOutput, hiveExecute.input);
     }
-    
+
     DimensionsComputationFlexibleSingleSchemaPOJO dimensions = null;
     if (enableDimension) {
       // dimension
@@ -258,7 +258,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.APPLICATION_WINDOW_COUNT, 4);
       dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.CHECKPOINT_WINDOW_COUNT, 4);
       customerServiceStreamSinks.add(dimensions.input);
-      
+
       // Set operator properties
       // key expression
       {
@@ -287,6 +287,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
 
       // store
       CustomerServiceStore store = dag.addOperator("CSStore", CustomerServiceStore.class);
+      store.setUpdateEnumValues(true);
       String basePath = Preconditions.checkNotNull(conf.get(PROP_STORE_PATH),
             "base path should be specified in the properties.xml");
       TFileImpl hdsFile = new TFileImpl.DTFileImpl();
@@ -321,7 +322,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
 
       dag.addStream("CSDimensionalStream", dimensions.output, store.input);
       dag.addStream("CSQueryResult", store.queryResult, wsOut.input);
-      
+
       //snapshot servers
       //ServiceCall
       {
@@ -336,20 +337,20 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
         }
         dag.addOperator("ServiceCallServer", snapshotServer);
         dag.addStream("ServiceCallSnapshot", store.serviceCallOutputPort, snapshotServer.input);
-  
+
         PubSubWebSocketAppDataQuery snapShotQuery = new PubSubWebSocketAppDataQuery();
         snapShotQuery.setUri(queryUri);
         //use the EmbeddableQueryInfoProvider instead to get rid of the problem of query schema when latency is very long
         snapshotServer.setEmbeddableQueryInfoProvider(snapShotQuery);
         //dag.addStream("SnapshotQuery", snapShotQuery.outputPort, snapshotServer.query);
-        
-        
+
+
         PubSubWebSocketAppDataResult snapShotQueryResult = new PubSubWebSocketAppDataResult();
         snapShotQueryResult.setUri(queryUri);
         dag.addOperator("ServiceCallQueryResult", snapShotQueryResult);
         dag.addStream("ServiceCallResult", snapshotServer.queryResult, snapShotQueryResult.input);
       }
-      
+
       //satisfaction rating
       {
         AppDataSimpleConfigurableSnapshotServer snapshotServer = new AppDataSimpleConfigurableSnapshotServer();
@@ -370,21 +371,21 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
         }
         dag.addOperator("SatisfactionServer", snapshotServer);
         dag.addStream("Satisfaction", store.satisfactionRatingOutputPort, snapshotServer.input);
-  
+
         PubSubWebSocketAppDataQuery snapShotQuery = new PubSubWebSocketAppDataQuery();
         snapShotQuery.setUri(queryUri);
         //use the EmbeddableQueryInfoProvider instead to get rid of the problem of query schema when latency is very long
         snapshotServer.setEmbeddableQueryInfoProvider(snapShotQuery);
         //dag.addStream("SnapshotQuery", snapShotQuery.outputPort, snapshotServer.query);
-        
-        
+
+
         PubSubWebSocketAppDataResult snapShotQueryResult = new PubSubWebSocketAppDataResult();
         snapShotQueryResult.setUri(queryUri);
         dag.addOperator("SatisfactionQueryResult", snapShotQueryResult);
         dag.addStream("SatisfactionQueryResult", snapshotServer.queryResult, snapShotQueryResult.input);
       }
 
-    
+
       //Wait time
       {
         AppDataSimpleConfigurableSnapshotServer snapshotServer = new AppDataSimpleConfigurableSnapshotServer();
@@ -405,24 +406,24 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
         }
         dag.addOperator("WaittimeServer", snapshotServer);
         dag.addStream("Waittime", store.averageWaitTimeOutputPort, snapshotServer.input);
-  
+
         PubSubWebSocketAppDataQuery snapShotQuery = new PubSubWebSocketAppDataQuery();
         snapShotQuery.setUri(queryUri);
         //use the EmbeddableQueryInfoProvider instead to get rid of the problem of query schema when latency is very long
         snapshotServer.setEmbeddableQueryInfoProvider(snapShotQuery);
         //dag.addStream("SnapshotQuery", snapShotQuery.outputPort, snapshotServer.query);
-        
-        
+
+
         PubSubWebSocketAppDataResult snapShotQueryResult = new PubSubWebSocketAppDataResult();
         snapShotQueryResult.setUri(queryUri);
         dag.addOperator("WaittimeQueryResult", snapShotQueryResult);
         dag.addStream("WaittimeQueryResult", snapshotServer.queryResult, snapShotQueryResult.input);
       }
     }
-    
+
     if(enableGeo)
       populateCsGeoDAG(dag, conf, customerServiceStreamSinks);
-  
+
     dag.addStream("CSEnriched", enrichOperator.outputPort, customerServiceStreamSinks.toArray(new DefaultInputPort[0]));
   }
 
@@ -435,7 +436,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.CHECKPOINT_WINDOW_COUNT, 4);
 
     customerServiceStreamSinks.add(dimensions.input);
-    
+
     // Set operator properties
     // key expression: Point( Lat, Lon )
     {
@@ -475,7 +476,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     store.setConfigurationSchemaJSON(geoSchema);
     dag.setAttribute(store, Context.OperatorContext.COUNTERS_AGGREGATOR,
         new BasicCounters.LongAggregator<MutableLong>());
-    
+
 
     PubSubWebSocketAppDataQuery query = createAppDataQuery();
     URI queryUri = ConfigUtil.getAppDataQueryPubSubURI(dag, conf);
@@ -486,7 +487,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       store.setPartitionCount(csGeoStorePartitionCount);
       store.setQueryResultUnifier(new DimensionStoreHDHTNonEmptyQueryResultUnifier());
     }
-    
+
     // wsOut
     PubSubWebSocketAppDataResult wsOut = createAppDataResult();
     wsOut.setUri(queryUri);
@@ -499,7 +500,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     dag.addStream("CSGeoStream", dimensions.output, store.input);
     dag.addStream("CSGeoQueryResult", store.queryResult, wsOut.input);
   }
-  
+
   public boolean isEnableDimension() {
     return enableDimension;
   }
@@ -515,7 +516,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   protected PubSubWebSocketAppDataResult createAppDataResult() {
     return new PubSubWebSocketAppDataResult();
   }
-  
+
   public int getOutputMask()
   {
     return outputMask;

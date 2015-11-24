@@ -392,6 +392,7 @@ public class CDRDemoV2 implements StreamingApplication {
 
     // store
     AppDataSingleSchemaDimensionStoreHDHT store = dag.addOperator("CDRGeoStore", AppDataSingleSchemaDimensionStoreHDHT.class);
+    store.setUpdateEnumValues(true);
     String basePath = Preconditions.checkNotNull(conf.get(PROP_GEO_STORE_PATH),
           "GEO base path should be specified in the properties.xml");
     TFileImpl hdsFile = new TFileImpl.DTFileImpl();

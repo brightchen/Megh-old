@@ -13,7 +13,8 @@ import com.datatorrent.demos.dimensions.telecom.conf.EnrichedCustomerServiceCass
 import com.datatorrent.demos.dimensions.telecom.generate.GeneratorUtil;
 import com.datatorrent.demos.dimensions.telecom.model.EnrichedCustomerService;
 
-public class EnrichedCustomerServiceCassandraOutputOperator extends TelecomDemoCassandraOutputOperator<EnrichedCustomerService>
+public class EnrichedCustomerServiceCassandraOutputOperator
+    extends TelecomDemoCassandraOutputOperator<EnrichedCustomerService>
 {
   private static final transient Logger logger = LoggerFactory.getLogger(CustomerServiceCassandraOutputOperator.class);
 
@@ -21,30 +22,31 @@ public class EnrichedCustomerServiceCassandraOutputOperator extends TelecomDemoC
   {
     cassandraConfig = EnrichedCustomerServiceCassandraConf.instance();
   }
-  
+
   @Override
   protected void createBusinessTables(Session session)
   {
-    
-    String createTable = "CREATE TABLE IF NOT EXISTS " + cassandraConfig.getDatabase() + "." + cassandraConfig.getTableName()
+
+    String createTable = "CREATE TABLE IF NOT EXISTS " + cassandraConfig.getDatabase() + "."
+        + cassandraConfig.getTableName()
         + " (id bigint PRIMARY KEY, imsi text, totalDuration int, wait int, zipCode text, issueType text, satisfied boolean, "
         + " operatorCode text, deviceBrand text, deviceModel text)";
     session.execute(createTable);
   }
-  
+
   protected String createSqlFormat()
   {
-    sqlCommand = "INSERT INTO " + cassandraConfig.getDatabase() + "."
-        + cassandraConfig.getTableName()
+    sqlCommand = "INSERT INTO " + cassandraConfig.getDatabase() + "." + cassandraConfig.getTableName()
         + " ( id, imsi, totalDuration, wait, zipCode, issueType, satisfied, operatorCode, deviceBrand, deviceModel ) "
         + "VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
     return sqlCommand;
   }
-  
 
   private long id = GeneratorUtil.getRecordId();
+
   @Override
-  protected Statement setStatementParameters(PreparedStatement updateCommand, EnrichedCustomerService tuple) throws DriverException
+  protected Statement setStatementParameters(PreparedStatement updateCommand, EnrichedCustomerService tuple)
+      throws DriverException
   {
     final BoundStatement boundStmnt = new BoundStatement(updateCommand);
     boundStmnt.setLong(0, ++id);
@@ -57,10 +59,10 @@ public class EnrichedCustomerServiceCassandraOutputOperator extends TelecomDemoC
     boundStmnt.setString(7, tuple.operatorCode);
     boundStmnt.setString(8, tuple.deviceBrand);
     boundStmnt.setString(9, tuple.deviceModel);
-    
+
     //or boundStatement.bind();
     return boundStmnt;
-    
+
   }
 
 }

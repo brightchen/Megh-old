@@ -7,7 +7,7 @@ public class CDRHdfsOutputOperator extends AbstractSingleFileOutputOperator<byte
 {
   public CDRHdfsOutputOperator()
   {
-    setMaxLength(64*1024*1024);
+    setMaxLength(64 * 1024 * 1024);
     setOutputFileName("cdr");
   }
 

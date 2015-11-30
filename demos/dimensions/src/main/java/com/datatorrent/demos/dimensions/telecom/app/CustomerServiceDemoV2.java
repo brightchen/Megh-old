@@ -53,18 +53,18 @@ import com.datatorrent.lib.statistics.DimensionsComputationUnifierImpl;
 
 /**
  * 
- * # of service calls by Zipcode
- * Top 10 Zipcodes by Service Calls -> Drill Down to get Customer records
- * # Total wait time v/s Average Wait time for Top 10 Zipcodes
- * I also want running wait times for all zipcodes
+ * # of service calls by Zipcode Top 10 Zipcodes by Service Calls -> Drill Down
+ * to get Customer records # Total wait time v/s Average Wait time for Top 10
+ * Zipcodes I also want running wait times for all zipcodes
  *
  * @author bright
  *
  */
 @ApplicationAnnotation(name = CustomerServiceDemoV2.APP_NAME)
-public class CustomerServiceDemoV2 implements StreamingApplication {
+public class CustomerServiceDemoV2 implements StreamingApplication
+{
   private static final transient Logger logger = LoggerFactory.getLogger(CustomerServiceDemoV2.class);
-  
+
   public static final String APP_NAME = "CustomerServiceDemoV2";
   public static final String CS_DIMENSION_SCHEMA = "customerServiceDemoV2EventSchema.json";
   public static final String CS_GEO_SCHEMA = "csGeoSchema.json";
@@ -72,7 +72,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   public static final String SATISFACTION_RATING_SCHEMA = "satisfactionRatingSnapshotSchema.json";
   public static final String AVERAGE_WAITTIME_SCHEMA = "averageWaittimeSnapshotSchema.json";
   public static final String BULLETIN_TAG = "bulletin";
-  
+
   public final String appName;
   protected String PROP_STORE_PATH;
   protected String PROP_GEO_STORE_PATH;
@@ -84,37 +84,35 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   protected String PROP_HIVE_TEMP_FILE;
   protected String PROP_CSSTORE_PARTITIONCOUNT;
   protected String PROP_CSGEOSTORE_PARTITIONCOUNT;
-  
+
   public static final int outputMask_HBase = 0x01;
   public static final int outputMask_Hive = 0x02;
   public static final int outputMask_Cassandra = 0x04;
-  
+
   protected int outputMask = outputMask_Cassandra;
-  
+
   protected String eventSchemaLocation = CS_DIMENSION_SCHEMA;
   protected String csGeoSchemaLocation = CS_GEO_SCHEMA;
   protected String serviceCallSchemaLocation = SERVICE_CALL_SCHEMA;
   protected String satisfactionRatingSchemaLocation = SATISFACTION_RATING_SCHEMA;
   protected String averageWaittimeSchemaLocation = AVERAGE_WAITTIME_SCHEMA;
-  
+
   protected boolean enableDimension = true;
   protected boolean enableGeo = true;
   protected String hiveTmpPath = "/user/cstmp";
   protected String hiveTmpFile = "cs";
-  protected String enrichedCSTableSchema 
-  = "CREATE TABLE IF NOT EXISTS %s ( imsi string, isdn string, imei string, totalDuration string, wait string, zipCode string, " +
-    " issueType string, satisfied string, operatorCode string, deviceBrand string,  deviceModel string ) " +
-    " PARTITIONED BY( createdtime long ) " +
-    " ROW FORMAT DELIMITED FIELDS TERMINATED BY \",\"";  
-  
+  protected String enrichedCSTableSchema = "CREATE TABLE IF NOT EXISTS %s ( imsi string, isdn string, imei string, totalDuration string, wait string, zipCode string, "
+      + " issueType string, satisfied string, operatorCode string, deviceBrand string,  deviceModel string ) "
+      + " PARTITIONED BY( createdtime long ) " + " ROW FORMAT DELIMITED FIELDS TERMINATED BY \",\"";
+
   protected int csStorePartitionCount = 2;
   protected int csGeoStorePartitionCount = 2;
-  
+
   public CustomerServiceDemoV2()
   {
     this(APP_NAME);
   }
-  
+
   public CustomerServiceDemoV2(String appName)
   {
     this.appName = appName;
@@ -129,136 +127,128 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     PROP_CSSTORE_PARTITIONCOUNT = "dt.application." + appName + ".csStorePartitionCount";
     PROP_CSGEOSTORE_PARTITIONCOUNT = "dt.application." + appName + ".csGeoStorePartitionCount";
   }
-  
+
   protected void populateConfig(Configuration conf)
   {
     {
       final String sOutputMask = conf.get(PROP_OUTPUT_MASK);
-      if(sOutputMask != null)
-      {
-        try
-        {
+      if (sOutputMask != null) {
+        try {
           outputMask = Integer.valueOf(sOutputMask);
           logger.info("outputMask: {}", outputMask);
-        }
-        catch(Exception e)
-        {
+        } catch (Exception e) {
           logger.error("Invalid outputmask: {}", sOutputMask);
         }
       }
-      
+
     }
     {
       final String cassandraHost = conf.get(PROP_CASSANDRA_HOST);
-      if(cassandraHost != null)
-      {
+      if (cassandraHost != null) {
         TelecomDemoConf.instance.setCassandraHost(cassandraHost);
       }
       logger.info("CassandraHost: {}", TelecomDemoConf.instance.getCassandraHost());
     }
-    
+
     {
       final String hbaseHost = conf.get(PROP_HBASE_HOST);
-      if(hbaseHost != null)
-      {
+      if (hbaseHost != null) {
         TelecomDemoConf.instance.setHbaseHost(hbaseHost);
       }
       logger.info("HbaseHost: {}", TelecomDemoConf.instance.getHbaseHost());
     }
-    
+
     {
       final String hiveHost = conf.get(PROP_HIVE_HOST);
-      if(hiveHost != null)
-      {
+      if (hiveHost != null) {
         TelecomDemoConf.instance.setHiveHost(hiveHost);
       }
       logger.info("HiveHost: {}", TelecomDemoConf.instance.getHiveHost());
     }
     {
       final String hiveTmpPath = conf.get(PROP_HIVE_TEMP_PATH);
-      if(hiveTmpPath != null )
+      if (hiveTmpPath != null)
         this.hiveTmpPath = hiveTmpPath;
       logger.info("hiveTmpPath: {}", hiveTmpPath);
     }
     {
       final String hiveTmpFile = conf.get(PROP_HIVE_TEMP_FILE);
-      if(hiveTmpFile != null )
+      if (hiveTmpFile != null)
         this.hiveTmpFile = hiveTmpFile;
       logger.info("hiveTmpFile: {}", hiveTmpFile);
     }
-    
+
     csStorePartitionCount = conf.getInt(PROP_CSSTORE_PARTITIONCOUNT, csStorePartitionCount);
     csGeoStorePartitionCount = conf.getInt(PROP_CSGEOSTORE_PARTITIONCOUNT, csGeoStorePartitionCount);
   }
-  
+
   @Override
-  public void populateDAG(DAG dag, Configuration conf) {
+  public void populateDAG(DAG dag, Configuration conf)
+  {
     populateConfig(conf);
     String eventSchema = SchemaUtils.jarResourceFileToString(eventSchemaLocation);
 
     // Customer service generator
     CustomerServiceGenerateOperator customerServiceGenerator = new CustomerServiceGenerateOperator();
     dag.addOperator("CustomerServiceGenerator", customerServiceGenerator);
-    
+
     CustomerServiceEnrichOperator enrichOperator = new CustomerServiceEnrichOperator();
     dag.addOperator("Enrich", enrichOperator);
-    
+
     dag.addStream("CustomerService", customerServiceGenerator.outputPort, enrichOperator.inputPort);
 
     List<DefaultInputPort<? super EnrichedCustomerService>> customerServiceStreamSinks = Lists.newArrayList();
-    
+
     // Customer service persist
-    if((outputMask & outputMask_HBase) != 0)
-    {
+    if ((outputMask & outputMask_HBase) != 0) {
       // HBase
       EnrichedCustomerServiceHbaseOutputOperator customerServicePersist = new EnrichedCustomerServiceHbaseOutputOperator();
       dag.addOperator("CSHBasePersist", customerServicePersist);
       customerServiceStreamSinks.add(customerServicePersist.input);
     }
-    if((outputMask & outputMask_Cassandra) != 0)
-    {
+    if ((outputMask & outputMask_Cassandra) != 0) {
       // Cassandra
       EnrichedCustomerServiceCassandraOutputOperator customerServicePersist = new EnrichedCustomerServiceCassandraOutputOperator();
       //dag.addOperator("CustomerService-Cassandra-Persist", customerServicePersist);
       dag.addOperator("CSCassandraPersist", customerServicePersist);
       customerServiceStreamSinks.add(customerServicePersist.input);
     }
-    if((outputMask & outputMask_Hive) != 0)
-    {
+    if ((outputMask & outputMask_Hive) != 0) {
       TelecomHiveOutputOperator hiveOutput = new TelecomHiveOutputOperator();
-      if(hiveTmpPath != null)
+      if (hiveTmpPath != null)
         hiveOutput.setFilePath(hiveTmpPath);
-      if(hiveTmpFile != null)
+      if (hiveTmpFile != null)
         hiveOutput.setOutputFileName(hiveTmpFile);
       hiveOutput.setFilePermission((short)511);
 
       dag.addOperator("CSHiveOutput", hiveOutput);
       customerServiceStreamSinks.add(hiveOutput.input);
-      
+
       TelecomHiveExecuteOperator hiveExecute = new TelecomHiveExecuteOperator();
 
       {
         HiveStore hiveStore = new HiveStore();
-        if(hiveTmpPath != null)
+        if (hiveTmpPath != null)
           hiveStore.setFilepath(hiveTmpPath);
         hiveExecute.setHivestore(hiveStore);
       }
       hiveExecute.setHiveConfig(EnrichedCustomerServiceHiveConfig.instance());
-      String createTableSql = String.format( enrichedCSTableSchema,  EnrichedCustomerServiceHiveConfig.instance().getDatabase() + "." + EnrichedCustomerServiceHiveConfig.instance().getTableName() );
+      String createTableSql = String.format(enrichedCSTableSchema,
+          EnrichedCustomerServiceHiveConfig.instance().getDatabase() + "."
+              + EnrichedCustomerServiceHiveConfig.instance().getTableName());
       hiveExecute.setCreateTableSql(createTableSql);
       dag.addOperator("CSHiveExecute", hiveExecute);
       dag.addStream("CSHiveLoadData", hiveOutput.hiveCmdOutput, hiveExecute.input);
     }
-    
+
     DimensionsComputationFlexibleSingleSchemaPOJO dimensions = null;
     if (enableDimension) {
       // dimension
-      dimensions = dag.addOperator("CSDimensionsComputation",
-          DimensionsComputationFlexibleSingleSchemaPOJO.class);
+      dimensions = dag.addOperator("CSDimensionsComputation", DimensionsComputationFlexibleSingleSchemaPOJO.class);
       dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.APPLICATION_WINDOW_COUNT, 4);
       dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.CHECKPOINT_WINDOW_COUNT, 4);
       customerServiceStreamSinks.add(dimensions.input);
-      
+
       // Set operator properties
       // key expression
       {
@@ -288,7 +278,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       // store
       CustomerServiceStore store = dag.addOperator("CSStore", CustomerServiceStore.class);
       String basePath = Preconditions.checkNotNull(conf.get(PROP_STORE_PATH),
-            "base path should be specified in the properties.xml");
+          "base path should be specified in the properties.xml");
       TFileImpl hdsFile = new TFileImpl.DTFileImpl();
       basePath += System.currentTimeMillis();
       hdsFile.setBasePath(basePath);
@@ -305,8 +295,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       logger.info("QueryUri: {}", queryUri);
       query.setUri(queryUri);
       store.setEmbeddableQueryInfoProvider(query);
-      if(csStorePartitionCount > 1)
-      {
+      if (csStorePartitionCount > 1) {
         store.setPartitionCount(csStorePartitionCount);
         store.setQueryResultUnifier(new DimensionStoreHDHTNonEmptyQueryResultUnifier());
       }
@@ -321,7 +310,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
 
       dag.addStream("CSDimensionalStream", dimensions.output, store.input);
       dag.addStream("CSQueryResult", store.queryResult, wsOut.input);
-      
+
       //snapshot servers
       //ServiceCall
       {
@@ -331,25 +320,25 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
         snapshotServer.setEventSchema(eventSchema);
         {
           Map<MutablePair<String, Type>, MutablePair<String, Type>> keyValueMap = Maps.newHashMap();
-          keyValueMap.put(new MutablePair<String, Type>("issueType", Type.STRING), new MutablePair<String, Type>("serviceCall", Type.LONG));
+          keyValueMap.put(new MutablePair<String, Type>("issueType", Type.STRING),
+              new MutablePair<String, Type>("serviceCall", Type.LONG));
           snapshotServer.setKeyValueMap(keyValueMap);
         }
         dag.addOperator("ServiceCallServer", snapshotServer);
         dag.addStream("ServiceCallSnapshot", store.serviceCallOutputPort, snapshotServer.input);
-  
+
         PubSubWebSocketAppDataQuery snapShotQuery = new PubSubWebSocketAppDataQuery();
         snapShotQuery.setUri(queryUri);
         //use the EmbeddableQueryInfoProvider instead to get rid of the problem of query schema when latency is very long
         snapshotServer.setEmbeddableQueryInfoProvider(snapShotQuery);
         //dag.addStream("SnapshotQuery", snapShotQuery.outputPort, snapshotServer.query);
-        
-        
+
         PubSubWebSocketAppDataResult snapShotQueryResult = new PubSubWebSocketAppDataResult();
         snapShotQueryResult.setUri(queryUri);
         dag.addOperator("ServiceCallQueryResult", snapShotQueryResult);
         dag.addStream("ServiceCallResult", snapshotServer.queryResult, snapShotQueryResult.input);
       }
-      
+
       //satisfaction rating
       {
         AppDataSimpleConfigurableSnapshotServer snapshotServer = new AppDataSimpleConfigurableSnapshotServer();
@@ -370,21 +359,19 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
         }
         dag.addOperator("SatisfactionServer", snapshotServer);
         dag.addStream("Satisfaction", store.satisfactionRatingOutputPort, snapshotServer.input);
-  
+
         PubSubWebSocketAppDataQuery snapShotQuery = new PubSubWebSocketAppDataQuery();
         snapShotQuery.setUri(queryUri);
         //use the EmbeddableQueryInfoProvider instead to get rid of the problem of query schema when latency is very long
         snapshotServer.setEmbeddableQueryInfoProvider(snapShotQuery);
         //dag.addStream("SnapshotQuery", snapShotQuery.outputPort, snapshotServer.query);
-        
-        
+
         PubSubWebSocketAppDataResult snapShotQueryResult = new PubSubWebSocketAppDataResult();
         snapShotQueryResult.setUri(queryUri);
         dag.addOperator("SatisfactionQueryResult", snapShotQueryResult);
         dag.addStream("SatisfactionQueryResult", snapshotServer.queryResult, snapShotQueryResult.input);
       }
 
-    
       //Wait time
       {
         AppDataSimpleConfigurableSnapshotServer snapshotServer = new AppDataSimpleConfigurableSnapshotServer();
@@ -405,28 +392,28 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
         }
         dag.addOperator("WaittimeServer", snapshotServer);
         dag.addStream("Waittime", store.averageWaitTimeOutputPort, snapshotServer.input);
-  
+
         PubSubWebSocketAppDataQuery snapShotQuery = new PubSubWebSocketAppDataQuery();
         snapShotQuery.setUri(queryUri);
         //use the EmbeddableQueryInfoProvider instead to get rid of the problem of query schema when latency is very long
         snapshotServer.setEmbeddableQueryInfoProvider(snapShotQuery);
         //dag.addStream("SnapshotQuery", snapShotQuery.outputPort, snapshotServer.query);
-        
-        
+
         PubSubWebSocketAppDataResult snapShotQueryResult = new PubSubWebSocketAppDataResult();
         snapShotQueryResult.setUri(queryUri);
         dag.addOperator("WaittimeQueryResult", snapShotQueryResult);
         dag.addStream("WaittimeQueryResult", snapshotServer.queryResult, snapShotQueryResult.input);
       }
     }
-    
-    if(enableGeo)
+
+    if (enableGeo)
       populateCsGeoDAG(dag, conf, customerServiceStreamSinks);
-  
+
     dag.addStream("CSEnriched", enrichOperator.outputPort, customerServiceStreamSinks.toArray(new DefaultInputPort[0]));
   }
 
-  protected void populateCsGeoDAG(DAG dag, Configuration conf, List<DefaultInputPort<? super EnrichedCustomerService>> customerServiceStreamSinks)
+  protected void populateCsGeoDAG(DAG dag, Configuration conf,
+      List<DefaultInputPort<? super EnrichedCustomerService>> customerServiceStreamSinks)
   {
     // dimension
     DimensionsComputationFlexibleSingleSchemaPOJO dimensions = dag.addOperator("CSGeoComputation",
@@ -435,7 +422,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.CHECKPOINT_WINDOW_COUNT, 4);
 
     customerServiceStreamSinks.add(dimensions.input);
-    
+
     // Set operator properties
     // key expression: Point( Lat, Lon )
     {
@@ -464,9 +451,10 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
         8092);
 
     // store
-    AppDataSingleSchemaDimensionStoreHDHT store = dag.addOperator("CSGeoStore", AppDataSingleSchemaDimensionStoreHDHT.class);
+    AppDataSingleSchemaDimensionStoreHDHT store = dag.addOperator("CSGeoStore",
+        AppDataSingleSchemaDimensionStoreHDHT.class);
     String basePath = Preconditions.checkNotNull(conf.get(PROP_GEO_STORE_PATH),
-          "GEO base path should be specified in the properties.xml");
+        "GEO base path should be specified in the properties.xml");
     TFileImpl hdsFile = new TFileImpl.DTFileImpl();
     basePath += System.currentTimeMillis();
     hdsFile.setBasePath(basePath);
@@ -475,18 +463,16 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     store.setConfigurationSchemaJSON(geoSchema);
     dag.setAttribute(store, Context.OperatorContext.COUNTERS_AGGREGATOR,
         new BasicCounters.LongAggregator<MutableLong>());
-    
 
     PubSubWebSocketAppDataQuery query = createAppDataQuery();
     URI queryUri = ConfigUtil.getAppDataQueryPubSubURI(dag, conf);
     query.setUri(queryUri);
     store.setEmbeddableQueryInfoProvider(query);
-    if(csGeoStorePartitionCount > 1)
-    {
+    if (csGeoStorePartitionCount > 1) {
       store.setPartitionCount(csGeoStorePartitionCount);
       store.setQueryResultUnifier(new DimensionStoreHDHTNonEmptyQueryResultUnifier());
     }
-    
+
     // wsOut
     PubSubWebSocketAppDataResult wsOut = createAppDataResult();
     wsOut.setUri(queryUri);
@@ -499,27 +485,32 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     dag.addStream("CSGeoStream", dimensions.output, store.input);
     dag.addStream("CSGeoQueryResult", store.queryResult, wsOut.input);
   }
-  
-  public boolean isEnableDimension() {
+
+  public boolean isEnableDimension()
+  {
     return enableDimension;
   }
 
-  public void setEnableDimension(boolean enableDimension) {
+  public void setEnableDimension(boolean enableDimension)
+  {
     this.enableDimension = enableDimension;
   }
 
-  protected PubSubWebSocketAppDataQuery createAppDataQuery() {
+  protected PubSubWebSocketAppDataQuery createAppDataQuery()
+  {
     return new PubSubWebSocketAppDataQuery();
   }
 
-  protected PubSubWebSocketAppDataResult createAppDataResult() {
+  protected PubSubWebSocketAppDataResult createAppDataResult()
+  {
     return new PubSubWebSocketAppDataResult();
   }
-  
+
   public int getOutputMask()
   {
     return outputMask;
   }
+
   public void setOutputMask(int outputMask)
   {
     this.outputMask = outputMask;

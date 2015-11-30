@@ -6,15 +6,19 @@ package com.datatorrent.demos.dimensions.telecom.generate;
  * @author bright
  *
  */
-public class ImsiGenerator implements Generator<String>{
+public class ImsiGenerator implements Generator<String>
+{
   private CharRandomGenerator digitCharGenerator = new CharRandomGenerator(CharRange.digits);
   private FixLengthStringRandomGenerator msinGenerator = new FixLengthStringRandomGenerator(digitCharGenerator, 9);
-  
-  public ImsiGenerator(){}
+
+  public ImsiGenerator()
+  {
+  }
 
   @Override
-  public String next() {
+  public String next()
+  {
     return MNCRepo.instance().getRandomMncInfo().getMccMnc() + msinGenerator.next();
   }
-  
+
 }

@@ -21,19 +21,19 @@ import com.datatorrent.lib.dimensions.aggregator.AggregatorRegistry;
 public class AppDataSnapshotServerAggregate extends AbstractAppDataSnapshotServer<Aggregate>
 {
   private static final transient Logger logger = LoggerFactory.getLogger(AppDataSnapshotServerAggregate.class);
-      
+
   private String eventSchema;
-  
+
   /**
    * A map from field Key to Value.
    * 
    */
   private Map<MutablePair<String, Type>, MutablePair<String, Type>> keyValueMap;
-  
+
   protected transient GPOMutable staticFields;
   protected transient FieldsDescriptor fieldsDescriptor;
   protected transient DimensionalConfigurationSchema dimensitionSchema;
-  
+
   @Override
   public void setup(OperatorContext context)
   {
@@ -41,7 +41,7 @@ public class AppDataSnapshotServerAggregate extends AbstractAppDataSnapshotServe
     AggregatorRegistry.DEFAULT_AGGREGATOR_REGISTRY.setup();
     dimensitionSchema = new DimensionalConfigurationSchema(eventSchema, AggregatorRegistry.DEFAULT_AGGREGATOR_REGISTRY);
   }
-  
+
   protected FieldsDescriptor getFieldsDescriptor()
   {
     if (fieldsDescriptor == null) {
@@ -86,11 +86,9 @@ public class AppDataSnapshotServerAggregate extends AbstractAppDataSnapshotServe
      */
 
     GPOMutable gpo;
-    if(staticFields != null)
-    {
+    if (staticFields != null) {
       gpo = new GPOMutable(staticFields);
-    }
-    else
+    } else
       gpo = new GPOMutable(getFieldsDescriptor());
 
     for (Map.Entry<MutablePair<String, Type>, MutablePair<String, Type>> entry : keyValueMap.entrySet()) {
@@ -171,14 +169,11 @@ public class AppDataSnapshotServerAggregate extends AbstractAppDataSnapshotServe
   //this method should be called after set the keyValueMap
   public GPOMutable getStaticFields()
   {
-    if(staticFields==null)
-    {
-      synchronized(this)
-      {
-        if(staticFields==null)
-        {
+    if (staticFields == null) {
+      synchronized (this) {
+        if (staticFields == null) {
           FieldsDescriptor fd = getFieldsDescriptor();
-          if(fd == null)
+          if (fd == null)
             throw new RuntimeException("Please setKeyValueMap() first.");
           staticFields = new GPOMutable(fd);
         }

@@ -16,7 +16,7 @@ public class EnrichedCustomerService extends CustomerService implements BytesSup
   public final String city;
   public final float lat;
   public final float lon;
-  
+
   protected EnrichedCustomerService()
   {
     super();
@@ -29,8 +29,8 @@ public class EnrichedCustomerService extends CustomerService implements BytesSup
     lat = 0.0f;
     lon = 0.0f;
   }
-  
-  public EnrichedCustomerService(CustomerService cs, String operatorCode, String deviceBrand, String deviceModel, 
+
+  public EnrichedCustomerService(CustomerService cs, String operatorCode, String deviceBrand, String deviceModel,
       String stateCode, String state, String city, float lat, float lon)
   {
     super(cs);
@@ -43,22 +43,21 @@ public class EnrichedCustomerService extends CustomerService implements BytesSup
     this.lat = lat;
     this.lon = lon;
   }
-  
+
   public static EnrichedCustomerService fromCustomerService(CustomerService cs)
   {
     //operator code;
     MNCInfo mncInfo = MNCRepo.instance().getMncInfoByImsi(cs.imsi);
-    
+
     //brand & model
     TACInfo tacInfo = TACRepo.instance().getTacInfoByImei(cs.imei);
-    
+
     LocationInfo li = LocationRepo.instance().getLocationInfoByZip(cs.zipCode);
 
-    return new EnrichedCustomerService(cs, mncInfo.carrier.operatorCode, tacInfo.manufacturer, tacInfo.model, li.stateCode, li.state, li.city, li.lat, li.lon);
+    return new EnrichedCustomerService(cs, mncInfo.carrier.operatorCode, tacInfo.manufacturer, tacInfo.model,
+        li.stateCode, li.state, li.city, li.lat, li.lon);
   }
-  
-  
-  
+
   public String getOperatorCode()
   {
     return operatorCode;
@@ -104,25 +103,25 @@ public class EnrichedCustomerService extends CustomerService implements BytesSup
   {
     StringBuilder sb = new StringBuilder();
     sb.append(super.toString()).append(delimiter);
-    
+
     sb.append(operatorCode).append(delimiter);
-    
+
     sb.append(deviceBrand).append(delimiter);
     sb.append(deviceModel).append(delimiter);
-    
+
     sb.append(stateCode).append(delimiter);
     sb.append(state).append(delimiter);
     sb.append(city);
-    
+
     return sb.toString();
   }
-  
+
   @Override
   public byte[] toBytes()
   {
     return toLine().getBytes();
   }
-  
+
   public String toLine()
   {
     return toString() + "\n";

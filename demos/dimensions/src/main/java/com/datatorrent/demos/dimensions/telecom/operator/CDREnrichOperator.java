@@ -7,8 +7,9 @@ import com.datatorrent.common.util.BaseOperator;
 import com.datatorrent.demos.dimensions.telecom.model.CallDetailRecord;
 import com.datatorrent.demos.dimensions.telecom.model.EnrichedCDR;
 
-public class CDREnrichOperator extends BaseOperator {
-  
+public class CDREnrichOperator extends BaseOperator
+{
+
   @InputPortFieldAnnotation(optional = true)
   public final transient DefaultInputPort<String> stringInputPort = new DefaultInputPort<String>()
   {
@@ -18,7 +19,7 @@ public class CDREnrichOperator extends BaseOperator {
       processTuple(t);
     }
   };
-  
+
   @InputPortFieldAnnotation(optional = true)
   public final transient DefaultInputPort<CallDetailRecord> cdrInputPort = new DefaultInputPort<CallDetailRecord>()
   {
@@ -29,13 +30,13 @@ public class CDREnrichOperator extends BaseOperator {
     }
   };
   public final transient DefaultOutputPort<EnrichedCDR> outputPort = new DefaultOutputPort<EnrichedCDR>();
-  
+
   public void processTuple(String tuple)
   {
     EnrichedCDR enriched = EnrichedCDR.fromCallDetailRecord(tuple);
     outputPort.emit(enriched);
   }
-  
+
   public void processTuple(CallDetailRecord tuple)
   {
     EnrichedCDR enriched = EnrichedCDR.fromCallDetailRecord(tuple);

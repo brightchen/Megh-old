@@ -7,10 +7,11 @@ import java.util.Map;
 
 import org.apache.hadoop.hbase.util.Bytes;
 
-public class CallDetailRecord implements BytesSupport{
+public class CallDetailRecord implements BytesSupport
+{
   public static final String delimiter = ",";
   public static final int COLUMN_NUM = 14;
-  
+
   private String isdn;
   private String imsi;
   private String imei;
@@ -31,9 +32,11 @@ public class CallDetailRecord implements BytesSupport{
   protected final SimpleDateFormat timeInDayFormat = new SimpleDateFormat("HH:mm:ss");
   //
   protected final SimpleDateFormat timeFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
-  
-  public CallDetailRecord(){}
-  
+
+  public CallDetailRecord()
+  {
+  }
+
   public CallDetailRecord(Map<String, byte[]> nameValueMap)
   {
     this.setIsdn(Bytes.toString(nameValueMap.get("isdn")));
@@ -47,125 +50,154 @@ public class CallDetailRecord implements BytesSupport{
     this.setDr(Bytes.toInt(nameValueMap.get("dr")));
     this.setLat(Bytes.toFloat(nameValueMap.get("lat")));
     this.setLon(Bytes.toFloat(nameValueMap.get("lon")));
-    
+
     this.setTime(Bytes.toString(nameValueMap.get("timeInDay")), Bytes.toString(nameValueMap.get("date")));
   }
-  
-  public String getIsdn() {
+
+  public String getIsdn()
+  {
     return isdn;
   }
 
-  public void setIsdn(String isdn) {
+  public void setIsdn(String isdn)
+  {
     this.isdn = isdn;
   }
 
-  public String getImsi() {
+  public String getImsi()
+  {
     return imsi;
   }
 
-  public void setImsi(String imsi) {
+  public void setImsi(String imsi)
+  {
     this.imsi = imsi;
   }
 
-  public String getImei() {
+  public String getImei()
+  {
     return imei;
   }
 
-  public void setImei(String imei) {
+  public void setImei(String imei)
+  {
     this.imei = imei;
   }
 
-  public String getPlan() {
+  public String getPlan()
+  {
     return plan;
   }
 
-  public void setPlan(String plan) {
+  public void setPlan(String plan)
+  {
     this.plan = plan;
   }
 
-  public String getCallType() {
+  public String getCallType()
+  {
     return callType;
   }
 
-  public void setCallType(String callType) {
+  public void setCallType(String callType)
+  {
     this.callType = callType;
   }
 
-  public String getCorrespType() {
+  public String getCorrespType()
+  {
     return correspType;
   }
 
-  public void setCorrespType(String correspType) {
+  public void setCorrespType(String correspType)
+  {
     this.correspType = correspType;
   }
 
-  public String getCorrespIsdn() {
+  public String getCorrespIsdn()
+  {
     return correspIsdn;
   }
 
-  public void setCorrespIsdn(String correspIsdn) {
+  public void setCorrespIsdn(String correspIsdn)
+  {
     this.correspIsdn = correspIsdn;
   }
 
-  public int getDuration() {
+  public int getDuration()
+  {
     return duration;
   }
 
-  public void setDuration(int duration) {
+  public void setDuration(int duration)
+  {
     this.duration = duration;
   }
 
-  public int getBytes() {
+  public int getBytes()
+  {
     return bytes;
   }
 
-  public void setBytes(int bytes) {
+  public void setBytes(int bytes)
+  {
     this.bytes = bytes;
   }
 
-
-  public int getDr() {
+  public int getDr()
+  {
     return dr;
   }
 
-  public void setDr(DisconnectReason disconnectReason) {
+  public void setDr(DisconnectReason disconnectReason)
+  {
     this.dr = disconnectReason.getCode();
   }
+
   public void setDr(int dr)
   {
     this.dr = dr;
   }
 
-  public float getLat() {
+  public float getLat()
+  {
     return lat;
   }
 
-  public void setLat(float lat) {
+  public void setLat(float lat)
+  {
     this.lat = lat;
   }
 
-  public float getLon() {
+  public float getLon()
+  {
     return lon;
   }
 
-  public void setLon(float lon) {
+  public void setLon(float lon)
+  {
     this.lon = lon;
   }
 
-  public long getTime() {
+  public long getTime()
+  {
     return time;
   }
+
   public String getDate()
   {
     Calendar c = Calendar.getInstance();
     c.setTimeInMillis(time);
     // return dayFormat.format(c.getTime());  //this return something like "10/2/15 4:36 PM", why
-    return String.format("%02d/%02d/%4d", c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH), c.get(Calendar.YEAR));
+    return String.format("%02d/%02d/%4d", c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH),
+        c.get(Calendar.YEAR));
   }
+
   public void setDate(String date)
   {
     throw new RuntimeException("unsupported");
   }
+
   public String getTimeInDay()
   {
     Calendar c = Calendar.getInstance();
@@ -173,17 +205,20 @@ public class CallDetailRecord implements BytesSupport{
     // return timeInDayFormat.format(c.getTime());   //this return something like "10/2/15 4:36 PM", why
     return String.format("%02d:%02d:%02d", c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), c.get(Calendar.SECOND));
   }
+
   public void setTimeInDay(String timeInDay)
   {
     throw new RuntimeException("unsupported");
   }
-  
-  public void setTime(long time) {
+
+  public void setTime(long time)
+  {
     this.time = time;
   }
 
   // hh:mm:ss, MM/DD/YYYY
-  public void setTime(String timeInDay, String day) {
+  public void setTime(String timeInDay, String day)
+  {
     Calendar c = Calendar.getInstance();
     try {
       c.setTime(timeFormat.parse(day + " " + timeInDay));
@@ -193,7 +228,8 @@ public class CallDetailRecord implements BytesSupport{
   }
 
   @Override
-  public String toString() {
+  public String toString()
+  {
     StringBuilder sb = new StringBuilder();
     sb.append(isdn).append(delimiter);
     sb.append(imsi).append(delimiter);
@@ -215,20 +251,21 @@ public class CallDetailRecord implements BytesSupport{
 
     // hh:mm:ss
     sb.append(getTimeInDay()).append(delimiter);
-        
+
     // MM/DD/YYYY
     sb.append(getDate());
 
     return sb.toString();
   }
-  
+
   @Override
   public byte[] toBytes()
   {
     return toLine().getBytes();
   }
-  
-  public static CallDetailRecord fromLine(String line) {
+
+  public static CallDetailRecord fromLine(String line)
+  {
     if (line.endsWith("\n"))
       line = line.substring(0, line.length() - 1);
     if (line.isEmpty())
@@ -239,11 +276,12 @@ public class CallDetailRecord implements BytesSupport{
 
     return record;
   }
-  
-  public String toLine() {
+
+  public String toLine()
+  {
     return toString() + "\n";
   }
-  
+
   public void setFromCdr(CallDetailRecord cdr)
   {
     this.isdn = cdr.isdn;
@@ -260,8 +298,9 @@ public class CallDetailRecord implements BytesSupport{
     this.lon = cdr.lon;
     this.time = cdr.time;
   }
-  
-  public void setFromLine(String line) {
+
+  public void setFromLine(String line)
+  {
     try {
       if (line.endsWith("\n"))
         line = line.substring(0, line.length() - 1);
@@ -269,9 +308,9 @@ public class CallDetailRecord implements BytesSupport{
         throw new IllegalArgumentException("The line is empty.");
 
       String[] items = line.split(delimiter);
-      if(items.length != COLUMN_NUM)
-      {
-        throw new IllegalArgumentException("Column not correct, expect: " + COLUMN_NUM + "; actual: " + items.length + ".\n line: " + line);
+      if (items.length != COLUMN_NUM) {
+        throw new IllegalArgumentException(
+            "Column not correct, expect: " + COLUMN_NUM + "; actual: " + items.length + ".\n line: " + line);
       }
       int index = 0;
       setIsdn(items[index++]);
@@ -297,7 +336,7 @@ public class CallDetailRecord implements BytesSupport{
       throw new IllegalArgumentException("The line can't convert to Call Detail Record: " + line, e);
     }
   }
-  
+
   /**
    * for demension computation
    */
@@ -305,20 +344,22 @@ public class CallDetailRecord implements BytesSupport{
   {
     return DisconnectReason.CallDropped.getCode() == dr ? 1 : 0;
   }
+
   public int getTerminatedNomally()
   {
     return DisconnectReason.CallComplete.getCode() == dr ? 1 : 0;
   }
+
   public int getCalled()
   {
     return (DisconnectReason.CallComplete.getCode() == dr || DisconnectReason.CallDropped.getCode() == dr) ? 1 : 0;
   }
-  
+
   public int getDisconnectCount()
   {
     return (DisconnectReason.NoResponse.getCode() == dr || DisconnectReason.CallDropped.getCode() == dr) ? 1 : 0;
   }
-  
+
   //Lat,lon
   public String getPoint()
   {

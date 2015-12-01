@@ -243,6 +243,142 @@
     <name>dt.application.SalesDemo.operator.Enrichment.filePath</name>
     <value>./products.txt</value>
   </property>
+  
+  <!-- settings for telecom demos -->
+  <property>
+    <name>dt.application.TelecomDemoV2.cdroutputmask</name>
+    <value>0</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.cassandra.host</name>
+    <value>node22</value>
+  </property>
+  <!-- CDRDemoV2 -->
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.CDRStore.fileStore.basePathPrefix</name>
+    <value>CDR/Store</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.CDRStore.embeddableQueryInfoProvider.topic</name>
+    <value>CDRDimension</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.CDRQueryResult.topic</name>
+    <value>CDRQueryResult</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.BandwidthServer.embeddableQueryInfoProvider.topic</name>
+    <value>Bandwidth</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.BandwidthQueryResult.topic</name>
+    <value>BandwidthQueryResult</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.CDRGenerator.batchSleepTime</name>
+    <value>12</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.cdrhivetmppath</name>
+    <value>/user/cdrtmp</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.CDRHiveOutput.maxLength</name>
+    <value>10240000</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.CDRGeoStore.fileStore.basePathPrefix</name>
+    <value>CDR/GeoStore</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.CDRGeoStore.embeddableQueryInfoProvider.topic</name>
+    <value>CDRGeoDimension</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.CDRGeoQueryResult.topic</name>
+    <value>CDRGeoQueryResult</value>
+  </property>
+  
+  <!-- CustomerServiceDemoV2 -->
+  <property>
+    <name>dt.application.TelecomDemoV2.csoutputmask</name>
+    <value>0</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.CSStore.fileStore.basePathPrefix</name>
+    <value>CS/Store</value>
+  </property>
+  <!-- 
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.Store.embeddableQueryInfoProvider.uri</name>
+    <value>ws://node20.morado.com:10001/pubsub</value>
+  </property>
+  -->
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.CSStore.embeddableQueryInfoProvider.topic</name>
+    <value>CSTopic</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.QueryResult.topic</name>
+    <value>CSQueryResult</value>
+  </property>
+  
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.ServiceCallServer.embeddableQueryInfoProvider.topic</name>
+    <value>ServiceCallQuery</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.ServiceCallQueryResult.topic</name>
+    <value>ServiceCallQueryResult</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.SatisfactionServer.embeddableQueryInfoProvider.topic</name>
+    <value>SatisfactionQuery</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.SatisfactionQueryResult.topic</name>
+    <value>SatisfactionQueryResult</value>
+  </property>
+  
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.WaittimeServer.embeddableQueryInfoProvider.topic</name>
+    <value>WaittimeQuery</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.WaittimeQueryResult.topic</name>
+    <value>WaittimeQueryResult</value>
+  </property>
+  
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.CustomerServiceGenerator.batchSleepTime</name>
+    <value>15</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.cshivetmppath</name>
+    <value>/user/cstmp</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.CSHiveOutput.maxLength</name>
+    <value>10240000</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.CSGeoStore.fileStore.basePathPrefix</name>
+    <value>CS/GeoStore</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.CSGeoStore.embeddableQueryInfoProvider.topic</name>
+    <value>CSGeoDimension</value>
+  </property>
+  <property>
+    <name>dt.application.TelecomDemoV2.operator.CSGeoQueryResult.topic</name>
+    <value>CSGeoQueryResult</value>
+  </property>
+  <!-- 
+  <property>
+    <name>dt.gateway.listenAddress</name>
+    <value>node20.morado.com:10001</value>
+  </property>
+  -->
 
   <!-- Settings for all the apps -->
   <property>

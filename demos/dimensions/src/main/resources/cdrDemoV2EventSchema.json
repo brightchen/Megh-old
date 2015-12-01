@@ -1,0 +1,15 @@
+{"keys":
+  [
+    {"name":"deviceModel","type":"string"},
+  ],
+ "timeBuckets":["1m","1h"],
+ "values":
+  [
+    {"name":"downloadBytes","type":"long","aggregators":["SUM"]}
+  ],
+ "dimensions":
+  [
+  	{"combination":[]},
+    {"combination":["deviceModel"]},
+  ]
+}

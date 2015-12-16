@@ -1,4 +1,6 @@
-{"keys":
+{
+  "tags":["geo"],
+  "keys":
   [
     {"name":"zipcode","type":"string"},
     {"name":"region","type":"string"},

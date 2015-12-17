@@ -6,7 +6,7 @@ package com.datatorrent.demos.machinedata.data;
 
 import java.util.Objects;
 
-import com.datatorrent.lib.statistics.DimensionsComputation.AggregateEvent;
+import com.datatorrent.lib.dimensions.aggregator.AggregateEvent;
 
 /**
  * @since 3.2.0

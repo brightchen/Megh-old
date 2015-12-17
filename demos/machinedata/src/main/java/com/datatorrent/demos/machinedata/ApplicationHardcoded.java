@@ -32,6 +32,7 @@ import com.datatorrent.demos.machinedata.data.MachineInfo;
 import com.datatorrent.lib.appdata.schemas.DimensionalConfigurationSchema;
 import com.datatorrent.lib.appdata.schemas.SchemaUtils;
 import com.datatorrent.lib.dimensions.DimensionsDescriptor;
+import com.datatorrent.lib.dimensions.aggregator.AggregateEvent.Aggregator;
 import com.datatorrent.lib.dimensions.aggregator.AggregatorRegistry;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataQuery;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataResult;
@@ -68,8 +69,8 @@ public class ApplicationHardcoded implements StreamingApplication
     }
 
     @SuppressWarnings({"unchecked", "MismatchedReadAndWriteOfArray", "rawtypes"})
-    DimensionsComputation.Aggregator<MachineInfo, MachineHardCodedAggregate>[] aggregators
-      = (DimensionsComputation.Aggregator<MachineInfo, MachineHardCodedAggregate>[])new DimensionsComputation.Aggregator[dimensionsDescriptors.size() * 2];
+    Aggregator<MachineInfo, MachineHardCodedAggregate>[] aggregators
+      = (Aggregator<MachineInfo, MachineHardCodedAggregate>[])new Aggregator[dimensionsDescriptors.size() * 2];
     for (int ddID = 0, aggregatorIndex = 0; ddID < dimensionsDescriptors.size(); ddID++) {
       DimensionsDescriptor dimensionsDescriptor = dimensionsDescriptors.get(ddID);
       aggregators[aggregatorIndex] = new MachineAggregatorHardCodedSum(ddID, dimensionsDescriptor);

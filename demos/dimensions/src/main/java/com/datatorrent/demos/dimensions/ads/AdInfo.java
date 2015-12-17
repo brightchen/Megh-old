@@ -11,8 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datatorrent.lib.appdata.schemas.TimeBucket;
-import com.datatorrent.lib.statistics.DimensionsComputation;
-import com.datatorrent.lib.statistics.DimensionsComputation.Aggregator;
+import com.datatorrent.lib.dimensions.aggregator.AggregateEvent;
+import com.datatorrent.lib.dimensions.aggregator.AggregateEvent.Aggregator;
 
 /**
  * <p>AdInfo class.</p>
@@ -333,7 +333,7 @@ public class AdInfo implements Serializable
     }
 
     @Override
-    public int computeHashCode(AdInfo event)
+    public int hashCode(AdInfo event)
     {
       int hash = 5;
 
@@ -395,7 +395,7 @@ public class AdInfo implements Serializable
     private static final long serialVersionUID = 201402211829L;
   }
 
-  public static class AdInfoAggregateEvent extends AdInfo implements DimensionsComputation.AggregateEvent
+  public static class AdInfoAggregateEvent extends AdInfo implements AggregateEvent
   {
     private static final long serialVersionUID = 1L;
     int aggregatorIndex;

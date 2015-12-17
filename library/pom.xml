@@ -175,11 +175,6 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>net.sf.trove4j</groupId>
-      <artifactId>trove4j</artifactId>
-      <version>3.0.3</version>
-    </dependency>
-    <dependency>
       <groupId>org.apache.apex</groupId>
       <artifactId>malhar-library</artifactId>
       <version>${malhar.version}</version>
@@ -219,6 +214,11 @@
       <groupId>com.sangupta</groupId>
       <artifactId>murmur</artifactId>
       <version>1.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>it.unimi.dsi</groupId>
+      <artifactId>fastutil</artifactId>
+      <version>6.6.4</version>
     </dependency>
   </dependencies>
 

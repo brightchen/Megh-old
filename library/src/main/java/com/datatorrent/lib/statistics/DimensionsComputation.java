@@ -15,12 +15,23 @@
  */
 package com.datatorrent.lib.statistics;
 
-import java.io.*;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.lang.reflect.Array;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.validation.constraints.Min;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.esotericsoftware.kryo.DefaultSerializer;
 import com.esotericsoftware.kryo.Kryo;
@@ -28,14 +39,16 @@ import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import gnu.trove.map.hash.TCustomHashMap;
-import gnu.trove.strategy.HashingStrategy;
-
-import com.datatorrent.api.*;
 import com.datatorrent.api.Context.OperatorContext;
+import com.datatorrent.api.DefaultInputPort;
+import com.datatorrent.api.DefaultOutputPort;
+import com.datatorrent.api.DefaultPartition;
+import com.datatorrent.api.Operator;
+import com.datatorrent.api.Partitioner;
+import com.datatorrent.lib.dimensions.aggregator.AggregateEvent;
+import com.datatorrent.lib.dimensions.aggregator.AggregateEvent.Aggregator;
+
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenCustomHashMap;
 
 /**
  * <p>An implementation of an operator that computes dimensions of events. </p>
@@ -47,7 +60,7 @@ import com.datatorrent.api.Context.OperatorContext;
  * @param <EVENT> - Type of the tuple whose attributes are used to define dimensions.
  * @since 1.0.2
  */
-public class DimensionsComputation<EVENT, AGGREGATE extends DimensionsComputation.AggregateEvent> implements Operator
+public class DimensionsComputation<EVENT, AGGREGATE extends AggregateEvent> implements Operator
 {
   private Unifier<AGGREGATE> unifier;
 
@@ -91,20 +104,6 @@ public class DimensionsComputation<EVENT, AGGREGATE extends DimensionsComputatio
       processInputTuple(tuple);
     }
   };
-
-  public static interface AggregateEvent
-  {
-    int getAggregatorIndex();
-  }
-
-  public static interface Aggregator<EVENT, AGGREGATE extends AggregateEvent> extends HashingStrategy<EVENT>
-  {
-    AGGREGATE getGroup(EVENT src, int aggregatorIndex);
-
-    void aggregate(AGGREGATE dest, EVENT src);
-
-    void aggregate(AGGREGATE dest, AGGREGATE src);
-  }
 
   private AggregatorMap<EVENT, AGGREGATE>[] aggregatorMaps;
 
@@ -322,7 +321,7 @@ public class DimensionsComputation<EVENT, AGGREGATE extends DimensionsComputatio
   }
 
   @DefaultSerializer(ExternalizableSerializer.class)
-  static class AggregatorMap<EVENT, AGGREGATE extends AggregateEvent> extends TCustomHashMap<EVENT, AGGREGATE>
+  static class AggregatorMap<EVENT, AGGREGATE extends AggregateEvent> extends Object2ObjectOpenCustomHashMap<EVENT, AGGREGATE>
   {
     transient Aggregator<EVENT, AGGREGATE> aggregator;
 
@@ -330,7 +329,7 @@ public class DimensionsComputation<EVENT, AGGREGATE extends DimensionsComputatio
     public AggregatorMap()
     {
       /* Needed for Serialization */
-      super();
+      super(null);
       aggregator = null;
     }
 
@@ -342,7 +341,7 @@ public class DimensionsComputation<EVENT, AGGREGATE extends DimensionsComputatio
 
     AggregatorMap(Aggregator<EVENT, AGGREGATE> aggregator, int initialCapacity)
     {
-      super(aggregator, initialCapacity);
+      super(initialCapacity, aggregator);
       this.aggregator = aggregator;
     }
 
@@ -357,13 +356,14 @@ public class DimensionsComputation<EVENT, AGGREGATE extends DimensionsComputatio
       aggregator.aggregate(aggregateEvent, tuple);
     }
 
-    @Override
-    @SuppressWarnings("unchecked")
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException
-    {
-      super.readExternal(in);
-      aggregator = (Aggregator<EVENT, AGGREGATE>) super.strategy;
-    }
+//TODO: implement this.    
+//    @Override
+//    @SuppressWarnings("unchecked")
+//    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException
+//    {
+//      super.readExternal(in);
+//      aggregator = (Aggregator<EVENT, AGGREGATE>) super.strategy;
+//    }
 
     @Override
     public boolean equals(Object o)

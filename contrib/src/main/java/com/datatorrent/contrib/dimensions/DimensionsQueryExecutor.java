@@ -4,6 +4,7 @@
  */
 package com.datatorrent.contrib.dimensions;
 
+import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -71,6 +72,8 @@ public class DimensionsQueryExecutor implements QueryExecutor<DataQueryDimension
   @Override
   public Result executeQuery(DataQueryDimensional query, QueryMeta qm, MutableLong queueContext)
   {
+    long before = Calendar.getInstance().getTimeInMillis();
+    
     //Retrieving the appropriate DimensionalSchema for the given query
     DimensionalSchema schemaDimensional = (DimensionalSchema)schemaRegistry.getSchema(query.getSchemaKeys());
     //The configuration schema holds all the information about how things are aggregated.
@@ -177,6 +180,8 @@ public class DimensionsQueryExecutor implements QueryExecutor<DataQueryDimension
       }
     }
 
+    LOG.info("Query spent time in milli-second: {}", Calendar.getInstance().getTimeInMillis() - before);
+    
     if(!query.getIncompleteResultOK() && !allSatisfied && queueContext.longValue() > 1L) {
       //if incomplete results are not ok,
       //And all the requested results were not found

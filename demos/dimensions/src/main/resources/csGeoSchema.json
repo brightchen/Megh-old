@@ -9,8 +9,8 @@
  "values":
   [
     {"name":"wait","type":"long","aggregators":["AVG"]},
-    {"name":"lat","type":"float","aggregators":["FIRST"]},
-    {"name":"lon","type":"float","aggregators":["FIRST"]},
+    {"name":"lat","type":"float","aggregators":["FIRST"],"tags":["geo"]},
+    {"name":"lon","type":"float","aggregators":["FIRST"],"tags":["geo"]},
   ],
  "dimensions":
   [

@@ -10,8 +10,8 @@
   [
     {"name":"disconnectCount","type":"long","aggregators":["SUM"]},
     {"name":"downloadBytes","type":"long","aggregators":["SUM"]},
-    {"name":"lat","type":"float","aggregators":["FIRST"]},
-    {"name":"lon","type":"float","aggregators":["FIRST"]},
+    {"name":"lat","type":"float","aggregators":["FIRST"],"tags":["geo"]},
+    {"name":"lon","type":"float","aggregators":["FIRST"],"tags":["geo"]},
   ],
  "dimensions":
   [

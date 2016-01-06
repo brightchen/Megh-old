@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 
 public class SimpleDataQueryDimensionalExpander implements DataQueryDimensionalExpander
 {
-  private final Map<String, Collection<Object>> seenKeyValues;
+  protected final Map<String, Collection<Object>> seenKeyValues;
 
   public SimpleDataQueryDimensionalExpander(Map<String, Collection<Object>> seenEnumValues)
   {
@@ -64,7 +64,7 @@ public class SimpleDataQueryDimensionalExpander implements DataQueryDimensionalE
     return results;
   }
 
-  private void createKeyGPOsHelper(int index,
+  protected void createKeyGPOsHelper(int index,
                                    Map<String, Set<Object>> keyToValues,
                                    FieldsDescriptor fd,
                                    List<String> fields,

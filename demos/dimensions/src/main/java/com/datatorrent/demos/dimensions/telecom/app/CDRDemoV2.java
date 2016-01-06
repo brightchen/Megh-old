@@ -38,6 +38,7 @@ import com.datatorrent.demos.dimensions.telecom.operator.CDRStore;
 import com.datatorrent.demos.dimensions.telecom.operator.CallDetailRecordGenerateOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.EnrichedCDRCassandraOutputOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.EnrichedCDRHbaseOutputOperator;
+import com.datatorrent.demos.dimensions.telecom.operator.GeoDimensionStore;
 import com.datatorrent.lib.appdata.schemas.SchemaUtils;
 import com.datatorrent.lib.appdata.schemas.Type;
 import com.datatorrent.lib.counters.BasicCounters;
@@ -391,7 +392,8 @@ public class CDRDemoV2 implements StreamingApplication {
         8092);
 
     // store
-    AppDataSingleSchemaDimensionStoreHDHT store = dag.addOperator("CDRGeoStore", AppDataSingleSchemaDimensionStoreHDHT.class);
+    //AppDataSingleSchemaDimensionStoreHDHT store = dag.addOperator("CDRGeoStore", AppDataSingleSchemaDimensionStoreHDHT.class);
+    GeoDimensionStore store = dag.addOperator("CDRGeoStore", GeoDimensionStore.class);
     store.setUpdateEnumValues(true);
     String basePath = Preconditions.checkNotNull(conf.get(PROP_GEO_STORE_PATH),
           "GEO base path should be specified in the properties.xml");

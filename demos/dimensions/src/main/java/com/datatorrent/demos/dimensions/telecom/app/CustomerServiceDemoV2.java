@@ -31,7 +31,6 @@ import com.datatorrent.demos.dimensions.telecom.conf.EnrichedCustomerServiceHive
 import com.datatorrent.demos.dimensions.telecom.conf.TelecomDemoConf;
 import com.datatorrent.demos.dimensions.telecom.hive.TelecomHiveExecuteOperator;
 import com.datatorrent.demos.dimensions.telecom.hive.TelecomHiveOutputOperator;
-import com.datatorrent.demos.dimensions.telecom.model.EnrichedCDR;
 import com.datatorrent.demos.dimensions.telecom.model.EnrichedCustomerService;
 import com.datatorrent.demos.dimensions.telecom.operator.AppDataSimpleConfigurableSnapshotServer;
 import com.datatorrent.demos.dimensions.telecom.operator.AppDataSnapshotServerAggregate;
@@ -40,6 +39,7 @@ import com.datatorrent.demos.dimensions.telecom.operator.CustomerServiceGenerate
 import com.datatorrent.demos.dimensions.telecom.operator.CustomerServiceStore;
 import com.datatorrent.demos.dimensions.telecom.operator.EnrichedCustomerServiceCassandraOutputOperator;
 import com.datatorrent.demos.dimensions.telecom.operator.EnrichedCustomerServiceHbaseOutputOperator;
+import com.datatorrent.demos.dimensions.telecom.operator.GeoDimensionStore;
 import com.datatorrent.lib.appdata.schemas.SchemaUtils;
 import com.datatorrent.lib.appdata.schemas.Type;
 import com.datatorrent.lib.counters.BasicCounters;
@@ -465,7 +465,8 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
         8092);
 
     // store
-    AppDataSingleSchemaDimensionStoreHDHT store = dag.addOperator("CSGeoStore", AppDataSingleSchemaDimensionStoreHDHT.class);
+    //AppDataSingleSchemaDimensionStoreHDHT store = dag.addOperator("CSGeoStore", AppDataSingleSchemaDimensionStoreHDHT.class);
+    GeoDimensionStore store = dag.addOperator("CSGeoStore", GeoDimensionStore.class);
     store.setUpdateEnumValues(true);
     String basePath = Preconditions.checkNotNull(conf.get(PROP_GEO_STORE_PATH),
           "GEO base path should be specified in the properties.xml");

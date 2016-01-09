@@ -221,19 +221,19 @@
   </property>
   <property>
     <name>dt.application.TelecomDemoV2.operator.CDRStore.embeddableQueryInfoProvider.topic</name>
-    <value>CDRDimension</value>
+    <value>CDRDimension-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <property>
     <name>dt.application.TelecomDemoV2.operator.CDRQueryResult.topic</name>
-    <value>CDRQueryResult</value>
+    <value>CDRQueryResult-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <property>
     <name>dt.application.TelecomDemoV2.operator.BandwidthServer.embeddableQueryInfoProvider.topic</name>
-    <value>Bandwidth</value>
+    <value>Bandwidth-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <property>
     <name>dt.application.TelecomDemoV2.operator.BandwidthQueryResult.topic</name>
-    <value>BandwidthQueryResult</value>
+    <value>BandwidthQueryResult-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <property>
     <name>dt.application.TelecomDemoV2.operator.CDRGenerator.batchSleepTime</name>
@@ -253,11 +253,11 @@
   </property>
   <property>
     <name>dt.application.TelecomDemoV2.operator.CDRGeoStore.embeddableQueryInfoProvider.topic</name>
-    <value>CDRGeoDimension</value>
+    <value>CDRGeoDimension-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <property>
     <name>dt.application.TelecomDemoV2.operator.CDRGeoQueryResult.topic</name>
-    <value>CDRGeoQueryResult</value>
+    <value>CDRGeoQueryResult-${dt.attr.APPLICATION_NAME}</value>
   </property>
   
   <!-- CustomerServiceDemoV2 -->
@@ -277,37 +277,37 @@
   -->
   <property>
     <name>dt.application.TelecomDemoV2.operator.CSStore.embeddableQueryInfoProvider.topic</name>
-    <value>CSTopic</value>
+    <value>CSTopic-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <property>
     <name>dt.application.TelecomDemoV2.operator.QueryResult.topic</name>
-    <value>CSQueryResult</value>
+    <value>CSQueryResult-${dt.attr.APPLICATION_NAME}</value>
   </property>
   
   <property>
     <name>dt.application.TelecomDemoV2.operator.ServiceCallServer.embeddableQueryInfoProvider.topic</name>
-    <value>ServiceCallQuery</value>
+    <value>ServiceCallQuery-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <property>
     <name>dt.application.TelecomDemoV2.operator.ServiceCallQueryResult.topic</name>
-    <value>ServiceCallQueryResult</value>
+    <value>ServiceCallQueryResult-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <property>
     <name>dt.application.TelecomDemoV2.operator.SatisfactionServer.embeddableQueryInfoProvider.topic</name>
-    <value>SatisfactionQuery</value>
+    <value>SatisfactionQuery-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <property>
     <name>dt.application.TelecomDemoV2.operator.SatisfactionQueryResult.topic</name>
-    <value>SatisfactionQueryResult</value>
+    <value>SatisfactionQueryResult-${dt.attr.APPLICATION_NAME}</value>
   </property>
   
   <property>
     <name>dt.application.TelecomDemoV2.operator.WaittimeServer.embeddableQueryInfoProvider.topic</name>
-    <value>WaittimeQuery</value>
+    <value>WaittimeQuery-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <property>
     <name>dt.application.TelecomDemoV2.operator.WaittimeQueryResult.topic</name>
-    <value>WaittimeQueryResult</value>
+    <value>WaittimeQueryResult-${dt.attr.APPLICATION_NAME}</value>
   </property>
   
   <property>
@@ -328,11 +328,11 @@
   </property>
   <property>
     <name>dt.application.TelecomDemoV2.operator.CSGeoStore.embeddableQueryInfoProvider.topic</name>
-    <value>CSGeoDimension</value>
+    <value>CSGeoDimension-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <property>
     <name>dt.application.TelecomDemoV2.operator.CSGeoQueryResult.topic</name>
-    <value>CSGeoQueryResult</value>
+    <value>CSGeoQueryResult-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <!-- 
   <property>

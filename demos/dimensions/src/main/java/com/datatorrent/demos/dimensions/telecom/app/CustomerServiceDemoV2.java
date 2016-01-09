@@ -22,8 +22,7 @@ import com.datatorrent.api.DAG;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
-import com.datatorrent.contrib.dimensions.AppDataSingleSchemaDimensionStoreHDHT;
-import com.datatorrent.contrib.dimensions.DimensionStoreHDHTNonEmptyQueryResultUnifier;
+import com.datatorrent.contrib.dimensions.DimensionQueryResultMergeUnifier;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
 import com.datatorrent.contrib.hive.HiveStore;
 import com.datatorrent.demos.dimensions.telecom.conf.ConfigUtil;
@@ -309,7 +308,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       if(csStorePartitionCount > 1)
       {
         store.setPartitionCount(csStorePartitionCount);
-        store.setQueryResultUnifier(new DimensionStoreHDHTNonEmptyQueryResultUnifier());
+        store.setQueryResultUnifier(new DimensionQueryResultMergeUnifier());
       }
       // wsOut
       PubSubWebSocketAppDataResult wsOut = createAppDataResult();
@@ -487,7 +486,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     if(csGeoStorePartitionCount > 1)
     {
       store.setPartitionCount(csGeoStorePartitionCount);
-      store.setQueryResultUnifier(new DimensionStoreHDHTNonEmptyQueryResultUnifier());
+      store.setQueryResultUnifier(new DimensionQueryResultMergeUnifier());
     }
 
     // wsOut

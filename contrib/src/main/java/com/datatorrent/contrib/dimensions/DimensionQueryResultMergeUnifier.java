@@ -1,6 +1,11 @@
+/**
+ * Copyright (c) 2016 DataTorrent, Inc.
+ * All rights reserved.
+ */
 package com.datatorrent.contrib.dimensions;
 
 import java.util.Map;
+import java.util.Set;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
@@ -8,9 +13,8 @@ import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.commons.lang3.tuple.MutablePair;
-
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.Operator.Unifier;
@@ -31,15 +35,18 @@ public class DimensionQueryResultMergeUnifier extends BaseOperator implements Un
 
   //id ==> list of data
   /**
-   * id ==> MutablePair( non-empty, empty ). currently, only one partition
-   * return the non-empty result, all other partitions return emtpy result.
+   * id ==> empty tuple. currently, only one partition return the non-empty
+   * result, all other partitions return empty result.
    */
-  protected Map<String, MutablePair<String, String>> idToTuplesMap = Maps.newHashMap();
+  protected transient Map<String, String> idToEmptyTupleMap = Maps.newHashMap();
+
+  protected transient Set<String> handledIds = Sets.newHashSet();
 
   @Override
   public void beginWindow(long windowId)
   {
-    idToTuplesMap.clear();
+    idToEmptyTupleMap.clear();
+    handledIds.clear();
   }
 
   /**
@@ -48,7 +55,9 @@ public class DimensionQueryResultMergeUnifier extends BaseOperator implements Un
   @Override
   public void endWindow()
   {
-    emitMergeResults();
+    //emit empty tuples
+    for (String tuple : idToEmptyTupleMap.values())
+      output.emit(tuple);
   }
 
   @Override
@@ -60,42 +69,31 @@ public class DimensionQueryResultMergeUnifier extends BaseOperator implements Un
       jo = new JSONObject(tuple);
       if (jo.getString(Result.FIELD_TYPE).equals(DataResultDimensional.TYPE)) {
         String id = jo.getString(Result.FIELD_ID);
+        if (handledIds.contains(id))
+          return;
+
         JSONArray dataArray = jo.getJSONArray(Result.FIELD_DATA);
         boolean isEmpty = ((dataArray == null) || (dataArray.length() == 0));
-        cacheTuple(id, tuple, isEmpty);
+        if (!isEmpty) {
+          //send response directly
+          output.emit(tuple);
+          handledIds.add(id);
+          if(idToEmptyTupleMap.containsKey(id))
+          {
+            idToEmptyTupleMap.remove(id);
+          }
+        } else {
+          Set<String> emptyTupleIds = idToEmptyTupleMap.keySet();
+          if (!emptyTupleIds.contains(id)) {
+            idToEmptyTupleMap.put(id, tuple);
+          }
+        }
       } else {
-        logger.info("Invalid type: {}, by pass.", jo.getString(Result.FIELD_TYPE));
+        logger.debug("Invalid type: {}, by pass.", jo.getString(Result.FIELD_TYPE));
         output.emit(tuple);
       }
     } catch (JSONException ex) {
-      logger.warn("Invalid json. {}", ex.getMessage());
       throw new RuntimeException(ex);
-    }
-  }
-
-  /**
-   * @param id
-   * @param dataArray
-   */
-  protected void cacheTuple(String id, String tuple, boolean isEmpty)
-  {
-    logger.info("Cache {}empty tuple.", (isEmpty ? "" : "non-"));
-    MutablePair<String, String> pair = idToTuplesMap.get(id);
-    if (pair == null) {
-      pair = new MutablePair<>();
-      idToTuplesMap.put(id, pair);
-    }
-    if (isEmpty)
-      pair.right = tuple;
-    else
-      pair.left = tuple;
-  }
-
-  protected void emitMergeResults()
-  {
-    for (MutablePair<String, String> tuplePair : idToTuplesMap.values()) {
-      logger.info("emit {} tuple.", (tuplePair.left != null ? "non-empty" : "emtpy"));
-      output.emit(tuplePair.left != null ? tuplePair.left : tuplePair.right);
     }
   }
 

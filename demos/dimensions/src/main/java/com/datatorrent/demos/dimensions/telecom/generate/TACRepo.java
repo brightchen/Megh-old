@@ -135,27 +135,30 @@ public class TACRepo {
   protected void init()
   {
     repo.clear();
-    addNewTacInfo(1124500, "Apple", "iPhone");
-    addNewTacInfo(1130000, "Apple", "iPhone");
-    addNewTacInfo(1136400, "Apple", "iPhone");
-    addNewTacInfo(1161200, "Apple", "iPhone");
-    addNewTacInfo(1174400, "Apple", "iPhone");
-    addNewTacInfo(1180800, "Apple", "iPhone");
-    addNewTacInfo(1181200, "Apple", "iPhone");
-    addNewTacInfo(1193400, "Apple", "iPhone");
-    addNewTacInfo(1194800, "Apple", "iPhone");
-    addNewTacInfo(1215800, "Apple", "iPhone");
-    addNewTacInfo(1215900, "Apple", "iPhone");
-    addNewTacInfo(1216100, "Apple", "iPhone");
-    addNewTacInfo(1226800, "Apple", "iPhone");
+    //the following should be "iPhone", change to iPhone6 just in order to get more download data
+    addNewTacInfo(1124500, "Apple", "iPhone 6");
+    addNewTacInfo(1130000, "Apple", "iPhone 6");
+    addNewTacInfo(1136400, "Apple", "iPhone 6");
+    addNewTacInfo(1161200, "Apple", "iPhone 6");
+    addNewTacInfo(1174400, "Apple", "iPhone 6");
+    addNewTacInfo(1180800, "Apple", "iPhone 6");
+    addNewTacInfo(1181200, "Apple", "iPhone 6");
+    addNewTacInfo(1193400, "Apple", "iPhone 6");
+    addNewTacInfo(1194800, "Apple", "iPhone 6");
+    addNewTacInfo(1215800, "Apple", "iPhone 6");
+    addNewTacInfo(1215900, "Apple", "iPhone 6");
+    addNewTacInfo(1216100, "Apple", "iPhone 6");
+    addNewTacInfo(1226800, "Apple", "iPhone 6");
     
-    addNewTacInfo(1233600, "Apple", "iPhone 4");
-    addNewTacInfo(1233700, "Apple", "iPhone 4");
-    addNewTacInfo(1233800, "Apple", "iPhone 4");
-    addNewTacInfo(1241700, "Apple", "iPhone 4");
-    addNewTacInfo(1243000, "Apple", "iPhone 4");
-    addNewTacInfo(1253600, "Apple", "iPhone 4");
-    addNewTacInfo(1254200, "Apple", "iPhone 4");
+    //following should be "iPhone 4", change to "iPhone 5S" just for more down load data.
+    addNewTacInfo(1233600, "Apple", "iPhone 5S");
+    addNewTacInfo(1233700, "Apple", "iPhone 5S");
+    addNewTacInfo(1233800, "Apple", "iPhone 5S");
+    addNewTacInfo(1241700, "Apple", "iPhone 5S");
+    addNewTacInfo(1243000, "Apple", "iPhone 5S");
+    addNewTacInfo(1253600, "Apple", "iPhone 5S");
+    addNewTacInfo(1254200, "Apple", "iPhone 5S");
+    
     addNewTacInfo(1300600, "Apple", "iPhone 4S");
     addNewTacInfo(1326300, "Apple", "iPhone 4");
     addNewTacInfo(1332700, "Apple", "iPhone 5");

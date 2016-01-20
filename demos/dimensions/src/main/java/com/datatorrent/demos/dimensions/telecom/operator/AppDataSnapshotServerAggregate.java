@@ -107,36 +107,47 @@ public class AppDataSnapshotServerAggregate extends AbstractAppDataSnapshotServe
           type = entry.getValue().getValue();
           fieldValueSource = aggregate.getAggregates();
         }
+        
         switch (type) {
           case BOOLEAN:
             gpo.setField(fieldName, fieldValueSource.getFieldBool(fieldName));
+            logger.info("fieldName: {}; type: {}; value: {}", fieldName, type, fieldValueSource.getFieldBool(fieldName)); 
             break;
           case STRING:
             gpo.setField(fieldName, fieldValueSource.getFieldString(fieldName));
+            logger.info("fieldName: {}; type: {}; value: {}", fieldName, type, fieldValueSource.getFieldString(fieldName)); 
             break;
           case CHAR:
             gpo.setField(fieldName, fieldValueSource.getFieldChar(fieldName));
+            logger.info("fieldName: {}; type: {}; value: {}", fieldName, type, fieldValueSource.getFieldChar(fieldName));
             break;
           case DOUBLE:
             gpo.setField(fieldName, fieldValueSource.getFieldDouble(fieldName));
+            logger.info("fieldName: {}; type: {}; value: {}", fieldName, type, fieldValueSource.getFieldDouble(fieldName));
             break;
           case FLOAT:
             gpo.setField(fieldName, fieldValueSource.getFieldFloat(fieldName));
+            logger.info("fieldName: {}; type: {}; value: {}", fieldName, type, fieldValueSource.getFieldFloat(fieldName));
             break;
           case LONG:
             gpo.setField(fieldName, fieldValueSource.getFieldLong(fieldName));
+            logger.info("fieldName: {}; type: {}; value: {}", fieldName, type, fieldValueSource.getFieldLong(fieldName));
             break;
           case INTEGER:
             gpo.setField(fieldName, fieldValueSource.getFieldInt(fieldName));
+            logger.info("fieldName: {}; type: {}; value: {}", fieldName, type, fieldValueSource.getFieldInt(fieldName));
             break;
           case SHORT:
             gpo.setField(fieldName, fieldValueSource.getFieldShort(fieldName));
+            logger.info("fieldName: {}; type: {}; value: {}", fieldName, type, fieldValueSource.getFieldShort(fieldName));
             break;
           case BYTE:
             gpo.setField(fieldName, fieldValueSource.getFieldShort(fieldName));
+            logger.info("fieldName: {}; type: {}; value: {}", fieldName, type, fieldValueSource.getFieldShort(fieldName));
             break;
           case OBJECT:
             gpo.setFieldObject(fieldName, fieldValueSource.getFieldObject(fieldName));
+            logger.info("fieldName: {}; type: {}; value: {}", fieldName, type, fieldValueSource.getFieldObject(fieldName));
             break;
           default:
             throw new RuntimeException("Unhandled type: " + type);

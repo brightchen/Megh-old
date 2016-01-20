@@ -216,11 +216,11 @@
   </property>
   <!-- CDRDemoV2 -->
   <property>
-    <name>dt.application.TelecomDemoV2.operator.CDRStore.fileStore.basePathPrefix</name>
+    <name>dt.application.TelecomDemoV2.operator.StoreEnrichedCDRKPIs.fileStore.basePathPrefix</name>
     <value>CDR/Store</value>
   </property>
   <property>
-    <name>dt.application.TelecomDemoV2.operator.CDRStore.embeddableQueryInfoProvider.topic</name>
+    <name>dt.application.TelecomDemoV2.operator.StoreEnrichedCDRKPIs.embeddableQueryInfoProvider.topic</name>
     <value>CDRDimension-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <property>
@@ -228,7 +228,7 @@
     <value>CDRQueryResult-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <property>
-    <name>dt.application.TelecomDemoV2.operator.BandwidthServer.embeddableQueryInfoProvider.topic</name>
+    <name>dt.application.TelecomDemoV2.operator.ComputeBandwidthUsageByDevice.embeddableQueryInfoProvider.topic</name>
     <value>Bandwidth-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <property>
@@ -236,7 +236,7 @@
     <value>BandwidthQueryResult-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <property>
-    <name>dt.application.TelecomDemoV2.operator.CDRGenerator.batchSleepTime</name>
+    <name>dt.application.TelecomDemoV2.operator.IngestCDRfromSolace.batchSleepTime</name>
     <value>12</value>
   </property>
   <property>
@@ -248,11 +248,11 @@
     <value>10240000</value>
   </property>
   <property>
-    <name>dt.application.TelecomDemoV2.operator.CDRGeoStore.fileStore.basePathPrefix</name>
+    <name>dt.application.TelecomDemoV2.operator.StoreNetworkTaggedGeoLocations.fileStore.basePathPrefix</name>
     <value>CDR/GeoStore</value>
   </property>
   <property>
-    <name>dt.application.TelecomDemoV2.operator.CDRGeoStore.embeddableQueryInfoProvider.topic</name>
+    <name>dt.application.TelecomDemoV2.operator.StoreNetworkTaggedGeoLocations.embeddableQueryInfoProvider.topic</name>
     <value>CDRGeoDimension-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <property>
@@ -266,7 +266,7 @@
     <value>0</value>
   </property>
   <property>
-    <name>dt.application.TelecomDemoV2.operator.CSStore.fileStore.basePathPrefix</name>
+    <name>dt.application.TelecomDemoV2.operator.StoreServiceKPIs.fileStore.basePathPrefix</name>
     <value>CS/Store</value>
   </property>
   <!-- 
@@ -276,7 +276,7 @@
   </property>
   -->
   <property>
-    <name>dt.application.TelecomDemoV2.operator.CSStore.embeddableQueryInfoProvider.topic</name>
+    <name>dt.application.TelecomDemoV2.operator.StoreServiceKPIs.embeddableQueryInfoProvider.topic</name>
     <value>CSTopic-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <property>
@@ -285,7 +285,7 @@
   </property>
   
   <property>
-    <name>dt.application.TelecomDemoV2.operator.ServiceCallServer.embeddableQueryInfoProvider.topic</name>
+    <name>dt.application.TelecomDemoV2.operator.ComputeNumOfServiceCalls.embeddableQueryInfoProvider.topic</name>
     <value>ServiceCallQuery-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <property>
@@ -293,7 +293,7 @@
     <value>ServiceCallQueryResult-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <property>
-    <name>dt.application.TelecomDemoV2.operator.SatisfactionServer.embeddableQueryInfoProvider.topic</name>
+    <name>dt.application.TelecomDemoV2.operator.ComputeSatisfactionRatings.embeddableQueryInfoProvider.topic</name>
     <value>SatisfactionQuery-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <property>
@@ -302,7 +302,7 @@
   </property>
   
   <property>
-    <name>dt.application.TelecomDemoV2.operator.WaittimeServer.embeddableQueryInfoProvider.topic</name>
+    <name>dt.application.TelecomDemoV2.operator.ComputeWaitTimes.embeddableQueryInfoProvider.topic</name>
     <value>WaittimeQuery-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <property>
@@ -311,7 +311,7 @@
   </property>
   
   <property>
-    <name>dt.application.TelecomDemoV2.operator.CustomerServiceGenerator.batchSleepTime</name>
+    <name>dt.application.TelecomDemoV2.operator.IngestCustomerServiceData.batchSleepTime</name>
     <value>15</value>
   </property>
   <property>
@@ -323,11 +323,11 @@
     <value>10240000</value>
   </property>
   <property>
-    <name>dt.application.TelecomDemoV2.operator.CSGeoStore.fileStore.basePathPrefix</name>
+    <name>dt.application.TelecomDemoV2.operator.StoreTaggedServiceGeoLocations.fileStore.basePathPrefix</name>
     <value>CS/GeoStore</value>
   </property>
   <property>
-    <name>dt.application.TelecomDemoV2.operator.CSGeoStore.embeddableQueryInfoProvider.topic</name>
+    <name>dt.application.TelecomDemoV2.operator.StoreTaggedServiceGeoLocations.embeddableQueryInfoProvider.topic</name>
     <value>CSGeoDimension-${dt.attr.APPLICATION_NAME}</value>
   </property>
   <property>

@@ -58,7 +58,8 @@ public abstract class AppDataSingleSchemaDimensionStoreHDHTUpdateWithList extend
           updatingAggregates.add(entry.getValue());
       }
 
-      outputPort.emit(updatingAggregates);
+      if(!updatingAggregates.isEmpty())
+        outputPort.emit(updatingAggregates);
     }
   }
 

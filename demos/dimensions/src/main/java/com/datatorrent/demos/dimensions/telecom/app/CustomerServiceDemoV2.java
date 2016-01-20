@@ -4,17 +4,11 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.hadoop.conf.Configuration;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.datatorrent.api.Context;
 import com.datatorrent.api.Context.OperatorContext;
@@ -22,7 +16,7 @@ import com.datatorrent.api.DAG;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
-import com.datatorrent.contrib.dimensions.DimensionQueryResultMergeUnifier;
+import com.datatorrent.contrib.dimensions.DimensionStoreHDHTNonEmptyQueryResultUnifier;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
 import com.datatorrent.contrib.hive.HiveStore;
 import com.datatorrent.demos.dimensions.telecom.conf.ConfigUtil;
@@ -49,6 +43,10 @@ import com.datatorrent.lib.dimensions.aggregator.AggregatorIncrementalType;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataQuery;
 import com.datatorrent.lib.io.PubSubWebSocketAppDataResult;
 import com.datatorrent.lib.statistics.DimensionsComputationUnifierImpl;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 /**
  *
@@ -120,8 +118,8 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     PROP_CASSANDRA_HOST = "dt.application." + appName + ".cassandra.host";
     PROP_HBASE_HOST = "dt.application." + appName + ".hbase.host";
     PROP_HIVE_HOST = "dt.application." + appName + ".hive.host";
-    PROP_STORE_PATH = "dt.application." + appName + ".operator.CSStore.fileStore.basePathPrefix";
-    PROP_GEO_STORE_PATH = "dt.application." + appName + ".operator.CSGeoStore.fileStore.basePathPrefix";
+    PROP_STORE_PATH = "dt.application." + appName + ".operator.StoreServiceKPIs.fileStore.basePathPrefix";
+    PROP_GEO_STORE_PATH = "dt.application." + appName + ".operator.StoreTaggedServiceGeoLocations.fileStore.basePathPrefix";
     PROP_OUTPUT_MASK = "dt.application." + appName + ".csoutputmask";
     PROP_HIVE_TEMP_PATH = "dt.application." + appName + ".cshivetmppath";
     PROP_HIVE_TEMP_FILE = "dt.application." + appName + ".cshivetmpfile";
@@ -197,10 +195,10 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
 
     // Customer service generator
     CustomerServiceGenerateOperator customerServiceGenerator = new CustomerServiceGenerateOperator();
-    dag.addOperator("CustomerServiceGenerator", customerServiceGenerator);
+    dag.addOperator("IngestCustomerServiceData", customerServiceGenerator);
 
     CustomerServiceEnrichOperator enrichOperator = new CustomerServiceEnrichOperator();
-    dag.addOperator("Enrich", enrichOperator);
+    dag.addOperator("EnrichServiceRecords", enrichOperator);
 
     dag.addStream("CustomerService", customerServiceGenerator.outputPort, enrichOperator.inputPort);
 
@@ -252,7 +250,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     DimensionsComputationFlexibleSingleSchemaPOJO dimensions = null;
     if (enableDimension) {
       // dimension
-      dimensions = dag.addOperator("CSDimensionsComputation",
+      dimensions = dag.addOperator("ComputeServiceKPIs",
           DimensionsComputationFlexibleSingleSchemaPOJO.class);
       dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.APPLICATION_WINDOW_COUNT, 4);
       dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.CHECKPOINT_WINDOW_COUNT, 4);
@@ -285,7 +283,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
           8092);
 
       // store
-      CustomerServiceStore store = dag.addOperator("CSStore", CustomerServiceStore.class);
+      CustomerServiceStore store = dag.addOperator("StoreServiceKPIs", CustomerServiceStore.class);
       store.setUpdateEnumValues(true);
       String basePath = Preconditions.checkNotNull(conf.get(PROP_STORE_PATH),
             "base path should be specified in the properties.xml");
@@ -308,7 +306,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       if(csStorePartitionCount > 1)
       {
         store.setPartitionCount(csStorePartitionCount);
-        store.setQueryResultUnifier(new DimensionQueryResultMergeUnifier());
+        store.setQueryResultUnifier(new DimensionStoreHDHTNonEmptyQueryResultUnifier());
       }
       // wsOut
       PubSubWebSocketAppDataResult wsOut = createAppDataResult();
@@ -334,7 +332,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
           keyValueMap.put(new MutablePair<String, Type>("issueType", Type.STRING), new MutablePair<String, Type>("serviceCall", Type.LONG));
           snapshotServer.setKeyValueMap(keyValueMap);
         }
-        dag.addOperator("ServiceCallServer", snapshotServer);
+        dag.addOperator("ComputeNumOfServiceCalls", snapshotServer);
         dag.addStream("ServiceCallSnapshot", store.serviceCallOutputPort, snapshotServer.input);
 
         PubSubWebSocketAppDataQuery snapShotQuery = new PubSubWebSocketAppDataQuery();
@@ -368,7 +366,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
           fieldInfo.put("threshold", Type.LONG);
           snapshotServer.setFieldInfoMap(fieldInfo);
         }
-        dag.addOperator("SatisfactionServer", snapshotServer);
+        dag.addOperator("ComputeSatisfactionRatings", snapshotServer);
         dag.addStream("Satisfaction", store.satisfactionRatingOutputPort, snapshotServer.input);
 
         PubSubWebSocketAppDataQuery snapShotQuery = new PubSubWebSocketAppDataQuery();
@@ -403,7 +401,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
           fieldInfo.put("threshold", Type.LONG);
           snapshotServer.setFieldInfoMap(fieldInfo);
         }
-        dag.addOperator("WaittimeServer", snapshotServer);
+        dag.addOperator("ComputeWaitTimes", snapshotServer);
         dag.addStream("Waittime", store.averageWaitTimeOutputPort, snapshotServer.input);
 
         PubSubWebSocketAppDataQuery snapShotQuery = new PubSubWebSocketAppDataQuery();
@@ -429,7 +427,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
   protected void populateCsGeoDAG(DAG dag, Configuration conf, List<DefaultInputPort<? super EnrichedCustomerService>> customerServiceStreamSinks)
   {
     // dimension
-    DimensionsComputationFlexibleSingleSchemaPOJO dimensions = dag.addOperator("CSGeoComputation",
+    DimensionsComputationFlexibleSingleSchemaPOJO dimensions = dag.addOperator("TagServiceGeoLocations",
         DimensionsComputationFlexibleSingleSchemaPOJO.class);
     dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.APPLICATION_WINDOW_COUNT, 4);
     dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.CHECKPOINT_WINDOW_COUNT, 4);
@@ -464,8 +462,8 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
         8092);
 
     // store
-    //AppDataSingleSchemaDimensionStoreHDHT store = dag.addOperator("CSGeoStore", AppDataSingleSchemaDimensionStoreHDHT.class);
-    GeoDimensionStore store = dag.addOperator("CSGeoStore", GeoDimensionStore.class);
+    //AppDataSingleSchemaDimensionStoreHDHT store = dag.addOperator("StoreTaggedServiceGeoLocations", AppDataSingleSchemaDimensionStoreHDHT.class);
+    GeoDimensionStore store = dag.addOperator("StoreTaggedServiceGeoLocations", GeoDimensionStore.class);
     store.setUpdateEnumValues(true);
     String basePath = Preconditions.checkNotNull(conf.get(PROP_GEO_STORE_PATH),
           "GEO base path should be specified in the properties.xml");
@@ -486,7 +484,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
     if(csGeoStorePartitionCount > 1)
     {
       store.setPartitionCount(csGeoStorePartitionCount);
-      store.setQueryResultUnifier(new DimensionQueryResultMergeUnifier());
+      store.setQueryResultUnifier(new DimensionStoreHDHTNonEmptyQueryResultUnifier());
     }
 
     // wsOut

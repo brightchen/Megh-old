@@ -22,7 +22,7 @@ import com.datatorrent.api.DAG.Locality;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
-import com.datatorrent.contrib.dimensions.DimensionQueryResultMergeUnifier;
+import com.datatorrent.contrib.dimensions.DimensionStoreHDHTNonEmptyQueryResultUnifier;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
 import com.datatorrent.contrib.hive.HiveStore;
 import com.datatorrent.demos.dimensions.telecom.conf.ConfigUtil;
@@ -114,8 +114,8 @@ public class CDRDemoV2 implements StreamingApplication {
     PROP_HBASE_HOST = "dt.application." + appName + ".hbase.host";
     PROP_HIVE_HOST = "dt.application." + appName + ".hive.host";
 
-    PROP_STORE_PATH = "dt.application." + appName + ".operator.CDRStore.fileStore.basePathPrefix";
-    PROP_GEO_STORE_PATH = "dt.application." + appName + ".operator.CDRGeoStore.fileStore.basePathPrefix";
+    PROP_STORE_PATH = "dt.application." + appName + ".operator.StoreEnrichedCDRKPIs.fileStore.basePathPrefix";
+    PROP_GEO_STORE_PATH = "dt.application." + appName + ".operator.StoreNetworkTaggedGeoLocations.fileStore.basePathPrefix";
     PROP_OUTPUT_MASK = "dt.application." + appName + ".cdroutputmask";
     PROP_HIVE_TEMP_PATH = "dt.application." + appName + ".cdrhivetmppath";
     PROP_HIVE_TEMP_FILE = "dt.application." + appName + ".cdrhivetmpfile";
@@ -195,11 +195,11 @@ public class CDRDemoV2 implements StreamingApplication {
 
     // CDR generator
     CallDetailRecordGenerateOperator cdrGenerator = new CallDetailRecordGenerateOperator();
-    dag.addOperator("CDRGenerator", cdrGenerator);
+    dag.addOperator("IngestCDRfromSolace", cdrGenerator);
 
     // CDR enrich
     CDREnrichOperator enrichOperator = new CDREnrichOperator();
-    dag.addOperator("CDREnrich", enrichOperator);
+    dag.addOperator("EnrichCDR", enrichOperator);
 
     dag.addStream("InputStream", cdrGenerator.cdrOutputPort, enrichOperator.cdrInputPort)
     .setLocality(Locality.CONTAINER_LOCAL);
@@ -249,7 +249,7 @@ public class CDRDemoV2 implements StreamingApplication {
     DimensionsComputationFlexibleSingleSchemaPOJO dimensions = null;
     if (enableDimension) {
       // dimension
-      dimensions = dag.addOperator("CDRDimensionsComputation",
+      dimensions = dag.addOperator("ComputeKPIs",
           DimensionsComputationFlexibleSingleSchemaPOJO.class);
       dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.APPLICATION_WINDOW_COUNT, 4);
       dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.CHECKPOINT_WINDOW_COUNT, 4);
@@ -271,6 +271,7 @@ public class CDRDemoV2 implements StreamingApplication {
         Map<String, String> aggregateToExpression = Maps.newHashMap();
         aggregateToExpression.put("disconnectCount", "getDisconnectCount()");
         aggregateToExpression.put("downloadBytes", "getBytes()");
+        aggregateToExpression.put("called", "getCalled()");
         dimensions.setAggregateToExpression(aggregateToExpression);
       }
 
@@ -282,7 +283,7 @@ public class CDRDemoV2 implements StreamingApplication {
           8092);
 
       // store
-      CDRStore store = dag.addOperator("CDRStore", CDRStore.class);
+      CDRStore store = dag.addOperator("StoreEnrichedCDRKPIs", CDRStore.class);
       store.setUpdateEnumValues(true);
       String basePath = Preconditions.checkNotNull(conf.get(PROP_STORE_PATH),
             "base path should be specified in the properties.xml");
@@ -305,7 +306,7 @@ public class CDRDemoV2 implements StreamingApplication {
       if(cdrStorePartitionCount > 1)
       {
         store.setPartitionCount(cdrStorePartitionCount);
-        store.setQueryResultUnifier(new DimensionQueryResultMergeUnifier());
+        store.setQueryResultUnifier(new DimensionStoreHDHTNonEmptyQueryResultUnifier());
       }
       // wsOut
       PubSubWebSocketAppDataResult wsOut = createAppDataResult();
@@ -330,7 +331,7 @@ public class CDRDemoV2 implements StreamingApplication {
         keyValueMap.put(new MutablePair<String, Type>("deviceModel", Type.STRING), new MutablePair<String, Type>("downloadBytes", Type.LONG));
         snapshotServer.setKeyValueMap(keyValueMap);
       }
-      dag.addOperator("BandwidthServer", snapshotServer);
+      dag.addOperator("ComputeBandwidthUsageByDevice", snapshotServer);
       dag.addStream("Bandwidth", store.updateWithList, snapshotServer.input);
 
       PubSubWebSocketAppDataQuery snapShotQuery = new PubSubWebSocketAppDataQuery();
@@ -355,7 +356,7 @@ public class CDRDemoV2 implements StreamingApplication {
   protected void populateCdrGeoDAG(DAG dag, Configuration conf, List<DefaultInputPort<? super EnrichedCDR>> enrichedStreamSinks)
   {
     // dimension
-    DimensionsComputationFlexibleSingleSchemaPOJO dimensions = dag.addOperator("CDRGeoComputation",
+    DimensionsComputationFlexibleSingleSchemaPOJO dimensions = dag.addOperator("TagNetworkGeoLocations",
         DimensionsComputationFlexibleSingleSchemaPOJO.class);
     dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.APPLICATION_WINDOW_COUNT, 4);
     dag.getMeta(dimensions).getAttributes().put(Context.OperatorContext.CHECKPOINT_WINDOW_COUNT, 4);
@@ -391,8 +392,8 @@ public class CDRDemoV2 implements StreamingApplication {
         8092);
 
     // store
-    //AppDataSingleSchemaDimensionStoreHDHT store = dag.addOperator("CDRGeoStore", AppDataSingleSchemaDimensionStoreHDHT.class);
-    GeoDimensionStore store = dag.addOperator("CDRGeoStore", GeoDimensionStore.class);
+    //AppDataSingleSchemaDimensionStoreHDHT store = dag.addOperator("StoreNetworkTaggedGeoLocations", AppDataSingleSchemaDimensionStoreHDHT.class);
+    GeoDimensionStore store = dag.addOperator("StoreNetworkTaggedGeoLocations", GeoDimensionStore.class);
     store.setUpdateEnumValues(true);
     String basePath = Preconditions.checkNotNull(conf.get(PROP_GEO_STORE_PATH),
           "GEO base path should be specified in the properties.xml");
@@ -413,7 +414,7 @@ public class CDRDemoV2 implements StreamingApplication {
     if(cdrGeoStorePartitionCount > 1)
     {
       store.setPartitionCount(cdrGeoStorePartitionCount);
-      store.setQueryResultUnifier(new DimensionQueryResultMergeUnifier());
+      store.setQueryResultUnifier(new DimensionStoreHDHTNonEmptyQueryResultUnifier());
     }
 
     // wsOut

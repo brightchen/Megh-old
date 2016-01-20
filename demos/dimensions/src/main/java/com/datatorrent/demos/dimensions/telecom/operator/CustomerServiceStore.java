@@ -65,6 +65,12 @@ public class CustomerServiceStore extends AppDataSingleSchemaDimensionStoreHDHTU
     long sum = 0;
     long count = 0;
     for (Map.Entry<EventKey, Aggregate> entry : cache.entrySet()) {
+//      logger.debug("\nentry.getKey().getDimensionDescriptorID(): {},  dimensionDesciptionId: {}; \n"
+//          + "entry.getKey().getKey().getFieldInt(DimensionsDescriptor.DIMENSION_TIME_BUCKET): {}, timeBucket: {}; \n"
+//          + "entry.getKey().getKey().getFieldLong(TIME_FIELD_NAME): {}, getMaxTimestamp(): {}", 
+//          entry.getKey().getDimensionDescriptorID(), dimensionDesciptionId, 
+//          entry.getKey().getKey().getFieldInt(DimensionsDescriptor.DIMENSION_TIME_BUCKET), timeBucket, 
+//          entry.getKey().getKey().getFieldLong(TIME_FIELD_NAME), getMaxTimestamp()); 
       //check the dimension id;
       if(entry.getKey().getDimensionDescriptorID() != dimensionDesciptionId)
         continue;

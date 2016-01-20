@@ -6,7 +6,7 @@
  "timeBuckets":["1m", "1h"],
  "values":
   [
-    {"name":"serviceCall","type":"long","aggregators":["SUM"]},
+    {"name":"serviceCall","type":"long","aggregators":["COUNT","SUM","AVG"]},
     {"name":"wait","type":"long","aggregators":["SUM","COUNT","AVG"]},
     {"name":"satisfaction","type":"long","aggregators":["AVG"]},
   ],

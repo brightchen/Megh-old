@@ -295,8 +295,8 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       dag.setAttribute(store, Context.OperatorContext.COUNTERS_AGGREGATOR,
           new BasicCounters.LongAggregator<MutableLong>());
       store.setConfigurationSchemaJSON(eventSchema);
-      //for bandwidth usage
-      store.addAggregatorsInfo(AggregatorIncrementalType.COUNT.ordinal(), 6);
+      //for service call
+      store.addAggregatorsInfo(AggregatorIncrementalType.COUNT.ordinal(), 5);
 
       PubSubWebSocketAppDataQuery query = createAppDataQuery();
       URI queryUri = ConfigUtil.getAppDataQueryPubSubURI(dag, conf);
@@ -321,7 +321,7 @@ public class CustomerServiceDemoV2 implements StreamingApplication {
       dag.addStream("CSQueryResult", store.queryResult, wsOut.input);
 
       //snapshot servers
-      //ServiceCall
+      //ServiceCall by type
       {
         AppDataSnapshotServerAggregate snapshotServer = new AppDataSnapshotServerAggregate();
         String snapshotServerJSON = SchemaUtils.jarResourceFileToString(serviceCallSchemaLocation);

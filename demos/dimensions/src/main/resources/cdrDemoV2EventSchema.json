@@ -6,7 +6,7 @@
  "timeBuckets":["1m","1h"],
  "values":
   [
-   {"name":"disconnectCount","type":"long","aggregators":["SUM"]},
+    {"name":"disconnectCount","type":"long","aggregators":["SUM"]},
     {"name":"downloadBytes","type":"long","aggregators":["SUM"]},
     {"name":"called","type":"long","aggregators":["SUM","COUNT","AVG"]}
   ],

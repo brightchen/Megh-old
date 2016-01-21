@@ -262,6 +262,7 @@ public class CDRDemoV2 implements StreamingApplication {
         Map<String, String> keyToExpression = Maps.newHashMap();
         keyToExpression.put("zipcode", "getZipCode()");
         keyToExpression.put("deviceModel", "getDeviceModel()");
+        keyToExpression.put("region", "getRegionZip2()");
         keyToExpression.put("time", "getTime()");
         dimensions.setKeyToExpression(keyToExpression);
       }

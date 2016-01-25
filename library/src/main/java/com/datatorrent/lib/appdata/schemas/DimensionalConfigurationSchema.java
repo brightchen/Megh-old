@@ -5,6 +5,7 @@
 package com.datatorrent.lib.appdata.schemas;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,7 @@ import com.datatorrent.lib.dimensions.DimensionsDescriptor;
 import com.datatorrent.lib.dimensions.aggregator.AggregatorRegistry;
 import com.datatorrent.lib.dimensions.aggregator.AggregatorUtils;
 import com.datatorrent.lib.dimensions.aggregator.CompositeAggregatorFactory;
+import com.datatorrent.lib.dimensions.aggregator.DefaultCompositeAggregatorFactory;
 import com.datatorrent.lib.dimensions.aggregator.IncrementalAggregator;
 import com.datatorrent.lib.dimensions.aggregator.OTFAggregator;
 import com.datatorrent.lib.dimensions.aggregator.SimpleCompositeAggregator;
@@ -231,6 +233,12 @@ public class DimensionalConfigurationSchema
    */
   private List<Map<String, Set<String>>> dimensionsDescriptorIDToValueToOTFAggregator;
   /**
+   * This is a map from a dimensions descriptor id to a value to the set of all composite aggregations performed
+   * on that value under the dimensions combination corresponding to that dimensions descriptor id.
+   */
+  private List<Map<String, Set<String>>> dimensionsDescriptorIDToValueToCompositeAggregator;
+  
+  /**
    * This is a map from a dimensions descriptor id to an aggregator to a {@link FieldsDescriptor} object.
    * This is used internally to build dimensionsDescriptorIDToAggregatorIDToInputAggregatorDescriptor and
    * dimensionsDescriptorIDToAggregatorIDToOutputAggregatorDescriptor in the
@@ -241,6 +249,10 @@ public class DimensionalConfigurationSchema
    * This is a map from a dimensions descriptor id to an OTF aggregator to a {@link FieldsDescriptor} object.
    */
   private List<Map<String, FieldsDescriptor>> dimensionsDescriptorIDToOTFAggregatorToAggregateDescriptor;
+  /**
+   * This is a map from a dimensions descriptor id to an composite aggregator to a {@link FieldsDescriptor} object.
+   */
+  private List<Map<String, FieldsDescriptor>> dimensionsDescriptorIDToCompositeAggregatorToAggregateDescriptor;
   /**
    * This is a map from a {@link DimensionsDescriptor} to its corresponding dimensions descriptor ID.
    */
@@ -315,6 +327,8 @@ public class DimensionalConfigurationSchema
   protected Map<String, Map<String, String>> aggregatorToProperty;
   
   private CustomTimeBucketRegistry customTimeBucketRegistry;
+  
+  protected CompositeAggregatorFactory compositeAggregatorFactory = DefaultCompositeAggregatorFactory.defaultInst;
 
   /**
    * Constructor for serialization.
@@ -388,6 +402,11 @@ public class DimensionalConfigurationSchema
     return aggregatorRegistry;
   }
 
+  /**
+   * 
+   * @param ddIDToValueToAggregator
+   * @return a list of AggregatorToAggregateDescriptor. namely ddID to AggregatorToAggregateDescriptor
+   */
   private List<Map<String, FieldsDescriptor>> computeAggregatorToAggregateDescriptor(
       List<Map<String, Set<String>>> ddIDToValueToAggregator)
   {
@@ -707,7 +726,10 @@ public class DimensionalConfigurationSchema
     bucketsString = timeBucketArray.toString();
 
     //buildDDIDAggID
-
+    
+    //composite aggregator are not supported in this method. add empty list to avoid unit test error.
+    dimensionsDescriptorIDToCompositeAggregatorToAggregateDescriptor = Lists.newArrayList();
+    
     buildDimensionsDescriptorIDAggregatorIDMaps();
   }
 
@@ -865,6 +887,7 @@ public class DimensionalConfigurationSchema
     Map<String, Set<String>> valueToAggregators = Maps.newHashMap();
     Map<String, Set<String>> valueToOTFAggregators = Maps.newHashMap();
     Map<String, Set<String>> allValueToCompositeAggregator = Maps.newHashMap();
+    Map<String, Set<String>> valueToCompositeAggregators = Maps.newHashMap();
 
     Map<String, Type> aggFieldToType = Maps.newHashMap();
     JSONArray valuesArray = jo.getJSONArray(FIELD_VALUES);
@@ -894,7 +917,7 @@ public class DimensionalConfigurationSchema
       aggFieldToType.put(name, typeT);
       Set<String> aggregatorSet = Sets.newHashSet();
       Set<String> aggregatorOTFSet = Sets.newHashSet();
-      Set<String> aggregatorCompositeSet = Sets.newHashSet();
+      Set<String> aggregateCompositeSet = Sets.newHashSet();
       
       if (value.has(FIELD_VALUES_AGGREGATIONS)) {
         JSONArray aggregators = value.getJSONArray(FIELD_VALUES_AGGREGATIONS);
@@ -911,7 +934,7 @@ public class DimensionalConfigurationSchema
           //example: {"aggregator":"BOTTOMN","property":"count","value":"20","embededAggregator":"AVG"}
           String aggregatorName = null;
           aggregatorName = aggregators.getString(aggregatorIndex);
-          if(!aggregatorName.contains(",") && !aggregatorName.contains(":"))
+          if(isJsonSimpleString(aggregatorName))
           {
             //it's is simple aggregator
             addNonCompositeAggregator(aggregatorName, allValueToAggregator, allValueToOTFAggregator, 
@@ -926,14 +949,16 @@ public class DimensionalConfigurationSchema
             String propertyValue = jsonAggregator.getString(FIELD_VALUES_AGGREGATOR_PROPERTY_VALUE);
             String embededAggregatorName = jsonAggregator.getString(FIELD_VALUES_EMBEDED_AGGREGATOR);
             
+            Map<String, Object> properties = Maps.newHashMap();
+            properties.put(propertyName, propertyValue);
             
             //add embeded aggregator first
             Object embededAggregator = null;
             if(embededAggregatorName != null)
               embededAggregator = addNonCompositeAggregator(embededAggregatorName, allValueToAggregator, allValueToOTFAggregator, 
                   name, aggregatorSet, aggregatorToType, typeT, aggregatorOTFSet, false);
-            Object aggregator = this.addCompositeAggregator(aggregatorName, allValueToCompositeAggregator, name, 
-                aggregatorCompositeSet, embededAggregatorName, embededAggregator, propertyName, propertyValue);
+            Object aggregator = this.addCompositeAggregator(aggregatorName, allValueToCompositeAggregator, aggregateCompositeSet, name, 
+                embededAggregatorName, embededAggregator, properties);
                 //(aggregatorName, allValueToAggregator, allValueToCompositeAggregator, aggregatorSet, aggregatorToType, typeT, aggregatorOTFSet, 
                 //propertyName, propertyValue);
             
@@ -944,6 +969,7 @@ public class DimensionalConfigurationSchema
       if (!aggregatorSet.isEmpty()) {
         valueToAggregators.put(name, aggregatorSet);
         valueToOTFAggregators.put(name, aggregatorOTFSet);
+        valueToCompositeAggregators.put(name, aggregateCompositeSet);
       }
     }
 
@@ -956,6 +982,8 @@ public class DimensionalConfigurationSchema
 
     dimensionsDescriptorIDToValueToAggregator = Lists.newArrayList();
     dimensionsDescriptorIDToValueToOTFAggregator = Lists.newArrayList();
+    dimensionsDescriptorIDToValueToCompositeAggregator = Lists.newArrayList();
+    
     dimensionsDescriptorIDToKeyDescriptor = Lists.newArrayList();
     dimensionsDescriptorIDToDimensionsDescriptor = Lists.newArrayList();
     dimensionsDescriptorIDToAggregatorToAggregateDescriptor = Lists.newArrayList();
@@ -1020,8 +1048,14 @@ public class DimensionalConfigurationSchema
       JSONObject dimension = dimensionsArray.getJSONObject(dimensionsIndex);
       //Get the key fields of a descriptor
       JSONArray combinationFields = dimension.getJSONArray(FIELD_DIMENSIONS_COMBINATIONS);
+      
+      //valueName to IncrementalAggregator
       Map<String, Set<String>> specificValueToAggregator = Maps.newHashMap();
+      //valueName to OTFAggregator
       Map<String, Set<String>> specificValueToOTFAggregator = Maps.newHashMap();
+      //valueName to CompositeAggregator
+      Map<String, Set<String>> specificValueToCompositeAggregator = Maps.newHashMap();
+      //TODO: need a mechanism to check the value name is value.
 
       for (Map.Entry<String, Set<String>> entry : valueToAggregators.entrySet()) {
         Set<String> aggregators = Sets.newHashSet();
@@ -1033,6 +1067,12 @@ public class DimensionalConfigurationSchema
         Set<String> aggregators = Sets.newHashSet();
         aggregators.addAll(entry.getValue());
         specificValueToOTFAggregator.put(entry.getKey(), aggregators);
+      }
+      
+      for (Map.Entry<String, Set<String>> entry : valueToCompositeAggregators.entrySet()) {
+        Set<String> aggregators = Sets.newHashSet();
+        aggregators.addAll(entry.getValue());
+        specificValueToCompositeAggregator.put(entry.getKey(), aggregators);
       }
 
       List<String> keyNames = Lists.newArrayList();
@@ -1097,104 +1137,128 @@ public class DimensionalConfigurationSchema
             additionalValueIndex < additionalValues.length();
             additionalValueIndex++) {
           String additionalValue = additionalValues.getString(additionalValueIndex);
-          String[] components = additionalValue.split(ADDITIONAL_VALUE_SEPERATOR);
-
-          if (components.length != ADDITIONAL_VALUE_NUM_COMPONENTS) {
-            throw new IllegalArgumentException("The number of component values "
-                + "in an additional value must be "
-                + ADDITIONAL_VALUE_NUM_COMPONENTS
-                + " not " + components.length);
-          }
-
-          String valueName = components[ADDITIONAL_VALUE_VALUE_INDEX];
-          String aggregatorName = components[ADDITIONAL_VALUE_AGGREGATOR_INDEX];
-
+          
+          if(isJsonSimpleString(additionalValue))
           {
-            Set<String> aggregators = fieldToAggregatorAdditionalValues.get(valueName);
+            String[] components = additionalValue.split(ADDITIONAL_VALUE_SEPERATOR);
 
-            if (aggregators == null) {
-              aggregators = Sets.newHashSet();
-              fieldToAggregatorAdditionalValues.put(valueName, aggregators);
+            if (components.length != ADDITIONAL_VALUE_NUM_COMPONENTS) {
+              throw new IllegalArgumentException("The number of component values "
+                  + "in an additional value must be "
+                  + ADDITIONAL_VALUE_NUM_COMPONENTS
+                  + " not " + components.length);
             }
 
-            aggregators.add(aggregatorName);
+            String valueName = components[ADDITIONAL_VALUE_VALUE_INDEX];
+            verifyValueDefined(valueName, aggFieldToType.keySet());
+            
+            String aggregatorName = components[ADDITIONAL_VALUE_AGGREGATOR_INDEX];
+
+            {
+              Set<String> aggregators = fieldToAggregatorAdditionalValues.get(valueName);
+
+              if (aggregators == null) {
+                aggregators = Sets.newHashSet();
+                fieldToAggregatorAdditionalValues.put(valueName, aggregators);
+              }
+
+              aggregators.add(aggregatorName);
+            }
+
+            if (!aggregatorRegistry.isAggregator(aggregatorName)) {
+              throw new IllegalArgumentException(aggregatorName + " is not a valid aggregator.");
+            }
+
+            if (aggregatorRegistry.isIncrementalAggregator(aggregatorName)) {
+              Set<String> aggregatorNames = allValueToAggregator.get(valueName);
+
+              if (aggregatorNames == null) {
+                aggregatorNames = Sets.newHashSet();
+                allValueToAggregator.put(valueName, aggregatorNames);
+              }
+
+              aggregatorNames.add(aggregatorName);
+
+              Set<String> aggregators = specificValueToAggregator.get(valueName);
+              if (aggregators == null) {
+                aggregators = Sets.newHashSet();
+                specificValueToAggregator.put(valueName, aggregators);
+              }
+
+              if (!aggregators.add(aggregatorName)) {
+                throw new IllegalArgumentException("The aggregator " + aggregatorName
+                    + " was already defined in the " + FIELD_VALUES
+                    + " section for the value " + valueName);
+              }
+            } else {
+              //Check for duplicate on the fly aggregators
+              Set<String> aggregatorNames = specificValueToOTFAggregator.get(valueName);
+
+              if (aggregatorNames == null) {
+                aggregatorNames = Sets.newHashSet();
+                specificValueToOTFAggregator.put(valueName, aggregatorNames);
+              }
+
+              if (!aggregatorNames.add(aggregatorName)) {
+                throw new IllegalArgumentException("The aggregator " + aggregatorName +
+                    " cannot be specified twice for the value " + valueName);
+              }
+
+              aggregatorNames = allValueToOTFAggregator.get(valueName);
+
+              if (aggregatorNames == null) {
+                aggregatorNames = Sets.newHashSet();
+                allValueToOTFAggregator.put(valueName, aggregatorNames);
+              }
+
+              if (!aggregatorNames.add(aggregatorName)) {
+                throw new IllegalArgumentException("The aggregator " + aggregatorName +
+                    " cannot be specified twice for the value " + valueName);
+              }
+
+              Set<String> aggregators = specificValueToAggregator.get(valueName);
+
+              if (aggregators == null) {
+                aggregators = Sets.newHashSet();
+                specificValueToAggregator.put(valueName, aggregators);
+              }
+
+              if (aggregators == null) {
+                throw new IllegalArgumentException("The additional value " + additionalValue
+                    + "Does not have a corresponding value " + valueName
+                    + " defined in the " + FIELD_VALUES + " section.");
+              }
+
+              aggregators.addAll(aggregatorRegistry.getOTFAggregatorToIncrementalAggregators().get(aggregatorName));
+            }
+          }
+          else
+          {
+            //it is a composite aggragate
+            JSONObject jsonAddition = additionalValues.getJSONObject(additionalValueIndex);
+            String valueName = (String)jsonAddition.keys().next();
+            verifyValueDefined(valueName, aggFieldToType.keySet());
+            
+            JSONObject jsonAggregator = jsonAddition.getJSONObject(valueName);
+
+            String aggregatorName = jsonAggregator.getString(FIELD_VALUES_AGGREGATOR);
+            String propertyName = jsonAggregator.getString(FIELD_VALUES_AGGREGATOR_PROPERTY);
+            String propertyValue = jsonAggregator.getString(FIELD_VALUES_AGGREGATOR_PROPERTY_VALUE);
+            String embededAggregatorName = jsonAggregator.getString(FIELD_VALUES_EMBEDED_AGGREGATOR);
+     
+            Map<String, Object> properties = Maps.newHashMap();
+            properties.put(propertyName, propertyValue);
+            
+            //add embeded aggregator first, the embeded aggregator could be had added or not.
+            Object embededAggregator = null;
+            if(embededAggregatorName != null)
+              embededAggregator = addNonCompositeAggregator(embededAggregatorName, allValueToAggregator, allValueToOTFAggregator, 
+                  valueName, specificValueToAggregator.get(valueName), schemaAllValueToAggregatorToType.get(valueName), 
+                  aggFieldToType.get(valueName), specificValueToOTFAggregator.get(valueName), false);
+            Object aggregator = this.addCompositeAggregator(aggregatorName, allValueToCompositeAggregator, specificValueToCompositeAggregator.get(valueName),
+                valueName, embededAggregatorName, embededAggregator, properties); 
           }
 
-          if (!aggregatorRegistry.isAggregator(aggregatorName)) {
-            throw new IllegalArgumentException(aggregatorName + " is not a valid aggregator.");
-          }
-
-          if (aggregatorRegistry.isIncrementalAggregator(aggregatorName)) {
-            Set<String> aggregatorNames = allValueToAggregator.get(valueName);
-
-            if (aggregatorNames == null) {
-              aggregatorNames = Sets.newHashSet();
-              allValueToAggregator.put(valueName, aggregatorNames);
-            }
-
-            aggregatorNames.add(aggregatorName);
-
-            Set<String> aggregators = specificValueToAggregator.get(valueName);
-
-            if (aggregators == null) {
-              aggregators = Sets.newHashSet();
-              specificValueToAggregator.put(valueName, aggregators);
-            }
-
-            if (aggregators == null) {
-              throw new IllegalArgumentException("The additional value " + additionalValue
-                  + "Does not have a corresponding value " + valueName
-                  + " defined in the " + FIELD_VALUES + " section.");
-            }
-
-            if (!aggregators.add(aggregatorName)) {
-              throw new IllegalArgumentException("The aggregator " + aggregatorName
-                  + " was already defined in the " + FIELD_VALUES
-                  + " section for the value " + valueName);
-            }
-          } else {
-            //Check for duplicate on the fly aggregators
-            Set<String> aggregatorNames = specificValueToOTFAggregator.get(valueName);
-
-            if (aggregatorNames == null) {
-              aggregatorNames = Sets.newHashSet();
-              specificValueToOTFAggregator.put(valueName, aggregatorNames);
-            }
-
-            if (!aggregatorNames.add(aggregatorName)) {
-              throw new IllegalArgumentException("The aggregator " + aggregatorName +
-                  " cannot be specified twice for the value " + valueName);
-            }
-
-            aggregatorNames = allValueToOTFAggregator.get(valueName);
-
-            if (aggregatorNames == null) {
-              aggregatorNames = Sets.newHashSet();
-              allValueToOTFAggregator.put(valueName, aggregatorNames);
-            }
-
-            if (!aggregatorNames.add(aggregatorName)) {
-              throw new IllegalArgumentException("The aggregator " + aggregatorName +
-                  " cannot be specified twice for the value " + valueName);
-            }
-
-            //
-
-            Set<String> aggregators = specificValueToAggregator.get(valueName);
-
-            if (aggregators == null) {
-              aggregators = Sets.newHashSet();
-              specificValueToAggregator.put(valueName, aggregators);
-            }
-
-            if (aggregators == null) {
-              throw new IllegalArgumentException("The additional value " + additionalValue
-                  + "Does not have a corresponding value " + valueName
-                  + " defined in the " + FIELD_VALUES + " section.");
-            }
-
-            aggregators.addAll(aggregatorRegistry.getOTFAggregatorToIncrementalAggregators().get(aggregatorName));
-          }
         }
       }
 
@@ -1207,6 +1271,7 @@ public class DimensionalConfigurationSchema
       for (CustomTimeBucket customTimeBucket : customTimeBucketsCombination) {
         dimensionsDescriptorIDToValueToAggregator.add(specificValueToAggregator);
         dimensionsDescriptorIDToValueToOTFAggregator.add(specificValueToOTFAggregator);
+        dimensionsDescriptorIDToValueToCompositeAggregator.add(specificValueToCompositeAggregator);
       }
     }
 
@@ -1234,6 +1299,9 @@ public class DimensionalConfigurationSchema
     dimensionsDescriptorIDToOTFAggregatorToAggregateDescriptor = computeAggregatorToAggregateDescriptor(
         dimensionsDescriptorIDToValueToOTFAggregator);
 
+    dimensionsDescriptorIDToCompositeAggregatorToAggregateDescriptor = computeAggregatorToAggregateDescriptor(
+        dimensionsDescriptorIDToValueToCompositeAggregator);
+    
     //Dimensions Descriptor To ID
 
     dimensionsDescriptorToID = Maps.newHashMap();
@@ -1265,6 +1333,25 @@ public class DimensionalConfigurationSchema
     }
 
     return stringArray;
+  }
+  
+  /**
+   * The value must be defined in the FIELD_VALUES section.
+   * The additional section don't have value type information add can't define value.
+   * @param valueName
+   * @param valueNames
+   */
+  protected void verifyValueDefined(String valueName, Set<String> valueNames)
+  {
+    if (valueNames == null || !valueNames.contains(valueName)) {
+      throw new IllegalArgumentException("The additional value " + valueName + "Does not have a corresponding value "
+          + valueName + " defined in the " + FIELD_VALUES + " section.");
+    }
+  }
+  
+  protected boolean isJsonSimpleString(String string)
+  {
+    return !string.contains("{");
   }
   
   protected Object addNonCompositeAggregator(
@@ -1339,12 +1426,11 @@ public class DimensionalConfigurationSchema
   protected SimpleCompositeAggregator<Object> addCompositeAggregator(
       String aggregatorType,
       Map<String, Set<String>> allValueToCompositeAggregator,
+      Set<String> aggregateCompositeSet,
       String valueName,
-      Set<String> aggregatorCompositeSet,
       String embededAggregatorName,
       Object embededAggregator,
-      String propertyName,
-      String propertyValue
+      Map<String, Object> properties
       )
   {
     if(!aggregatorRegistry.isCompositeAggregator(aggregatorType)){
@@ -1352,8 +1438,7 @@ public class DimensionalConfigurationSchema
     }
     
     Pair<String, SimpleCompositeAggregator<Object>> pair = createCompositeAggregator( aggregatorType, 
-        embededAggregatorName, embededAggregator, 
-        propertyName, propertyValue);
+        embededAggregatorName, embededAggregator, properties);
     
     String aggregatorName = pair.first;
     //Check for duplicate
@@ -1370,7 +1455,7 @@ public class DimensionalConfigurationSchema
     }
     allValueToCompositeAggregator.put(valueName, aggregatorNames);
     
-    aggregatorCompositeSet.add(aggregatorName);
+    aggregateCompositeSet.add(aggregatorName);
     
     //create aggregator before add name in case exception.
     SimpleCompositeAggregator<Object> aggregator = pair.second;
@@ -1395,11 +1480,10 @@ public class DimensionalConfigurationSchema
    */
   public Pair<String, SimpleCompositeAggregator<Object>> createCompositeAggregator(String aggregatorType, 
         String embededAggregatorName, Object embededAggregator, 
-        String propertyName, String propertyValue)
+        Map<String, Object> properties)
   {
-    int count = Integer.parseInt(propertyValue);
-    String aggregatorName = CompositeAggregatorFactory.getCompositeAggregatorName(aggregatorType, embededAggregatorName, count);
-    SimpleCompositeAggregator<Object> aggregator = CompositeAggregatorFactory.createTopBottomAggregator(aggregatorType, embededAggregator, count);
+    String aggregatorName = compositeAggregatorFactory.getCompositeAggregatorName(aggregatorType, embededAggregatorName, properties);
+    SimpleCompositeAggregator<Object> aggregator = compositeAggregatorFactory.createCompositeAggregator(aggregatorType, embededAggregator, properties);
     return new Pair<String, SimpleCompositeAggregator<Object>>(aggregatorName, aggregator);
   }
   
@@ -1444,7 +1528,12 @@ public class DimensionalConfigurationSchema
     return newCombinations;
   }
 
-  private void buildDimensionsDescriptorIDAggregatorIDMaps()
+  /**
+   * Precondition: all depended aggregators( for example AVG depended on SUM and COUNT, Composite Aggregators depended on embed aggregators )
+   * should already solved. This function will not handle this dependencies.
+   * 
+   */
+  protected void buildDimensionsDescriptorIDAggregatorIDMaps()
   {
     dimensionsDescriptorIDToAggregatorIDs = Lists.newArrayList();
     dimensionsDescriptorIDToAggregatorIDToInputAggregatorDescriptor = Lists.newArrayList();
@@ -1463,20 +1552,118 @@ public class DimensionalConfigurationSchema
 
       for (Map.Entry<String, FieldsDescriptor> entry :
           dimensionsDescriptorIDToAggregatorToAggregateDescriptor.get(index).entrySet()) {
+        buildNonCompositeAggregatorIDMap(entry.getKey(), entry.getValue(), aggIDList, inputMap, outputMap);
+      }
+    }
+    
+    //get the max aggregator id for generating the composite aggregator id
+    int maxAggregatorID = getLargestNonCompositeAggregatorID();
+    
+    //assign aggregatorID to composite aggregators
+    for (int index = 0;
+        index < dimensionsDescriptorIDToCompositeAggregatorToAggregateDescriptor.size();
+        index++) {
+      IntArrayList aggIDList = dimensionsDescriptorIDToAggregatorIDs.get(index);
+      Int2ObjectMap<FieldsDescriptor> inputMap = dimensionsDescriptorIDToAggregatorIDToInputAggregatorDescriptor.get(index);
+      Int2ObjectMap<FieldsDescriptor> outputMap = dimensionsDescriptorIDToAggregatorIDToOutputAggregatorDescriptor.get(index);
+
+      for (Map.Entry<String, FieldsDescriptor> entry :
+          dimensionsDescriptorIDToCompositeAggregatorToAggregateDescriptor.get(index).entrySet()) {
         String aggregatorName = entry.getKey();
         FieldsDescriptor inputDescriptor = entry.getValue();
-        IncrementalAggregator incrementalAggregator = aggregatorRegistry.getNameToIncrementalAggregator().get(
+        SimpleCompositeAggregator<?> compositeAggregator = aggregatorRegistry.getNameToCompositeAggregator().get(
             aggregatorName);
-        int aggregatorID = aggregatorRegistry.getIncrementalAggregatorNameToID().get(aggregatorName);
+        
+        //simple use ++ to assign aggregator id
+        int aggregatorID;
+        Integer objAggregatorID = aggregatorRegistry.getCompositeAggregatorNameToID().get(aggregatorName);
+        if(objAggregatorID == null)
+        {
+          aggregatorID = ++maxAggregatorID;   
+          aggregatorRegistry.getCompositeAggregatorNameToID().put(aggregatorName, aggregatorID);
+        }
+        else
+        {
+          aggregatorID = objAggregatorID;
+        }
         aggIDList.add(aggregatorID);
         inputMap.put(aggregatorID, inputDescriptor);
-        outputMap.put(aggregatorID,
-            AggregatorUtils.getOutputFieldsDescriptor(inputDescriptor,
-            incrementalAggregator));
+        //buildNonCompositeAggregatorIDMap(getEmbededAggregatorName(aggregatorName), entry.getValue(), aggIDList, inputMap, outputMap);
+        
+        Object embededAggregator = compositeAggregator.getEmbededAggregator();
+        if(embededAggregator instanceof IncrementalAggregator)
+        {
+          //the composite's output FD should same as its embeded Aggregator
+          outputMap.put(aggregatorID,
+              AggregatorUtils.getOutputFieldsDescriptor(inputDescriptor,(IncrementalAggregator)embededAggregator));
+          
+        }
+        else if(embededAggregator instanceof OTFAggregator)
+        {
+          //the composite's output FD should same as its embeded Aggregator
+          outputMap.put(aggregatorID,
+              AggregatorUtils.getOutputFieldsDescriptor(inputDescriptor,(OTFAggregator)embededAggregator));
+        }
+        else
+          throw new RuntimeException("Invalid embeded Aggregator type: " + embededAggregator.getClass());
       }
     }
   }
+  
+  protected int getLargestNonCompositeAggregatorID()
+  {
+    int maxAggregatorID = 0;
+    Collection<Integer> aggregatorIDs = aggregatorRegistry.getIncrementalAggregatorNameToID().values();
+    for(int aggregatorID : aggregatorIDs)
+    {
+      if(aggregatorID > maxAggregatorID)
+        maxAggregatorID = aggregatorID;
+    }
+    return maxAggregatorID;
+  }
+  
+  protected void buildNonCompositeAggregatorIDMap(String aggregatorName, FieldsDescriptor inputDescriptor, 
+      IntArrayList aggIDList, Int2ObjectMap<FieldsDescriptor> inputMap, Int2ObjectMap<FieldsDescriptor> outputMap)
+  {
+    IncrementalAggregator incrementalAggregator = aggregatorRegistry.getNameToIncrementalAggregator().get(
+        aggregatorName);
+    //don't need to build OTF aggregate
+    if(incrementalAggregator == null)
+      return;
+    int aggregatorID = aggregatorRegistry.getIncrementalAggregatorNameToID().get(aggregatorName);
+    mergeAggregatorID(aggIDList, aggregatorID);
+    inputMap.put(aggregatorID, inputDescriptor);
+    outputMap.put(aggregatorID,
+        AggregatorUtils.getOutputFieldsDescriptor(inputDescriptor,
+        incrementalAggregator));
+  }
+  
+  protected String getEmbededAggregatorName(String compositeAggregatorName)
+  {
+    try
+    {
+      return compositeAggregatorName.split("-")[1];
+    }
+    catch(Exception e)
+    {
+      throw new RuntimeException("Invalid Composite Aggregator Name: " + compositeAggregatorName);
+    }
+  }
 
+  /**
+   * add the aggregatorID into list if not existed
+   * @param aggIDList
+   * @param aggregatorID
+   */
+  protected void mergeAggregatorID(IntArrayList aggIDList, int aggregatorID)
+  {
+    for (int index = 0; index < aggIDList.size(); ++index) {
+      if (aggIDList.get(index) == aggregatorID)
+        return;
+    }
+    aggIDList.add(aggregatorID);
+  }
+  
   private void mergeMaps(Map<String, Set<String>> destmap, Map<String, Set<String>> srcmap)
   {
     for (Map.Entry<String, Set<String>> entry : srcmap.entrySet()) {
@@ -1710,6 +1897,12 @@ public class DimensionalConfigurationSchema
     return dimensionsDescriptorIDToOTFAggregatorToAggregateDescriptor;
   }
 
+  @VisibleForTesting
+  public List<Map<String, FieldsDescriptor>> getDimensionsDescriptorIDToCompositeAggregatorToAggregateDescriptor()
+  {
+    return dimensionsDescriptorIDToCompositeAggregatorToAggregateDescriptor;
+  }
+  
   @Override
   public int hashCode()
   {

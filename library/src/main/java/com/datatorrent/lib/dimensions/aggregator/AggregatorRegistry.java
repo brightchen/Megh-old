@@ -101,6 +101,8 @@ public class AggregatorRegistry implements Serializable
    */
   private Map<String, Integer> incrementalAggregatorNameToID;
 
+  protected Map<String, Integer> compositeAggregatorNameToID = Maps.newHashMap();
+  
   protected static Set<String> compositeAggregatorNames;
   
   /**
@@ -395,6 +397,11 @@ public class AggregatorRegistry implements Serializable
     return incrementalAggregatorNameToID;
   }
 
+  public Map<String, Integer> getCompositeAggregatorNameToID()
+  {
+    return compositeAggregatorNameToID;
+  }
+  
   /**
    * Returns the name to {@link OTFAggregator} mapping, where the key is the name of the {@link OTFAggregator}.
    *

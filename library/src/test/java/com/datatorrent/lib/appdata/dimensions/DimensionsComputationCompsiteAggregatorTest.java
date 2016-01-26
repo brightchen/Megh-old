@@ -36,7 +36,7 @@ public class DimensionsComputationCompsiteAggregatorTest extends DimensionsCompu
   @Test
   public void testBasicCase() throws Exception
   {
-    final String configureFile = "adsGenericEventSimpleProperties.json";
+    final String configureFile = "adsGenericEventSimpleTopBottom.json";
     AdInfo ai = createTestAdInfoEvent1();
     AdInfo ai2 = createTestAdInfoEvent2();
 
@@ -97,5 +97,24 @@ public class DimensionsComputationCompsiteAggregatorTest extends DimensionsCompu
 
     Assert.assertEquals(expectedAE, sink.collectedTuples.get(0));
     Assert.assertEquals(expectedAE.getAggregates(), sink.collectedTuples.get(0).getAggregates());
+  }
+  
+
+  @Test
+  public void complexOutputTest()
+  {
+    AdInfo ai = createTestAdInfoEvent1();
+
+    DimensionsComputationFlexibleSingleSchemaPOJO dcss = createDimensionsComputationOperator("adsGenericEventSimpleTopBottom.json");
+
+    CollectorTestSink<Aggregate> sink = new CollectorTestSink<Aggregate>();
+    TestUtils.setSink(dcss.output, sink);
+
+    dcss.setup(null);
+    dcss.beginWindow(0L);
+    dcss.input.put(ai);
+    dcss.endWindow();
+
+    Assert.assertEquals(60, sink.collectedTuples.size());
   }
 }

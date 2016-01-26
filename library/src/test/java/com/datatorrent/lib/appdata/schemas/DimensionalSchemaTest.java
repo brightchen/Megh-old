@@ -427,14 +427,16 @@ public class DimensionalSchemaTest
     List<Map<String, FieldsDescriptor>> ddIDToAggregatorToDesc = dimensionConfigSchema.getDimensionsDescriptorIDToCompositeAggregatorToAggregateDescriptor();
     List<Int2ObjectMap<FieldsDescriptor>> ddIDToAggregatorIDToInputDesc = dimensionConfigSchema.getDimensionsDescriptorIDToAggregatorIDToInputAggregatorDescriptor();
     List<Int2ObjectMap<FieldsDescriptor>> ddIDToAggregatorIDToOutputDesc = dimensionConfigSchema.getDimensionsDescriptorIDToAggregatorIDToOutputAggregatorDescriptor();
-    List<IntArrayList> ddIDToAggregatorIDs = dimensionConfigSchema.getDimensionsDescriptorIDToAggregatorIDs();
+    List<IntArrayList> ddIDToIncrementalAggregatorIDs = dimensionConfigSchema.getDimensionsDescriptorIDToIncrementalAggregatorIDs();
+    List<IntArrayList> ddIDToCompositeAggregatorIDs = dimensionConfigSchema.getDimensionsDescriptorIDToCompositeAggregatorIDs();
     
     //size
     final int expectedDdIDNum = 8;
     Assert.assertTrue(ddIDToAggregatorToDesc.size() == expectedDdIDNum);
     Assert.assertTrue(ddIDToAggregatorIDToInputDesc.size() == expectedDdIDNum);
     Assert.assertTrue(ddIDToAggregatorIDToOutputDesc.size() == expectedDdIDNum);
-    Assert.assertTrue(ddIDToAggregatorIDs.size() == expectedDdIDNum);
+    Assert.assertTrue(ddIDToIncrementalAggregatorIDs.size() == expectedDdIDNum);
+    Assert.assertTrue(ddIDToCompositeAggregatorIDs.size() == expectedDdIDNum);
     
     //expectedAggregateNameToFD
     Map<String, FieldsDescriptor> expectedCommonAggregateNameToFD = Maps.newHashMap();
@@ -539,21 +541,30 @@ public class DimensionalSchemaTest
     
     for(int index=0; index<expectedDdIDNum; ++index)
     {
-      IntArrayList aggregatorIDs = ddIDToAggregatorIDs.get(index);
-      Set<Integer> aggregatorIDSet = Sets.newHashSet(aggregatorIDs.toArray(new Integer[0]));
-      Assert.assertTrue("There are duplicate aggregator IDs.", aggregatorIDs.size() == aggregatorIDSet.size());
+      IntArrayList incrementalAggregatorIDs = ddIDToIncrementalAggregatorIDs.get(index);
+      Set<Integer> incrementalAggregatorIDSet = Sets.newHashSet(incrementalAggregatorIDs.toArray(new Integer[0]));
+      Assert.assertTrue("There are duplicate aggregator IDs.", incrementalAggregatorIDs.size() == incrementalAggregatorIDSet.size());
+      
+      IntArrayList compositeAggregatorIDs = ddIDToCompositeAggregatorIDs.get(index);
+      Set<Integer> compositeAggregatorIDSet = Sets.newHashSet(compositeAggregatorIDs.toArray(new Integer[0]));
+      Assert.assertTrue("There are duplicate aggregator IDs.", compositeAggregatorIDs.size() == compositeAggregatorIDSet.size());
+      
+      Set<Integer> allAggregatorIDSet = Sets.newHashSet();
+      allAggregatorIDSet.addAll(incrementalAggregatorIDSet);
+      allAggregatorIDSet.addAll(compositeAggregatorIDSet);
+      Assert.assertTrue("There are overlap aggregator IDs.", allAggregatorIDSet.size() == incrementalAggregatorIDSet.size() + compositeAggregatorIDSet.size());
       
       SetView<Integer> diff1 = null;
       SetView<Integer> diff2 = null;
       if(index != 4 && index != 5)
       {
-        diff1 = Sets.difference(aggregatorIDSet, expectedCommonAggregatorIds);
-        diff2 = Sets.difference(expectedCommonAggregatorIds, aggregatorIDSet);
+        diff1 = Sets.difference(allAggregatorIDSet, expectedCommonAggregatorIds);
+        diff2 = Sets.difference(expectedCommonAggregatorIds, allAggregatorIDSet);
       }
       else
       {
-        diff1 = Sets.difference(aggregatorIDSet, expectedThirdCombinationAggregatorIds);
-        diff2 = Sets.difference(expectedThirdCombinationAggregatorIds, aggregatorIDSet);
+        diff1 = Sets.difference(allAggregatorIDSet, expectedThirdCombinationAggregatorIds);
+        diff2 = Sets.difference(expectedThirdCombinationAggregatorIds, allAggregatorIDSet);
       }
       Assert.assertTrue("Not Same aggregator ids. ddID: " + index + "; details: \n" + diff1 + "; " + diff2, 
           diff1.isEmpty() && diff2.isEmpty() );

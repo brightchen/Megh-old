@@ -269,9 +269,11 @@ public class DimensionalConfigurationSchema
   private List<Int2ObjectMap<FieldsDescriptor>> dimensionsDescriptorIDToAggregatorIDToOutputAggregatorDescriptor;
   /**
    * This is a map from the dimensions descriptor id to the list of all aggregations performed on that dimensions
-   * descriptor id.
+   * descriptor id. This list in fact only keep ddID to Incremental Aggregator IDs
    */
-  private List<IntArrayList> dimensionsDescriptorIDToAggregatorIDs;
+  private List<IntArrayList> dimensionsDescriptorIDToIncrementalAggregatorIDs;
+  
+  private List<IntArrayList> dimensionsDescriptorIDToCompositeAggregatorIDs;
   /**
    * This is a map from the dimensions descriptor id to field to all the additional value aggregations
    * specified for the dimensions combination.
@@ -1535,7 +1537,7 @@ public class DimensionalConfigurationSchema
    */
   protected void buildDimensionsDescriptorIDAggregatorIDMaps()
   {
-    dimensionsDescriptorIDToAggregatorIDs = Lists.newArrayList();
+    dimensionsDescriptorIDToIncrementalAggregatorIDs = Lists.newArrayList();
     dimensionsDescriptorIDToAggregatorIDToInputAggregatorDescriptor = Lists.newArrayList();
     dimensionsDescriptorIDToAggregatorIDToOutputAggregatorDescriptor = Lists.newArrayList();
 
@@ -1546,7 +1548,7 @@ public class DimensionalConfigurationSchema
       Int2ObjectMap<FieldsDescriptor> inputMap = new Int2ObjectOpenHashMap<>();
       Int2ObjectMap<FieldsDescriptor> outputMap = new Int2ObjectOpenHashMap<>();
 
-      dimensionsDescriptorIDToAggregatorIDs.add(aggIDList);
+      dimensionsDescriptorIDToIncrementalAggregatorIDs.add(aggIDList);
       dimensionsDescriptorIDToAggregatorIDToInputAggregatorDescriptor.add(inputMap);
       dimensionsDescriptorIDToAggregatorIDToOutputAggregatorDescriptor.add(outputMap);
 
@@ -1560,13 +1562,17 @@ public class DimensionalConfigurationSchema
     int maxAggregatorID = getLargestNonCompositeAggregatorID();
     
     //assign aggregatorID to composite aggregators
+    dimensionsDescriptorIDToCompositeAggregatorIDs = Lists.newArrayList();
     for (int index = 0;
         index < dimensionsDescriptorIDToCompositeAggregatorToAggregateDescriptor.size();
         index++) {
-      IntArrayList aggIDList = dimensionsDescriptorIDToAggregatorIDs.get(index);
+      IntArrayList aggIDList = new IntArrayList();
+      //As the input FD and output FD will be get from aggregatorID, so it should be ok to share same map.
       Int2ObjectMap<FieldsDescriptor> inputMap = dimensionsDescriptorIDToAggregatorIDToInputAggregatorDescriptor.get(index);
       Int2ObjectMap<FieldsDescriptor> outputMap = dimensionsDescriptorIDToAggregatorIDToOutputAggregatorDescriptor.get(index);
 
+      dimensionsDescriptorIDToCompositeAggregatorIDs.add(aggIDList);
+      
       for (Map.Entry<String, FieldsDescriptor> entry :
           dimensionsDescriptorIDToCompositeAggregatorToAggregateDescriptor.get(index).entrySet()) {
         String aggregatorName = entry.getKey();
@@ -1818,11 +1824,16 @@ public class DimensionalConfigurationSchema
    *
    * @return The dimensionsDescriptorIDToAggregatorIDs map.
    */
-  public List<IntArrayList> getDimensionsDescriptorIDToAggregatorIDs()
+  public List<IntArrayList> getDimensionsDescriptorIDToIncrementalAggregatorIDs()
   {
-    return dimensionsDescriptorIDToAggregatorIDs;
+    return dimensionsDescriptorIDToIncrementalAggregatorIDs;
   }
 
+  public List<IntArrayList> getDimensionsDescriptorIDToCompositeAggregatorIDs()
+  {
+    return dimensionsDescriptorIDToCompositeAggregatorIDs;
+  }
+  
   /**
    * Returns the dimensionsDescriptorIDToKeys map.
    *
@@ -1929,7 +1940,7 @@ public class DimensionalConfigurationSchema
     hash = 97 * hash + (this.dimensionsDescriptorIDToAggregatorIDToOutputAggregatorDescriptor != null ?
         this.dimensionsDescriptorIDToAggregatorIDToOutputAggregatorDescriptor.hashCode() : 0);
     hash = 97 * hash +
-        (this.dimensionsDescriptorIDToAggregatorIDs != null ? this.dimensionsDescriptorIDToAggregatorIDs.hashCode() :
+        (this.dimensionsDescriptorIDToIncrementalAggregatorIDs != null ? this.dimensionsDescriptorIDToIncrementalAggregatorIDs.hashCode() :
             0);
     hash = 97 * hash + (this.dimensionsDescriptorIDToFieldToAggregatorAdditionalValues != null ?
         this.dimensionsDescriptorIDToFieldToAggregatorAdditionalValues.hashCode() : 0);
@@ -2020,9 +2031,9 @@ public class DimensionalConfigurationSchema
         other.dimensionsDescriptorIDToAggregatorIDToOutputAggregatorDescriptor))) {
       return false;
     }
-    if (this.dimensionsDescriptorIDToAggregatorIDs != other.dimensionsDescriptorIDToAggregatorIDs &&
-        (this.dimensionsDescriptorIDToAggregatorIDs == null || !this.dimensionsDescriptorIDToAggregatorIDs.equals(
-        other.dimensionsDescriptorIDToAggregatorIDs))) {
+    if (this.dimensionsDescriptorIDToIncrementalAggregatorIDs != other.dimensionsDescriptorIDToIncrementalAggregatorIDs &&
+        (this.dimensionsDescriptorIDToIncrementalAggregatorIDs == null || !this.dimensionsDescriptorIDToIncrementalAggregatorIDs.equals(
+        other.dimensionsDescriptorIDToIncrementalAggregatorIDs))) {
       return false;
     }
     if (this.dimensionsDescriptorIDToFieldToAggregatorAdditionalValues !=

@@ -1315,8 +1315,9 @@ public class DimensionalConfigurationSchema
     }
 
     //Build id maps
-
     buildDimensionsDescriptorIDAggregatorIDMaps();
+    
+    aggregatorRegistry.buildCompositeAggregatorIDToAggregator();
   }
 
   /**

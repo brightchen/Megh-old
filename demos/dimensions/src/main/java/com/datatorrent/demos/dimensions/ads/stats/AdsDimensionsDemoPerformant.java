@@ -94,7 +94,7 @@ public class AdsDimensionsDemoPerformant implements StreamingApplication
     }
 
     unifier.setAggregators(aggregators);
-    dimensions.setAggregators(aggregators);
+    dimensions.setIncrementalAggregators(aggregators);
     dag.getMeta(dimensions).getMeta(dimensions.output).getUnifierMeta().getAttributes().put(OperatorContext.MEMORY_MB, 8092);
 
     //Configuring the converter

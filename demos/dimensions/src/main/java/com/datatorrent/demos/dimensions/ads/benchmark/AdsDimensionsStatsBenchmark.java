@@ -56,7 +56,7 @@ public class AdsDimensionsStatsBenchmark implements StreamingApplication
       aggregators[index] = aggregator;
     }
 
-    dimensions.setAggregators(aggregators);
+    dimensions.setIncrementalAggregators(aggregators);
     DimensionsComputationUnifierImpl<AdInfo, AdInfo.AdInfoAggregateEvent> unifier = new DimensionsComputationUnifierImpl<AdInfo, AdInfo.AdInfoAggregateEvent>();
     unifier.setAggregators(aggregators);
     dimensions.setUnifier(unifier);

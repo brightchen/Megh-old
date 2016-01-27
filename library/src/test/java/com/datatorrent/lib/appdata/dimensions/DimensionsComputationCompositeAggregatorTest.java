@@ -23,9 +23,9 @@ import com.datatorrent.lib.dimensions.aggregator.AggregatorRegistry;
 import com.datatorrent.lib.testbench.CollectorTestSink;
 import com.datatorrent.lib.util.TestUtils;
 
-public class DimensionsComputationCompsiteAggregatorTest extends DimensionsComputationFlexibleSingleSchemaPOJOTest
+public class DimensionsComputationCompositeAggregatorTest extends DimensionsComputationFlexibleSingleSchemaPOJOTest
 {
-  private static final Logger LOG = LoggerFactory.getLogger(DimensionsComputationCompsiteAggregatorTest.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DimensionsComputationCompositeAggregatorTest.class);
   
   @Before
   public void setup()

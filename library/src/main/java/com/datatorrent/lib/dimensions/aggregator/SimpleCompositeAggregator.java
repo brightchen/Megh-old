@@ -10,7 +10,7 @@ package com.datatorrent.lib.dimensions.aggregator;
  *
  * @param <T> the type of aggregator, could be OTFAggregator or IncrementalAggregator
  */
-public class SimpleCompositeAggregator<T>
+public class SimpleCompositeAggregator<T> implements Cloneable
 {
   protected T embededAggregator;
 
@@ -28,5 +28,11 @@ public class SimpleCompositeAggregator<T>
   public void setEmbededAggregator(T embededAggregator)
   {
     this.embededAggregator = embededAggregator;
+  }
+  
+  @Override
+  public SimpleCompositeAggregator<Object> clone()
+  {
+    return new SimpleCompositeAggregator<Object>().withEmbededAggregator(embededAggregator);
   }
 }

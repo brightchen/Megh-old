@@ -81,6 +81,9 @@ public class AggregatorRegistry implements Serializable
    * {@link IncrementalAggregator} to the corresponding {@link IncrementalAggregator}.
    */
   private transient Map<Integer, IncrementalAggregator> incrementalAggregatorIDToAggregator;
+  
+  protected transient Map<Integer, SimpleCompositeAggregator<Object>> compositeAggregatorIDToAggregator;
+  
   /**
    * This is a map from the name assigned to an {@link IncrementalAggregator} to the {@link IncrementalAggregator}.
    */
@@ -239,6 +242,16 @@ public class AggregatorRegistry implements Serializable
       Preconditions.checkNotNull(entry.getKey());
       Preconditions.checkNotNull(entry.getValue());
     }
+    
+    for (Map.Entry<String, Integer> entry : compositeAggregatorNameToID.entrySet()) {
+      Preconditions.checkNotNull(entry.getKey());
+      Preconditions.checkNotNull(entry.getValue());
+    }
+    
+    for (Map.Entry<String, SimpleCompositeAggregator<Object>> entry : nameToCompositeAggregator.entrySet()) {
+      Preconditions.checkNotNull(entry.getKey());
+      Preconditions.checkNotNull(entry.getValue());
+    }
   }
 
   /**
@@ -269,7 +282,7 @@ public class AggregatorRegistry implements Serializable
       incrementalAggregatorIDToAggregator.put(aggregatorID,
           nameToIncrementalAggregator.get(aggregatorName));
     }
-
+    
     otfAggregatorToIncrementalAggregators = Maps.newHashMap();
 
     for (Map.Entry<String, OTFAggregator> entry : nameToOTFAggregator.entrySet()) {
@@ -286,6 +299,17 @@ public class AggregatorRegistry implements Serializable
     }
   }
 
+  public void buildCompositeAggregatorIDToAggregator()
+  {
+    compositeAggregatorIDToAggregator = Maps.newHashMap();
+
+    for (Map.Entry<String, Integer> entry : compositeAggregatorNameToID.entrySet()) {
+      String aggregatorName = entry.getKey();
+      int aggregatorID = entry.getValue();
+      compositeAggregatorIDToAggregator.put(aggregatorID,
+          nameToCompositeAggregator.get(aggregatorName));
+    }
+  }
   /**
    * This is a helper method which sets and validated the given mapping from an {@link IncrementalAggregator}'s name
    * to an {@link IncrementalAggregator}.
@@ -364,6 +388,11 @@ public class AggregatorRegistry implements Serializable
   public Map<Integer, IncrementalAggregator> getIncrementalAggregatorIDToAggregator()
   {
     return incrementalAggregatorIDToAggregator;
+  }
+
+  public Map<Integer, SimpleCompositeAggregator<Object>> getCompositeAggregatorIDToAggregator()
+  {
+    return compositeAggregatorIDToAggregator;
   }
 
   /**

@@ -82,7 +82,7 @@ public class ApplicationHardcoded implements StreamingApplication
     randomGen.setEventSchema(eventSchema);
 
     DimensionsComputation<MachineInfo, MachineHardCodedAggregate> dimensions = dag.addOperator("DimensionsComputation", new DimensionsComputation<MachineInfo, MachineHardCodedAggregate>());
-    dimensions.setAggregators(aggregators);
+    dimensions.setIncrementalAggregators(aggregators);
     dag.getMeta(dimensions).getAttributes().put(OperatorContext.APPLICATION_WINDOW_COUNT, 6);
     dag.getMeta(dimensions).getAttributes().put(OperatorContext.CHECKPOINT_WINDOW_COUNT, 6);
     AppDataSingleSchemaDimensionStoreHDHT store = dag.addOperator("Store", new AppDataSingleSchemaDimensionStoreHDHT());

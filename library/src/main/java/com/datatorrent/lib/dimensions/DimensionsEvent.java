@@ -125,7 +125,7 @@ public class DimensionsEvent implements Serializable
    *
    * @param aggregates The aggregates for this event.
    */
-  protected final void setAggregates(GPOMutable aggregates)
+  public final void setAggregates(GPOMutable aggregates)
   {
     Preconditions.checkNotNull(aggregates);
     this.aggregates = aggregates;

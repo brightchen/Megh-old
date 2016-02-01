@@ -5,6 +5,9 @@
 package com.datatorrent.contrib.dimensions;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,6 +40,7 @@ import com.datatorrent.lib.dimensions.DimensionsDescriptor;
 import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
 import com.datatorrent.lib.dimensions.DimensionsEvent.EventKey;
 import com.datatorrent.lib.dimensions.aggregator.IncrementalAggregator;
+import com.datatorrent.lib.dimensions.aggregator.SimpleCompositeAggregator;
 import com.datatorrent.netlet.util.Slice;
 
 /**
@@ -100,6 +104,12 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
    * map are the corresponding {@link Aggregate}s.
    */
   protected transient Map<EventKey, Aggregate> cache = new ConcurrentHashMap<EventKey, Aggregate>();
+  
+  /**
+   * A map from composite aggregator ID to aggregate value.
+   * not use ConcurrentHashMap as all operations are in same thread, 
+   */
+  protected transient Map<Integer, GPOMutable> compositeAggregteCache = Maps.newHashMap();
   /**
    * The IDs of the HDHT buckets that this operator writes to.
    */
@@ -128,7 +138,8 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
 
   private final transient GPOByteArrayList bal = new GPOByteArrayList();
   private final transient GPOByteArrayList tempBal = new GPOByteArrayList();
-
+  
+  protected Aggregate tmpCompositeDestAggregate = new Aggregate();
   /**
    * Constructor to create operator.
    */
@@ -521,6 +532,8 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
 
     cacheWindowCount++;
 
+    handleCompositeAggregators();
+    
     //Write out the contents of the cache.
     for (Map.Entry<EventKey, Aggregate> entry : cache.entrySet()) {
       putGAE(entry.getValue());
@@ -537,6 +550,45 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
     super.endWindow();
   }
 
+  /**
+   * input: the aggregte of Incremental Aggregators from cache
+   * output: create a new cache instead of share the same cache of Incremental Aggregators
+   */
+  protected void handleCompositeAggregators()
+  {
+    Map<Integer, SimpleCompositeAggregator<Object>> idToCompositeAggregators = getCompositeAggregators();
+    for(Map.Entry<Integer, SimpleCompositeAggregator<Object>> aggregatorEntry : idToCompositeAggregators.entrySet())
+    {
+      Aggregate srcAggregate = getEmbedValue(aggregatorEntry.getValue());
+      GPOMutable destValues = compositeAggregteCache.get(aggregatorEntry.getKey());
+      tmpCompositeDestAggregate.setAggregates(destValues);
+      aggregatorEntry.getValue().aggregate(tmpCompositeDestAggregate, srcAggregate);
+    }
+  }
+  
+  /**
+   * get all composite aggregators
+   * @return Map of aggregator id to composite aggregator
+   */
+  protected Map<Integer, SimpleCompositeAggregator<Object>> getCompositeAggregators()
+  {
+    //bright: TODO:
+    return Collections.emptyMap();
+  }
+
+  
+  /**
+   * get the value of the embed aggregator of this composite aggregator
+   * precondition: the embed aggregator should already did aggregation and put into the cache.
+   * @param compositeAggregator
+   * @return
+   */
+  protected Aggregate getEmbedValue(SimpleCompositeAggregator<Object> compositeAggregator)
+  {
+    //bright: TODO:
+    return null;
+  }
+  
   /**
    * This method is called in {@link #endWindow} and emits updated aggregates. Override
    * this method if you want to control whether or not updates are emitted.

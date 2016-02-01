@@ -371,7 +371,7 @@ public abstract class AbstractDimensionsComputationFlexibleSingleSchema<EVENT> i
         conversionContext.indexSubsetAggregates = indexSubsetAggregate;
 
         SimpleCompositeAggregator<Object> aggregator = aggregatorRegistry.getCompositeAggregatorIDToAggregator().get(aggID).clone();
-        //bright: TODO: aggregator.setDimensionsConversionContext(conversionContext);
+        aggregator.setDimensionsConversionContext(conversionContext);
         aggregatorArray[compositeAggregatorIndex] = aggregator;
       }
     }

@@ -4,6 +4,7 @@
  */
 package com.datatorrent.lib.appdata.schemas;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -30,7 +31,8 @@ import com.datatorrent.lib.dimensions.aggregator.AggregatorRegistry;
 import com.datatorrent.lib.dimensions.aggregator.AggregatorTop;
 import com.datatorrent.lib.dimensions.aggregator.IncrementalAggregator;
 import com.datatorrent.lib.dimensions.aggregator.OTFAggregator;
-import com.datatorrent.lib.dimensions.aggregator.SimpleCompositeAggregator;
+import com.datatorrent.lib.dimensions.aggregator.AbstractCompositeAggregator;
+import com.datatorrent.lib.dimensions.aggregator.AbstractTopBottomAggregator;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -402,27 +404,48 @@ public class DimensionalSchemaTest
   @Test
   public void testSchemaComposite() throws Exception
   {
-    String eventSchemaJSON = SchemaUtils.jarResourceFileToString("adsGenericEventSchemaProperties.json");
+    String eventSchemaJSON = SchemaUtils.jarResourceFileToString("adsGenericEventSchemaComposite.json");
     final DimensionalConfigurationSchema dimensionConfigSchema = new DimensionalConfigurationSchema(eventSchemaJSON, AggregatorRegistry.DEFAULT_AGGREGATOR_REGISTRY);
     final DimensionalSchema dimensional = new DimensionalSchema(dimensionConfigSchema);
 
-    Map<String, SimpleCompositeAggregator<Object>> compsiteNameToAggregator = dimensional.getAggregatorRegistry().getNameToCompositeAggregator();
+    Map<String, AbstractTopBottomAggregator<Object>> compsiteNameToAggregator = dimensional.getAggregatorRegistry().getNameToTopBottomAggregator();
     Map<String, IncrementalAggregator> incrementalNameToAggregator = dimensional.getAggregatorRegistry().getNameToIncrementalAggregator();
     Map<String, OTFAggregator> otfNameToAggregator = dimensional.getAggregatorRegistry().getNameToOTFAggregators();
     
     //verify the name to aggregator
     //expected name to aggregator
-    Map<String, SimpleCompositeAggregator<Object>> expectedNameToAggregator = Maps.newHashMap();
-    expectedNameToAggregator.put("TOPN-SUM-10", new AggregatorTop().withCount(10).withEmbededAggregator(incrementalNameToAggregator.get("SUM")));
-    expectedNameToAggregator.put("BOTTOMN-AVG-20", new AggregatorBottom().withCount(20).withEmbededAggregator(otfNameToAggregator.get("AVG")));
-    expectedNameToAggregator.put("TOPN-COUNT-10", new AggregatorTop().withCount(10).withEmbededAggregator(incrementalNameToAggregator.get("COUNT")));
-    expectedNameToAggregator.put("BOTTOMN-AVG-10", new AggregatorBottom().withCount(10).withEmbededAggregator(otfNameToAggregator.get("AVG")));
-    expectedNameToAggregator.put("BOTTOMN-SUM-10", new AggregatorBottom().withCount(10).withEmbededAggregator(incrementalNameToAggregator.get("SUM")));
+    Map<String, AbstractTopBottomAggregator<Object>> expectedNameToAggregator = Maps.newHashMap();
+    final String[] combination_location = new String[]{"location"};
+    final String[] combination_advertiser = new String[]{"advertiser"};
+    final String[] combination_location_publisher = new String[]{"location", "publisher"};
+    expectedNameToAggregator.put("TOPN-SUM-10_location", new AggregatorTop().withCount(10).withEmbedAggregator(incrementalNameToAggregator.get("SUM"))
+        .withEmbedAggregatorName("SUM").withSubCombinations(combination_location));
+    expectedNameToAggregator.put("BOTTOMN-AVG-20_location", new AggregatorBottom().withCount(20).withEmbedAggregator(otfNameToAggregator.get("AVG"))
+        .withEmbedAggregatorName("AVG").withSubCombinations(combination_location));
+    expectedNameToAggregator.put("TOPN-SUM-10_location_publisher", new AggregatorTop().withCount(10).withEmbedAggregator(incrementalNameToAggregator.get("SUM"))
+        .withEmbedAggregatorName("SUM").withSubCombinations(combination_location_publisher));
+    expectedNameToAggregator.put("TOPN-SUM-10_advertiser", new AggregatorTop().withCount(10).withEmbedAggregator(incrementalNameToAggregator.get("SUM"))
+        .withEmbedAggregatorName("SUM").withSubCombinations(combination_advertiser));
+    expectedNameToAggregator.put("TOPN-COUNT-10_location", new AggregatorTop().withCount(10).withEmbedAggregator(incrementalNameToAggregator.get("COUNT"))
+        .withEmbedAggregatorName("COUNT").withSubCombinations(combination_location));
+    expectedNameToAggregator.put("BOTTOMN-AVG-10_location", new AggregatorBottom().withCount(10).withEmbedAggregator(otfNameToAggregator.get("AVG"))
+        .withEmbedAggregatorName("AVG").withSubCombinations(combination_location));
+    expectedNameToAggregator.put("BOTTOMN-SUM-10_location", new AggregatorBottom().withCount(10).withEmbedAggregator(incrementalNameToAggregator.get("SUM"))
+        .withEmbedAggregatorName("SUM").withSubCombinations(combination_location));
     
-    Assert.assertTrue("Generated Composit Aggregators are not same as expected.", Maps.difference(compsiteNameToAggregator, expectedNameToAggregator).areEqual() ); 
+    MapDifference difference = Maps.difference(compsiteNameToAggregator, expectedNameToAggregator);
+    Assert.assertTrue("Generated Composit Aggregators are not same as expected.\n" + difference.toString(), difference.areEqual()); 
     
     
     //verify AggregateNameToFD
+    //implicit added combinations
+    Set<Set<String>> implicitAddedCombinations = Sets.newHashSet();
+    {
+      implicitAddedCombinations.add(Sets.newHashSet("location", "advertiser"));
+      implicitAddedCombinations.add(Sets.newHashSet("location", "publiser"));
+      implicitAddedCombinations.add(Sets.newHashSet("location", "advertiser", "publiser"));
+    }
+    
     //
     List<Map<String, FieldsDescriptor>> ddIDToAggregatorToDesc = dimensionConfigSchema.getDimensionsDescriptorIDToCompositeAggregatorToAggregateDescriptor();
     List<Int2ObjectMap<FieldsDescriptor>> ddIDToAggregatorIDToInputDesc = dimensionConfigSchema.getDimensionsDescriptorIDToAggregatorIDToInputAggregatorDescriptor();
@@ -430,8 +453,9 @@ public class DimensionalSchemaTest
     List<IntArrayList> ddIDToIncrementalAggregatorIDs = dimensionConfigSchema.getDimensionsDescriptorIDToIncrementalAggregatorIDs();
     List<IntArrayList> ddIDToCompositeAggregatorIDs = dimensionConfigSchema.getDimensionsDescriptorIDToCompositeAggregatorIDs();
     
+    
     //size
-    final int expectedDdIDNum = 8;
+    final int expectedDdIDNum = (3 + implicitAddedCombinations.size()) * 2;
     Assert.assertTrue(ddIDToAggregatorToDesc.size() == expectedDdIDNum);
     Assert.assertTrue(ddIDToAggregatorIDToInputDesc.size() == expectedDdIDNum);
     Assert.assertTrue(ddIDToAggregatorIDToOutputDesc.size() == expectedDdIDNum);
@@ -442,76 +466,94 @@ public class DimensionalSchemaTest
     Map<String, FieldsDescriptor> expectedCommonAggregateNameToFD = Maps.newHashMap();
     //common
     {
-      //TOPN-SUM-10
+      //TOPN-SUM-10_location
       Map<String, Type> fieldToType = Maps.newHashMap();
       fieldToType.put("impressions", Type.LONG);
       fieldToType.put("clicks", Type.LONG);
-      expectedCommonAggregateNameToFD.put("TOPN-SUM-10", new FieldsDescriptor(fieldToType));
+      expectedCommonAggregateNameToFD.put("TOPN-SUM-10_location", new FieldsDescriptor(fieldToType));
     }
     {
-      //BOTTOMN-AVG-20
+      //BOTTOMN-AVG-20_location
       Map<String, Type> fieldToType = Maps.newHashMap();
       fieldToType.put("clicks", Type.LONG);
-      expectedCommonAggregateNameToFD.put("BOTTOMN-AVG-20", new FieldsDescriptor(fieldToType));
+      expectedCommonAggregateNameToFD.put("BOTTOMN-AVG-20_location", new FieldsDescriptor(fieldToType));
     }
     
     //specific
+    //first
+    Map<String, FieldsDescriptor> expectedFirstCombinationAggregateNameToFD = Maps.newHashMap();
+    {
+      //TOPN-SUM-10_location_publisher
+      Map<String, Type> fieldToType = Maps.newHashMap();
+      fieldToType.put("impressions", Type.LONG);
+      expectedFirstCombinationAggregateNameToFD.put("TOPN-SUM-10_location_publisher", new FieldsDescriptor(fieldToType));
+    }
+    
+    //second
+    Map<String, FieldsDescriptor> expectedSecondCombinationAggregateNameToFD = Maps.newHashMap();
+    {
+      //TOPN-SUM-10_advertiser
+      Map<String, Type> fieldToType = Maps.newHashMap();
+      fieldToType.put("impressions", Type.LONG);
+      expectedSecondCombinationAggregateNameToFD.put("TOPN-SUM-10_advertiser", new FieldsDescriptor(fieldToType));
+    }
+    
     Map<String, FieldsDescriptor> expectedThirdCombinationAggregateNameToFD = Maps.newHashMap();
     {
-      //TOPN-SUM-10
+      //TOPN-SUM-10_location
       Map<String, Type> fieldToType = Maps.newHashMap();
       fieldToType.put("cost", Type.DOUBLE);
-      fieldToType.put("impressions", Type.LONG);
-      fieldToType.put("clicks", Type.LONG);
-      expectedThirdCombinationAggregateNameToFD.put("TOPN-SUM-10", new FieldsDescriptor(fieldToType));
+      expectedThirdCombinationAggregateNameToFD.put("TOPN-SUM-10_location", new FieldsDescriptor(fieldToType));
     }
     {
-      //TOPN-COUNT-10
+      //TOPN-COUNT-10_location
       Map<String, Type> fieldToType = Maps.newHashMap();
       fieldToType.put("cost", Type.DOUBLE);
-      expectedThirdCombinationAggregateNameToFD.put("TOPN-COUNT-10", new FieldsDescriptor(fieldToType));
+      expectedThirdCombinationAggregateNameToFD.put("TOPN-COUNT-10_location", new FieldsDescriptor(fieldToType));
     }
     {
-      //BOTTOMN-SUM-10
+      //BOTTOMN-SUM-10_location
       Map<String, Type> fieldToType = Maps.newHashMap();
       fieldToType.put("cost", Type.DOUBLE);
-      expectedThirdCombinationAggregateNameToFD.put("BOTTOMN-SUM-10", new FieldsDescriptor(fieldToType));
+      expectedThirdCombinationAggregateNameToFD.put("BOTTOMN-SUM-10_location", new FieldsDescriptor(fieldToType));
     }
     {
-      //BOTTOMN-AVG-10
+      //BOTTOMN-AVG-10_location
       Map<String, Type> fieldToType = Maps.newHashMap();
       fieldToType.put("cost", Type.DOUBLE);
-      expectedThirdCombinationAggregateNameToFD.put("BOTTOMN-AVG-10", new FieldsDescriptor(fieldToType));
+      expectedThirdCombinationAggregateNameToFD.put("BOTTOMN-AVG-10_location", new FieldsDescriptor(fieldToType));
     }
-    {
-      //BOTTOMN-AVG-20
-      Map<String, Type> fieldToType = Maps.newHashMap();
-      fieldToType.put("clicks", Type.LONG);
-      expectedThirdCombinationAggregateNameToFD.put("BOTTOMN-AVG-20", new FieldsDescriptor(fieldToType));
-    }
-    
-    //
+   
+    // put common
     Map<String, FieldsDescriptor> commonAggregateNameToFD = Maps.newHashMap();
-    commonAggregateNameToFD.put("TOPN-SUM-10", expectedCommonAggregateNameToFD.get("TOPN-SUM-10"));
-    commonAggregateNameToFD.put("BOTTOMN-AVG-20", expectedCommonAggregateNameToFD.get("BOTTOMN-AVG-20"));
+    commonAggregateNameToFD.put("TOPN-SUM-10_location", expectedCommonAggregateNameToFD.get("TOPN-SUM-10_location"));
+    commonAggregateNameToFD.put("BOTTOMN-AVG-20_location", expectedCommonAggregateNameToFD.get("BOTTOMN-AVG-20_location"));
     
     List<Map<String, FieldsDescriptor>> expectedDdIDToAggregatorToDesc = Lists.newArrayListWithCapacity(8);
-    expectedDdIDToAggregatorToDesc.add(0, commonAggregateNameToFD);
-    expectedDdIDToAggregatorToDesc.add(1, commonAggregateNameToFD);
-    expectedDdIDToAggregatorToDesc.add(2, commonAggregateNameToFD);
-    expectedDdIDToAggregatorToDesc.add(3, commonAggregateNameToFD);
     {
-      Map<String, FieldsDescriptor> thirdDimensionAggregateNameToFD = Maps.newHashMap();
-      thirdDimensionAggregateNameToFD.put("TOPN-SUM-10", expectedThirdCombinationAggregateNameToFD.get("TOPN-SUM-10"));
-      thirdDimensionAggregateNameToFD.put("BOTTOMN-AVG-20", expectedThirdCombinationAggregateNameToFD.get("BOTTOMN-AVG-20"));
-      thirdDimensionAggregateNameToFD.put("TOPN-COUNT-10", expectedThirdCombinationAggregateNameToFD.get("TOPN-COUNT-10"));
-      thirdDimensionAggregateNameToFD.put("BOTTOMN-SUM-10", expectedThirdCombinationAggregateNameToFD.get("BOTTOMN-SUM-10"));
-      thirdDimensionAggregateNameToFD.put("BOTTOMN-AVG-10", expectedThirdCombinationAggregateNameToFD.get("BOTTOMN-AVG-10"));
-      expectedDdIDToAggregatorToDesc.add(4, thirdDimensionAggregateNameToFD);
-      expectedDdIDToAggregatorToDesc.add(5, thirdDimensionAggregateNameToFD);
+      //first/second
+      merge(expectedFirstCombinationAggregateNameToFD, commonAggregateNameToFD);
+      expectedDdIDToAggregatorToDesc.add(0, expectedFirstCombinationAggregateNameToFD);
+      expectedDdIDToAggregatorToDesc.add(1, expectedFirstCombinationAggregateNameToFD);
     }
-    expectedDdIDToAggregatorToDesc.add(6, commonAggregateNameToFD);
-    expectedDdIDToAggregatorToDesc.add(7, commonAggregateNameToFD);
+    
+    {
+      //third/forth
+      merge(expectedSecondCombinationAggregateNameToFD, commonAggregateNameToFD);
+      expectedDdIDToAggregatorToDesc.add(2, expectedSecondCombinationAggregateNameToFD);
+      expectedDdIDToAggregatorToDesc.add(3, expectedSecondCombinationAggregateNameToFD);
+    }
+        
+    {
+      //fifth/sixth
+      merge(expectedThirdCombinationAggregateNameToFD, commonAggregateNameToFD);
+      expectedDdIDToAggregatorToDesc.add(4, expectedThirdCombinationAggregateNameToFD);
+      expectedDdIDToAggregatorToDesc.add(5, expectedThirdCombinationAggregateNameToFD);
+    }
+    
+    //others are empty
+    for(int i=6; i<expectedDdIDNum; ++i)
+      expectedDdIDToAggregatorToDesc.add(i, Collections.<String, FieldsDescriptor>emptyMap());
     
     for(int index=0; index<expectedDdIDNum; ++index)
     {
@@ -519,26 +561,96 @@ public class DimensionalSchemaTest
       Assert.assertTrue(diff.toString(), diff.areEqual());
     }
     
+//  
+//  expectedNameToAggregator.put("TOPN-SUM-10_location", new AggregatorTop().withCount(10).withEmbedAggregator(incrementalNameToAggregator.get("SUM"))
+//      .withEmbedAggregatorName("SUM").withSubCombinations(combination_location));
+//  expectedNameToAggregator.put("BOTTOMN-AVG-20_location", new AggregatorBottom().withCount(20).withEmbedAggregator(otfNameToAggregator.get("AVG"))
+//      .withEmbedAggregatorName("AVG").withSubCombinations(combination_location));
+//  expectedNameToAggregator.put("TOPN-SUM-10_location_publisher", new AggregatorTop().withCount(10).withEmbedAggregator(incrementalNameToAggregator.get("SUM"))
+//      .withEmbedAggregatorName("SUM").withSubCombinations(combination_location_publisher));
+//  expectedNameToAggregator.put("TOPN-SUM-10_advertiser", new AggregatorTop().withCount(10).withEmbedAggregator(incrementalNameToAggregator.get("SUM"))
+//      .withEmbedAggregatorName("SUM").withSubCombinations(combination_advertiser));
+//  expectedNameToAggregator.put("TOPN-COUNT-10_location", new AggregatorTop().withCount(10).withEmbedAggregator(incrementalNameToAggregator.get("COUNT"))
+//      .withEmbedAggregatorName("COUNT").withSubCombinations(combination_location));
+//  expectedNameToAggregator.put("BOTTOMN-AVG-10_location", new AggregatorBottom().withCount(10).withEmbedAggregator(otfNameToAggregator.get("AVG"))
+//      .withEmbedAggregatorName("AVG").withSubCombinations(combination_location));
+//  expectedNameToAggregator.put("BOTTOMN-SUM-10_location", new AggregatorBottom().withCount(10).withEmbedAggregator(incrementalNameToAggregator.get("SUM"))
+ 
+    
     //
     // verify aggregatorIDs
     Map<String, Integer> incremantalAggregatorNameToID = dimensionConfigSchema.getAggregatorRegistry().getIncrementalAggregatorNameToID();
-    Map<String, Integer> compositeAggregatorNameToID = dimensionConfigSchema.getAggregatorRegistry().getCompositeAggregatorNameToID();
+    Map<String, Integer> compositeAggregatorNameToID = dimensionConfigSchema.getAggregatorRegistry().getTopBottomAggregatorNameToID();
     
+    //common
     Set<Integer> expectedCommonAggregatorIds = Sets.newHashSet();
     expectedCommonAggregatorIds.add(incremantalAggregatorNameToID.get("SUM"));
     expectedCommonAggregatorIds.add(incremantalAggregatorNameToID.get("COUNT"));  //BOTTOMNN-AVG-20 depends
-    expectedCommonAggregatorIds.add(compositeAggregatorNameToID.get("TOPN-SUM-10"));
-    expectedCommonAggregatorIds.add(compositeAggregatorNameToID.get("BOTTOMN-AVG-20"));
+    expectedCommonAggregatorIds.add(compositeAggregatorNameToID.get("TOPN-SUM-10_location"));
+    expectedCommonAggregatorIds.add(compositeAggregatorNameToID.get("BOTTOMN-AVG-20_location"));
+    
+    Set<Integer> expectedFirstCombinationAggregatorIds = Sets.newHashSet();
+    {
+      expectedFirstCombinationAggregatorIds.addAll(expectedCommonAggregatorIds);
+      expectedFirstCombinationAggregatorIds.add(compositeAggregatorNameToID.get("TOPN-SUM-10_location_publisher"));
+    }
+    
+    Set<Integer> expectedSecondCombinationAggregatorIds = Sets.newHashSet();
+    {
+      expectedSecondCombinationAggregatorIds.addAll(expectedCommonAggregatorIds);
+      expectedSecondCombinationAggregatorIds.add(compositeAggregatorNameToID.get("TOPN-SUM-10_advertiser"));
+    }
     
     Set<Integer> expectedThirdCombinationAggregatorIds = Sets.newHashSet();
-    expectedThirdCombinationAggregatorIds.addAll(expectedCommonAggregatorIds);
-    expectedThirdCombinationAggregatorIds.add(incremantalAggregatorNameToID.get("MIN"));
-    expectedThirdCombinationAggregatorIds.add(incremantalAggregatorNameToID.get("MAX"));
-    expectedThirdCombinationAggregatorIds.add(compositeAggregatorNameToID.get("TOPN-SUM-10"));
-    expectedThirdCombinationAggregatorIds.add(compositeAggregatorNameToID.get("TOPN-COUNT-10"));
-    expectedThirdCombinationAggregatorIds.add(compositeAggregatorNameToID.get("BOTTOMN-SUM-10"));
-    expectedThirdCombinationAggregatorIds.add(compositeAggregatorNameToID.get("BOTTOMN-AVG-10"));
+    {
+      expectedThirdCombinationAggregatorIds.addAll(expectedCommonAggregatorIds);
+      expectedThirdCombinationAggregatorIds.add(incremantalAggregatorNameToID.get("MIN"));
+      expectedThirdCombinationAggregatorIds.add(incremantalAggregatorNameToID.get("MAX"));
+      expectedThirdCombinationAggregatorIds.add(compositeAggregatorNameToID.get("TOPN-SUM-10_location"));
+      expectedThirdCombinationAggregatorIds.add(compositeAggregatorNameToID.get("TOPN-COUNT-10_location"));
+      expectedThirdCombinationAggregatorIds.add(compositeAggregatorNameToID.get("BOTTOMN-SUM-10_location"));
+      expectedThirdCombinationAggregatorIds.add(compositeAggregatorNameToID.get("BOTTOMN-AVG-10_location"));
+    }
+        
+    Set<Integer>[] expectedAllAggregatorIDSetArray = new Set[expectedDdIDNum];
+    expectedAllAggregatorIDSetArray[0] = expectedAllAggregatorIDSetArray[1] = expectedFirstCombinationAggregatorIds;
+    expectedAllAggregatorIDSetArray[2] = expectedAllAggregatorIDSetArray[3] = expectedSecondCombinationAggregatorIds;
+    expectedAllAggregatorIDSetArray[4] = expectedAllAggregatorIDSetArray[5] = expectedThirdCombinationAggregatorIds;
     
+    
+    //implicit added dimension and incremental aggregators
+    //there three combination of auto generated dimension
+    
+    Map<Set<String>, Set<Integer>> autoGeneratedKeysToAggregatorIds = Maps.newHashMap();
+    final int sumId = incremantalAggregatorNameToID.get("SUM");
+    final int countId = incremantalAggregatorNameToID.get("COUNT");
+    
+    //the two common composite TOP_SUM_10-location and BOTTOM_AVG_20-location depend combination {"location"} with aggregator {"SUM", "COUNT"} 
+    autoGeneratedKeysToAggregatorIds.put(Sets.newHashSet("location"), Sets.newHashSet(sumId, countId));
+    
+    //the specific composite aggregator of first combination depends combination {"location", "advertiser", "publisher"} with aggregator {"SUM"}
+    autoGeneratedKeysToAggregatorIds.put(Sets.newHashSet("location", "advertiser", "publisher"), Sets.newHashSet(sumId));
+    
+    //the specific composite aggregator of second combination depends combination {"advertiser", "publisher"} with aggregator {"SUM"}
+    autoGeneratedKeysToAggregatorIds.put(Sets.newHashSet("advertiser", "publisher"), Sets.newHashSet(sumId));
+    
+    //the specific composite aggregator of third combination depends combination {"location", "advertiser", "publisher"} with aggregator {"SUM", "COUNT"}
+    autoGeneratedKeysToAggregatorIds.get(Sets.newHashSet("location", "advertiser", "publisher")).addAll(Sets.newHashSet(sumId, countId));
+    
+    Map<Set<Integer>, Integer> expectedAutoGeneratedIdsToCount = Maps.newHashMap();
+    for(Set<Integer> generatorIds : autoGeneratedKeysToAggregatorIds.values())
+    {
+      Integer count = expectedAutoGeneratedIdsToCount.get(generatorIds);
+      if(count == null)
+        expectedAutoGeneratedIdsToCount.put(generatorIds, 2);
+      else
+        expectedAutoGeneratedIdsToCount.put(generatorIds, count+2);
+    }
+  
+    //we can't guarantee the order of automatic generated aggregators
+    //List<Set<Integer>> autoGeneratedAggregatorIdsList = Lists.newArrayList(expectedGeneratedCombinationAggregatorIds1, expectedGeneratedCombinationAggregatorIds2, expectedGeneratedCombinationAggregatorIds3);
+    Map<Set<Integer>, Integer> autoGeneratedIdsToCount = Maps.newHashMap();
+    //ddIDToIncrementalAggregatorIDs is not correct, check it.                
     for(int index=0; index<expectedDdIDNum; ++index)
     {
       IntArrayList incrementalAggregatorIDs = ddIDToIncrementalAggregatorIDs.get(index);
@@ -554,23 +666,55 @@ public class DimensionalSchemaTest
       allAggregatorIDSet.addAll(compositeAggregatorIDSet);
       Assert.assertTrue("There are overlap aggregator IDs.", allAggregatorIDSet.size() == incrementalAggregatorIDSet.size() + compositeAggregatorIDSet.size());
       
-      SetView<Integer> diff1 = null;
-      SetView<Integer> diff2 = null;
-      if(index != 4 && index != 5)
+      if(index < 6)
       {
-        diff1 = Sets.difference(allAggregatorIDSet, expectedCommonAggregatorIds);
-        diff2 = Sets.difference(expectedCommonAggregatorIds, allAggregatorIDSet);
+        SetView<Integer> diff1 = Sets.difference(allAggregatorIDSet, expectedAllAggregatorIDSetArray[index]);
+        SetView<Integer> diff2 = Sets.difference(expectedAllAggregatorIDSetArray[index], allAggregatorIDSet);
+     
+        Assert.assertTrue("Not Same aggregator ids. ddID: " + index + "; details: \n" + diff1 + "; " + diff2, 
+            diff1.isEmpty() && diff2.isEmpty() );
       }
       else
       {
-        diff1 = Sets.difference(allAggregatorIDSet, expectedThirdCombinationAggregatorIds);
-        diff2 = Sets.difference(expectedThirdCombinationAggregatorIds, allAggregatorIDSet);
+        Integer count = autoGeneratedIdsToCount.get(allAggregatorIDSet);
+        if(count == null)
+          autoGeneratedIdsToCount.put(allAggregatorIDSet, 1);
+        else
+          autoGeneratedIdsToCount.put(allAggregatorIDSet, count+1);
       }
-      Assert.assertTrue("Not Same aggregator ids. ddID: " + index + "; details: \n" + diff1 + "; " + diff2, 
-          diff1.isEmpty() && diff2.isEmpty() );
     }
     
+    MapDifference<Set<Integer>, Integer> diff = Maps.difference(autoGeneratedIdsToCount, expectedAutoGeneratedIdsToCount);
+    Assert.assertTrue(diff.toString(), diff.areEqual());
+   
+    
     //TODO: verify Input/Output description? maybe future.
+  }
+  
+  /**
+   * merge right into left and return left
+   * @param left
+   * @param right
+   * @return
+   */
+  protected Map<String, FieldsDescriptor> merge(Map<String, FieldsDescriptor> left, Map<String, FieldsDescriptor> right)
+  {
+    for(Map.Entry<String, FieldsDescriptor> rightEntry : right.entrySet())
+    {
+      String rightKey = rightEntry.getKey();
+      if(left.get(rightKey) == null)
+        left.put(rightKey, rightEntry.getValue());
+      else
+      {
+        FieldsDescriptor leftFd = left.get(rightKey);
+        Map<String, Type> leftFieldToType = leftFd.getFieldToType();
+        Map<String, Type> rightFieldToType = rightEntry.getValue().getFieldToType();
+        leftFieldToType.putAll(rightFieldToType);
+        leftFd = new FieldsDescriptor(leftFieldToType);
+        left.put(rightKey, leftFd);
+      }
+    }
+    return left;
   }
   
   private String produceSchema(String resourceName) throws Exception

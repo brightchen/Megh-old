@@ -40,7 +40,7 @@ import com.datatorrent.lib.dimensions.DimensionsDescriptor;
 import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
 import com.datatorrent.lib.dimensions.DimensionsEvent.EventKey;
 import com.datatorrent.lib.dimensions.aggregator.IncrementalAggregator;
-import com.datatorrent.lib.dimensions.aggregator.SimpleCompositeAggregator;
+import com.datatorrent.lib.dimensions.aggregator.AbstractCompositeAggregator;
 import com.datatorrent.netlet.util.Slice;
 
 /**
@@ -556,8 +556,8 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
    */
   protected void handleCompositeAggregators()
   {
-    Map<Integer, SimpleCompositeAggregator<Object>> idToCompositeAggregators = getCompositeAggregators();
-    for(Map.Entry<Integer, SimpleCompositeAggregator<Object>> aggregatorEntry : idToCompositeAggregators.entrySet())
+    Map<Integer, AbstractCompositeAggregator<Object>> idToCompositeAggregators = getCompositeAggregators();
+    for(Map.Entry<Integer, AbstractCompositeAggregator<Object>> aggregatorEntry : idToCompositeAggregators.entrySet())
     {
       Aggregate srcAggregate = getEmbedValue(aggregatorEntry.getValue());
       GPOMutable destValues = compositeAggregteCache.get(aggregatorEntry.getKey());
@@ -570,7 +570,7 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
    * get all composite aggregators
    * @return Map of aggregator id to composite aggregator
    */
-  protected Map<Integer, SimpleCompositeAggregator<Object>> getCompositeAggregators()
+  protected Map<Integer, AbstractCompositeAggregator<Object>> getCompositeAggregators()
   {
     //bright: TODO:
     return Collections.emptyMap();
@@ -583,7 +583,7 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
    * @param compositeAggregator
    * @return
    */
-  protected Aggregate getEmbedValue(SimpleCompositeAggregator<Object> compositeAggregator)
+  protected Aggregate getEmbedValue(AbstractCompositeAggregator<Object> compositeAggregator)
   {
     //bright: TODO:
     return null;

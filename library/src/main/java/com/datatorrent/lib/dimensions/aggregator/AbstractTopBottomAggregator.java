@@ -4,16 +4,38 @@
  */
 package com.datatorrent.lib.dimensions.aggregator;
 
+import java.util.Set;
+import java.util.SortedSet;
+
+import com.google.common.collect.Sets;
+
 import com.datatorrent.lib.appdata.gpo.GPOMutable;
 import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
 import com.datatorrent.lib.dimensions.DimensionsEvent.InputEvent;
 import com.datatorrent.lib.statistics.DimensionsComputation.Aggregator;
 
-public abstract class AbstractTopBottomAggregator<T> extends SimpleCompositeAggregator<T> implements Aggregator<InputEvent, Aggregate>, PropertyInjectable
+public abstract class AbstractTopBottomAggregator<T> extends AbstractCompositeAggregator<T> implements Aggregator<InputEvent, Aggregate>
 {
   public static final String PROP_COUNT = "count";
   protected int count;
-
+  protected SortedSet<String> subCombinations = Sets.newTreeSet();
+  
+  public AbstractTopBottomAggregator<T> withEmbedAggregator(T embedAggregator)
+  {
+    this.setEmbedAggregator(embedAggregator);
+    return this;
+  }
+  public AbstractTopBottomAggregator<T> withEmbedAggregatorName(String embedAggregatorName)
+  {
+    this.setEmbedAggregatorName(embedAggregatorName);
+    return this;
+  }
+  public AbstractTopBottomAggregator<T> withSubCombinations(String[] subCombinations)
+  {
+    this.setSubCombinations(subCombinations);
+    return this;
+  }
+  
   public AbstractTopBottomAggregator<T> withCount(int count)
   {
     this.setCount(count);
@@ -29,26 +51,22 @@ public abstract class AbstractTopBottomAggregator<T> extends SimpleCompositeAggr
   {
     this.count = count;
   }
-
-  @Override
-  public void injectProperty(String name, Object value)
-  {
-    if (!PROP_COUNT.equals(name))
-      throw new IllegalArgumentException("Invalid property name " + name + ". Only support " + PROP_COUNT);
-    if (value == null)
-      return;
-    int countValue = 0;
-    if (value instanceof String) {
-      countValue = Integer.parseInt((String)value);
-    } else if (value instanceof Integer)
-      countValue = (Integer)value;
-    else
-      throw new IllegalArgumentException(
-          "Invalid property value type " + value.getClass() + ". Only support Integer and String.");
-    this.setCount(countValue);
-  }
   
+  public void setSubCombinations(Set<String> subCombinations)
+  {
+    this.subCombinations.clear();
+    this.subCombinations.addAll(subCombinations);
+  }
+  public void setSubCombinations(String[] subCombinations)
+  {
+    setSubCombinations(Sets.newHashSet(subCombinations));
+  }
+  public Set<String> getSubCombinations()
+  {
+    return subCombinations;
+  }
 
+  
   @Override
   public void aggregate(Aggregate dest, Aggregate src)
   {
@@ -229,7 +247,7 @@ public abstract class AbstractTopBottomAggregator<T> extends SimpleCompositeAggr
   @Override
   public int hashCode()
   {
-    return embededAggregator.hashCode()*31 + count;
+    return (embedAggregator.hashCode()*31 + count)*31 + subCombinations.hashCode();
   }
 
   @SuppressWarnings("rawtypes")
@@ -244,12 +262,20 @@ public abstract class AbstractTopBottomAggregator<T> extends SimpleCompositeAggr
       return false;
     
     AbstractTopBottomAggregator other = (AbstractTopBottomAggregator)obj;
-    if (embededAggregator != other.embededAggregator
-        && (embededAggregator == null || embededAggregator.equals(other.embededAggregator)))
+    if (embedAggregator != other.embedAggregator
+        && (embedAggregator == null || !embedAggregator.equals(other.embedAggregator)))
+      return false;
+    if (embedAggregatorName != other.embedAggregatorName
+        && (embedAggregatorName == null || !embedAggregatorName.equals(other.embedAggregatorName)))
       return false;
     if (count != other.count)
       return false;
+    if (subCombinations != other.subCombinations
+        && (subCombinations == null || !subCombinations.equals(other.subCombinations)))
+      return false;
+    
     return true;
   }
+  
 
 }

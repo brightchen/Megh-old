@@ -4,7 +4,7 @@
  */
 package com.datatorrent.lib.dimensions.aggregator;
 
-public enum AggregatorCompositeType
+public enum AggregatorTopBottomType
 {
   TOPN,
   BOTTOMN;

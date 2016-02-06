@@ -36,7 +36,7 @@ import gnu.trove.strategy.HashingStrategy;
 
 import com.datatorrent.api.*;
 import com.datatorrent.api.Context.OperatorContext;
-import com.datatorrent.lib.dimensions.aggregator.SimpleCompositeAggregator;
+import com.datatorrent.lib.dimensions.aggregator.AbstractCompositeAggregator;
 
 /**
  * <p>An implementation of an operator that computes dimensions of events. </p>
@@ -129,7 +129,7 @@ public class DimensionsComputation<EVENT, AGGREGATE extends DimensionsComputatio
     }
   }
 
-  public void setCompositeAggregators(SimpleCompositeAggregator[] compositeAggregators)
+  public void setCompositeAggregators(AbstractCompositeAggregator[] compositeAggregators)
   {
     AggregatorMap<EVENT, AGGREGATE>[] newInstance = (AggregatorMap<EVENT, AGGREGATE>[]) Array.newInstance(AggregatorMap.class, compositeAggregators.length);
     compositeAggregatorMaps = newInstance;

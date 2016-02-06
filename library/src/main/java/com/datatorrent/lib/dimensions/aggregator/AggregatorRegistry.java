@@ -82,7 +82,7 @@ public class AggregatorRegistry implements Serializable
    */
   private transient Map<Integer, IncrementalAggregator> incrementalAggregatorIDToAggregator;
   
-  protected transient Map<Integer, SimpleCompositeAggregator<Object>> compositeAggregatorIDToAggregator;
+  protected transient Map<Integer, AbstractTopBottomAggregator<Object>> topBottomAggregatorIDToAggregator;
   
   /**
    * This is a map from the name assigned to an {@link IncrementalAggregator} to the {@link IncrementalAggregator}.
@@ -94,19 +94,18 @@ public class AggregatorRegistry implements Serializable
   private Map<String, OTFAggregator> nameToOTFAggregator;
   
   /**
-   * the map from composite aggragator name to aggregator.
-   * see {@link CompositeAggregatorFactory} for how to generate composite aggregator name
+   * the map from TOPN and BOTTOM aggregator to name
    */
-  private Map<String, SimpleCompositeAggregator<Object>> nameToCompositeAggregator = Maps.newHashMap();
+  private Map<String, AbstractTopBottomAggregator<Object>> nameToTopBottomAggregator = Maps.newHashMap();
   
   /**
    * This is a map from the name of an {@link IncrementalAggregator} to the ID of that {@link IncrementalAggregator}.
    */
   private Map<String, Integer> incrementalAggregatorNameToID;
 
-  protected Map<String, Integer> compositeAggregatorNameToID = Maps.newHashMap();
+  protected Map<String, Integer> topBottomAggregatorNameToID = Maps.newHashMap();
   
-  protected static Set<String> compositeAggregatorNames;
+  protected static Set<String> topBottomAggregatorNames;
   
   /**
    * This is a helper method used to autogenerate the IDs for each {@link IncrementalAggregator}
@@ -243,12 +242,12 @@ public class AggregatorRegistry implements Serializable
       Preconditions.checkNotNull(entry.getValue());
     }
     
-    for (Map.Entry<String, Integer> entry : compositeAggregatorNameToID.entrySet()) {
+    for (Map.Entry<String, Integer> entry : topBottomAggregatorNameToID.entrySet()) {
       Preconditions.checkNotNull(entry.getKey());
       Preconditions.checkNotNull(entry.getValue());
     }
     
-    for (Map.Entry<String, SimpleCompositeAggregator<Object>> entry : nameToCompositeAggregator.entrySet()) {
+    for (Map.Entry<String, AbstractTopBottomAggregator<Object>> entry : nameToTopBottomAggregator.entrySet()) {
       Preconditions.checkNotNull(entry.getKey());
       Preconditions.checkNotNull(entry.getValue());
     }
@@ -299,15 +298,15 @@ public class AggregatorRegistry implements Serializable
     }
   }
 
-  public void buildCompositeAggregatorIDToAggregator()
+  public void buildTopBottomAggregatorIDToAggregator()
   {
-    compositeAggregatorIDToAggregator = Maps.newHashMap();
+    topBottomAggregatorIDToAggregator = Maps.newHashMap();
 
-    for (Map.Entry<String, Integer> entry : compositeAggregatorNameToID.entrySet()) {
+    for (Map.Entry<String, Integer> entry : topBottomAggregatorNameToID.entrySet()) {
       String aggregatorName = entry.getKey();
       int aggregatorID = entry.getValue();
-      compositeAggregatorIDToAggregator.put(aggregatorID,
-          nameToCompositeAggregator.get(aggregatorName));
+      topBottomAggregatorIDToAggregator.put(aggregatorID,
+          nameToTopBottomAggregator.get(aggregatorName));
     }
   }
   /**
@@ -344,7 +343,7 @@ public class AggregatorRegistry implements Serializable
   public boolean isAggregator(String aggregatorName)
   {
     return classToIncrementalAggregatorName.values().contains(aggregatorName) ||
-        nameToOTFAggregator.containsKey(aggregatorName) || (AggregatorCompositeType.valueOf(aggregatorName) != null);
+        nameToOTFAggregator.containsKey(aggregatorName) || (AggregatorTopBottomType.valueOf(aggregatorName) != null);
         
   }
 
@@ -366,9 +365,9 @@ public class AggregatorRegistry implements Serializable
     return nameToOTFAggregator.containsKey(aggregatorName);
   }
   
-  public boolean isCompositeAggregator(String aggregatorName)
+  public boolean isTopBottomAggregator(String aggregatorName)
   {
-    return (AggregatorCompositeType.valueOf(aggregatorName) != null);
+    return (AggregatorTopBottomType.valueOf(aggregatorName) != null);
   }
   /**
    * Gets the mapping from an {@link IncrementalAggregator}'s class to the {@link IncrementalAggregator}.
@@ -390,9 +389,9 @@ public class AggregatorRegistry implements Serializable
     return incrementalAggregatorIDToAggregator;
   }
 
-  public Map<Integer, SimpleCompositeAggregator<Object>> getCompositeAggregatorIDToAggregator()
+  public Map<Integer, AbstractTopBottomAggregator<Object>> getTopBottomAggregatorIDToAggregator()
   {
-    return compositeAggregatorIDToAggregator;
+    return topBottomAggregatorIDToAggregator;
   }
 
   /**
@@ -426,9 +425,9 @@ public class AggregatorRegistry implements Serializable
     return incrementalAggregatorNameToID;
   }
 
-  public Map<String, Integer> getCompositeAggregatorNameToID()
+  public Map<String, Integer> getTopBottomAggregatorNameToID()
   {
-    return compositeAggregatorNameToID;
+    return topBottomAggregatorNameToID;
   }
   
   /**
@@ -441,9 +440,9 @@ public class AggregatorRegistry implements Serializable
     return nameToOTFAggregator;
   }
 
-  public Map<String, SimpleCompositeAggregator<Object>> getNameToCompositeAggregator()
+  public Map<String, AbstractTopBottomAggregator<Object>> getNameToTopBottomAggregator()
   {
-    return nameToCompositeAggregator;
+    return nameToTopBottomAggregator;
   }
   
   /**

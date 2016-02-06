@@ -13,7 +13,7 @@ import java.util.Map;
  */
 public interface CompositeAggregatorFactory
 {
-  public String getCompositeAggregatorName(String aggregatorType, String embededAggregatorName, Map<String, Object> properties);
-  public <T> SimpleCompositeAggregator<T> createCompositeAggregator(String aggregatorType, T embededAggregator, Map<String, Object> properties);
+  public String getCompositeAggregatorName(String aggregatorType, String embedAggregatorName, Map<String, Object> properties);
+  public <T> AbstractCompositeAggregator<T> createCompositeAggregator(String aggregatorType, String embedAggregatorName, T embedAggregator, Map<String, Object> properties);
  
 }

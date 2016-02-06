@@ -8,9 +8,9 @@ import java.util.Map;
 
 public abstract class AbstractCompositeAggregatorFactory implements CompositeAggregatorFactory
 {
-  public static final String NAME_TEMPLATE = "%s-%s-%s";
-  public static final String PROPERTY_SEPERATOR = "_";
-  public static final String PROPERTY_VALUE_SEPERATOR = "|";
+  protected static final String NAME_TEMPLATE = "%s-%s-%s";
+  protected static final String PROPERTY_SEPERATOR = "_";
+  protected static final String PROPERTY_VALUE_SEPERATOR = "|";
   
   @Override
   public String getCompositeAggregatorName(String aggregatorType, String embededAggregatorName,

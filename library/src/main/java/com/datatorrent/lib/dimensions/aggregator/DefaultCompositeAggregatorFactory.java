@@ -16,8 +16,8 @@ import com.google.common.collect.Maps;
 public class DefaultCompositeAggregatorFactory implements CompositeAggregatorFactory
 {
   public static final DefaultCompositeAggregatorFactory defaultInst = new DefaultCompositeAggregatorFactory()
-      .addFactory(AggregatorCompositeType.TOPN.name(), TopBottomAggregatorFactory.defaultInstance)
-      .addFactory(AggregatorCompositeType.BOTTOMN.name(), TopBottomAggregatorFactory.defaultInstance);
+      .addFactory(AggregatorTopBottomType.TOPN.name(), TopBottomAggregatorFactory.defaultInstance)
+      .addFactory(AggregatorTopBottomType.BOTTOMN.name(), TopBottomAggregatorFactory.defaultInstance);
   
   protected Map<String, CompositeAggregatorFactory> factoryRepository = Maps.newHashMap();
   
@@ -25,17 +25,17 @@ public class DefaultCompositeAggregatorFactory implements CompositeAggregatorFac
   protected CompositeAggregatorFactory genericCompositeAggregatorFactory;
   
   @Override
-  public String getCompositeAggregatorName(String aggregatorType, String embededAggregatorName,
+  public String getCompositeAggregatorName(String aggregatorType, String embedAggregatorName,
       Map<String, Object> properties)
   {
-    return findSpecificFactory(aggregatorType).getCompositeAggregatorName(aggregatorType, embededAggregatorName, properties);
+    return findSpecificFactory(aggregatorType).getCompositeAggregatorName(aggregatorType, embedAggregatorName, properties);
   }
 
   @Override
-  public <T> SimpleCompositeAggregator<T> createCompositeAggregator(String aggregatorType, T embededAggregator,
+  public <T> AbstractCompositeAggregator<T> createCompositeAggregator(String aggregatorType, String embedAggregatorName, T embedAggregator,
       Map<String, Object> properties)
   {
-    return findSpecificFactory(aggregatorType).createCompositeAggregator(aggregatorType, embededAggregator, properties);
+    return findSpecificFactory(aggregatorType).createCompositeAggregator(aggregatorType, embedAggregatorName, embedAggregator, properties);
   }
 
   protected CompositeAggregatorFactory findSpecificFactory(String aggregatorType)

@@ -29,8 +29,13 @@ import com.datatorrent.lib.appdata.schemas.SchemaRegistry;
 import com.datatorrent.lib.appdata.schemas.SchemaRegistrySingle;
 import com.datatorrent.lib.appdata.schemas.SchemaResult;
 import com.datatorrent.lib.dimensions.AbstractDimensionsComputationFlexibleSingleSchema;
+import com.datatorrent.lib.dimensions.AggregationIdentifier;
 import com.datatorrent.lib.dimensions.DimensionsDescriptor;
 import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
+import com.datatorrent.lib.dimensions.aggregator.AbstractCompositeAggregator;
+import com.datatorrent.lib.dimensions.aggregator.AbstractTopBottomAggregator;
+import com.datatorrent.lib.dimensions.aggregator.IncrementalAggregator;
+import com.datatorrent.lib.dimensions.aggregator.OTFAggregator;
 
 /**
  * This is a dimensions store which stores data corresponding to one {@link DimensionalSchema} into an HDHT bucket.
@@ -340,5 +345,51 @@ public class AppDataSingleSchemaDimensionStoreHDHT extends AbstractAppDataDimens
   public void setBucketID(long bucketID)
   {
     this.bucketID = bucketID;
+  }
+  
+  /**
+   * get all composite aggregators
+   * @return Map of aggregator id to top bottom aggregator
+   */
+  @Override
+  protected Map<Integer, AbstractTopBottomAggregator<Object>> getTopBottomAggregatorIdToInstance()
+  {
+    return this.aggregatorRegistry.getTopBottomAggregatorIDToAggregator();
+  }
+  
+  @Override
+  protected AbstractTopBottomAggregator<Object> getTopBottomAggregator(AggregationIdentifier aggregationIdentifier)
+  {
+    return getTopBottomAggregatorIdToInstance().get(aggregationIdentifier.getAggregatorID());
+  }
+  
+  @Override
+  protected List<String> getOTFChildrenAggregatorNames(String oftAggregatorName)
+  {
+    return aggregatorRegistry.getOTFAggregatorToIncrementalAggregators().get(oftAggregatorName);
+  }
+
+  /**
+   * in case of embed is OTF aggregator, get identifier for incremental aggregators 
+   * @param topBottomAggregator
+   * @return
+   */
+  @Override
+  protected Set<AggregationIdentifier> getDependedIncrementalAggregationIdentifiers(
+      AbstractTopBottomAggregator<?> topBottomAggregator)
+  {
+    Object embedAggregator = topBottomAggregator.getEmbedAggregator();
+    Set<AggregationIdentifier> identifiers = Sets.newHashSet();
+    if(embedAggregator instanceof IncrementalAggregator)
+    {
+      identifiers.add(new AggregationIdentifier(topBottomAggregator.getSchemaID(), topBottomAggregator.getEmbedAggregatorDdId(), topBottomAggregator.getEmbedAggregatorID()));
+      return identifiers;
+    }
+    
+    List<String> dependedAggregatorNames = getOTFChildrenAggregatorNames(topBottomAggregator.getEmbedAggregatorName());
+    for(String dependedAggregatorName : dependedAggregatorNames)
+      identifiers.add(new AggregationIdentifier(topBottomAggregator.getSchemaID(), topBottomAggregator.getEmbedAggregatorDdId(), this.getIncrementalAggregatorID(dependedAggregatorName)));
+    
+    return identifiers;
   }
 }

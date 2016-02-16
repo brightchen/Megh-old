@@ -4,13 +4,16 @@
  */
 package com.datatorrent.lib.dimensions.aggregator;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 
 import com.google.common.collect.Sets;
 
 import com.datatorrent.lib.appdata.gpo.GPOMutable;
+import com.datatorrent.lib.appdata.schemas.FieldsDescriptor;
 import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
+import com.datatorrent.lib.dimensions.DimensionsEvent.EventKey;
 import com.datatorrent.lib.dimensions.DimensionsEvent.InputEvent;
 import com.datatorrent.lib.statistics.DimensionsComputation.Aggregator;
 
@@ -247,7 +250,7 @@ public abstract class AbstractTopBottomAggregator<T> extends AbstractCompositeAg
   @Override
   public int hashCode()
   {
-    return (embedAggregator.hashCode()*31 + count)*31 + subCombinations.hashCode();
+    return (embedAggregatorName.hashCode()*31 + count)*31 + subCombinations.hashCode();
   }
 
   @SuppressWarnings("rawtypes")
@@ -262,9 +265,9 @@ public abstract class AbstractTopBottomAggregator<T> extends AbstractCompositeAg
       return false;
     
     AbstractTopBottomAggregator other = (AbstractTopBottomAggregator)obj;
-    if (embedAggregator != other.embedAggregator
-        && (embedAggregator == null || !embedAggregator.equals(other.embedAggregator)))
-      return false;
+//    if (embedAggregator != other.embedAggregator
+//        && (embedAggregator == null || !embedAggregator.equals(other.embedAggregator)))
+//      return false;
     if (embedAggregatorName != other.embedAggregatorName
         && (embedAggregatorName == null || !embedAggregatorName.equals(other.embedAggregatorName)))
       return false;
@@ -277,5 +280,13 @@ public abstract class AbstractTopBottomAggregator<T> extends AbstractCompositeAg
     return true;
   }
   
+  
 
+  @Override
+  public void aggregate(Aggregate resultAggregate, Set<EventKey> inputEventKeys,
+      Map<EventKey, Aggregate> inputAggregatesRepo)
+  {
+    // TODO Auto-generated method stub
+    
+  }
 }

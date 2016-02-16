@@ -23,9 +23,9 @@ import com.datatorrent.lib.dimensions.aggregator.AggregatorRegistry;
 import com.datatorrent.lib.testbench.CollectorTestSink;
 import com.datatorrent.lib.util.TestUtils;
 
-public class DimensionsComputationCompositeAggregatorTest extends DimensionsComputationFlexibleSingleSchemaPOJOTest
+public class DimensionsComputationCompositeAggregatorSimpleTest extends DimensionsComputationFlexibleSingleSchemaPOJOTest
 {
-  private static final Logger LOG = LoggerFactory.getLogger(DimensionsComputationCompositeAggregatorTest.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DimensionsComputationCompositeAggregatorSimpleTest.class);
   
   @Before
   public void setup()
@@ -115,6 +115,7 @@ public class DimensionsComputationCompositeAggregatorTest extends DimensionsComp
     dcss.input.put(ai);
     dcss.endWindow();
 
-    Assert.assertEquals(60, sink.collectedTuples.size());
+    Assert.assertEquals(8, sink.collectedTuples.size());
   }
+  
 }

@@ -5,7 +5,7 @@
  "values":
   [{"name":"impressions","type":"long","aggregators":[
        {"aggregator":"TOPN","count":"10","embededAggregator":"SUM","subCombinations":["location"]}]},
-   {"name":"clicks","type":"long","aggregators":[
+   {"name":"cost","type":"double","aggregators":[
        {"aggregator":"TOPN","count":"10","embededAggregator":"SUM","subCombinations":["location"]},
        {"aggregator":"BOTTOMN","count":"20","embededAggregator":"AVG","subCombinations":["location"]}]},
   ],

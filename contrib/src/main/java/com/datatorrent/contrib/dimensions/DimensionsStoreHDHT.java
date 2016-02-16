@@ -21,6 +21,7 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
@@ -33,14 +34,20 @@ import com.datatorrent.contrib.hdht.AbstractSinglePortHDHTWriter;
 import com.datatorrent.lib.appdata.gpo.GPOByteArrayList;
 import com.datatorrent.lib.appdata.gpo.GPOMutable;
 import com.datatorrent.lib.appdata.gpo.GPOUtils;
+import com.datatorrent.lib.appdata.schemas.Fields;
 import com.datatorrent.lib.appdata.schemas.FieldsDescriptor;
 import com.datatorrent.lib.appdata.schemas.Type;
 import com.datatorrent.lib.codec.KryoSerializableStreamCodec;
+import com.datatorrent.lib.dimensions.AggregationIdentifier;
 import com.datatorrent.lib.dimensions.DimensionsDescriptor;
+import com.datatorrent.lib.dimensions.AbstractDimensionsComputationFlexibleSingleSchema.DimensionsConversionContext;
 import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
 import com.datatorrent.lib.dimensions.DimensionsEvent.EventKey;
+import com.datatorrent.lib.dimensions.DimensionsEvent.InputEvent;
 import com.datatorrent.lib.dimensions.aggregator.IncrementalAggregator;
+import com.datatorrent.lib.dimensions.aggregator.OTFAggregator;
 import com.datatorrent.lib.dimensions.aggregator.AbstractCompositeAggregator;
+import com.datatorrent.lib.dimensions.aggregator.AbstractTopBottomAggregator;
 import com.datatorrent.netlet.util.Slice;
 
 /**
@@ -106,6 +113,22 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
   protected transient Map<EventKey, Aggregate> cache = new ConcurrentHashMap<EventKey, Aggregate>();
   
   /**
+   * The map from embed identifier to composite identifier
+   */
+  protected transient Map<AggregationIdentifier, Set<AggregationIdentifier>> embedToCompositeIdentifier = Maps.newHashMap();
+  
+  /**
+   * The computation for composite aggregators need to get the aggregates of embed incremental aggregator.
+   * This embed aggregator can identified by AggregationIdentifier
+   */
+  protected transient Map<AggregationIdentifier, Set<EventKey>> embedIdentifierToEventKeys;
+  
+  /**
+   * the map from embed event key to composite event key
+   */
+  protected transient Map<EventKey, Set<EventKey>> embedToCompositeEventKey = Maps.newHashMap();
+  
+  /**
    * A map from composite aggregator ID to aggregate value.
    * not use ConcurrentHashMap as all operations are in same thread, 
    */
@@ -154,7 +177,7 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
    * @param aggregatorName Name of the aggregator to look up an ID for.
    * @return The ID of the aggregator corresponding to the given aggregatorName.
    */
-  protected abstract int getAggregatorID(String aggregatorName);
+  protected abstract int getIncrementalAggregatorID(String aggregatorName);
 
   /**
    * This is a helper method which gets  the {@link IncrementalAggregator} corresponding to the given aggregatorID.
@@ -446,6 +469,8 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
 
       readMetaData = true;
     }
+    
+    initializeEmbedIdentifierToEventKeys();
   }
 
   @Override
@@ -457,6 +482,9 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
     int ddID = gae.getDimensionDescriptorID();
     int aggregatorID = gae.getAggregatorID();
 
+    AggregationIdentifier aggregationIdentifier = new AggregationIdentifier(schemaID, ddID, aggregatorID);
+    Set<EventKey> embedEventKeys = embedIdentifierToEventKeys.get(aggregationIdentifier);
+    
     FieldsDescriptor keyFieldsDescriptor = getKeyDescriptor(schemaID, ddID);
     FieldsDescriptor valueFieldsDescriptor = getValueDescriptor(schemaID, ddID, aggregatorID);
 
@@ -498,11 +526,15 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
 
       if (aggregate != null) {
         cache.put(aggregate.getEventKey(), aggregate);
+        if(embedEventKeys != null)
+          embedEventKeys.add(aggregate.getEventKey());
       }
     }
 
     if (aggregate == null) {
       cache.put(gae.getEventKey(), gae);
+      if(embedEventKeys != null)
+        embedEventKeys.add(gae.getEventKey());
     } else {
       LOG.debug("Aggregating input");
       aggregator.aggregate(aggregate, gae);
@@ -532,7 +564,7 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
 
     cacheWindowCount++;
 
-    handleCompositeAggregators();
+    handleTopBottomAggregators();
     
     //Write out the contents of the cache.
     for (Map.Entry<EventKey, Aggregate> entry : cache.entrySet()) {
@@ -547,44 +579,357 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
       cacheWindowCount = 0;
     }
 
+    cleanupEmbedIdentifierToEventKeys();
+    
     super.endWindow();
   }
-
+  
   /**
-   * input: the aggregte of Incremental Aggregators from cache
-   * output: create a new cache instead of share the same cache of Incremental Aggregators
+   * This method initialize the cacheForCompositeComputation.
+   * Basically, it computes the AggregationIdentifier for all composite aggregators and put as the key of cacheForCompositeComputation
    */
-  protected void handleCompositeAggregators()
+  protected void initializeEmbedIdentifierToEventKeys()
   {
-    Map<Integer, AbstractCompositeAggregator<Object>> idToCompositeAggregators = getCompositeAggregators();
-    for(Map.Entry<Integer, AbstractCompositeAggregator<Object>> aggregatorEntry : idToCompositeAggregators.entrySet())
+    if(embedIdentifierToEventKeys != null)
+      return;
+    
+    embedIdentifierToEventKeys = Maps.newHashMap();
+    Map<Integer, AbstractTopBottomAggregator<Object>> topBottomAggregatorIdToInstance = getTopBottomAggregatorIdToInstance();
+    Set<AggregationIdentifier> allIdentifiers = Sets.newHashSet();
+    
+    for(Map.Entry<Integer, AbstractTopBottomAggregator<Object>> entry : topBottomAggregatorIdToInstance.entrySet())
     {
-      Aggregate srcAggregate = getEmbedValue(aggregatorEntry.getValue());
-      GPOMutable destValues = compositeAggregteCache.get(aggregatorEntry.getKey());
-      tmpCompositeDestAggregate.setAggregates(destValues);
-      aggregatorEntry.getValue().aggregate(tmpCompositeDestAggregate, srcAggregate);
+      allIdentifiers.addAll(getDependedIncrementalAggregationIdentifiers(entry.getValue()));
+    }
+    
+    for(AggregationIdentifier identifier : allIdentifiers)
+    {
+      embedIdentifierToEventKeys.put(identifier, Sets.<EventKey>newHashSet());
     }
   }
   
   /**
-   * get all composite aggregators
-   * @return Map of aggregator id to composite aggregator
+   * only cleanup the value. keep the entry for next time
    */
-  protected Map<Integer, AbstractCompositeAggregator<Object>> getCompositeAggregators()
+  protected void cleanupEmbedIdentifierToEventKeys()
   {
-    //bright: TODO:
-    return Collections.emptyMap();
+    if(embedIdentifierToEventKeys == null)
+      return;
+    for(Set<EventKey> eventKeys : embedIdentifierToEventKeys.values())
+    {
+      eventKeys.clear();
+    }
   }
 
+  //protected abstract AggregationIdentifier getEmbedAggregationIdentifier(AbstractTopBottomAggregator<?> topBottomAggregator);
+  
+  /**
+   * in case of embed is OTF aggregator, get identifier for incremental aggregators 
+   * @param topBottomAggregator
+   * @return
+   */
+  protected abstract Set<AggregationIdentifier> getDependedIncrementalAggregationIdentifiers(AbstractTopBottomAggregator<?> topBottomAggregator);
+  
+  /**
+   * input: the aggregte of Incremental Aggregators from cache
+   * output: create a new cache instead of share the same cache of Incremental Aggregators
+   */
+  protected void handleTopBottomAggregators()
+  {
+    Map<Integer, AbstractTopBottomAggregator<Object>> topBottomAggregatorIdToInstance = getTopBottomAggregatorIdToInstance();
+    
+    for(AbstractTopBottomAggregator aggregator : topBottomAggregatorIdToInstance.values())
+    {
+      Set<AggregationIdentifier> embedAggregatorIdentifiers = getDependedIncrementalAggregationIdentifiers(aggregator);
+      Object embedAggregator = aggregator.getEmbedAggregator();
+      if(embedAggregator instanceof IncrementalAggregator)
+      {
+        //embed is incremental aggregator
+        Set<EventKey> eventKeysForIdentifier = embedIdentifierToEventKeys.get(embedAggregatorIdentifiers.iterator().next());
+        if(eventKeysForIdentifier.isEmpty())
+          continue;
+       
+        //group the event key 
+        Map<EventKey, Set<EventKey>> compositeEventKeyToEmbedEventKeys = groupEventKeysByCompositeEventKey(aggregator, eventKeysForIdentifier);
+        for(Map.Entry<EventKey, Set<EventKey>> compositeEventKeyEntry : compositeEventKeyToEmbedEventKeys.entrySet())
+        {
+          aggregateComposite(aggregator, compositeEventKeyEntry.getKey(), compositeEventKeyEntry.getValue(), cache);
+        }
+      }
+      else
+      {
+        //embed is an oft aggregator
+        Map<EventKey, Aggregate> oftEventKeyToAggregate = computeOTFAggregates(aggregator.getSchemaID(), aggregator.getEmbedAggregatorName(), 
+            (OTFAggregator)aggregator.getEmbedAggregator());
+        
+        //group the event by composite event key
+        Map<EventKey, Set<EventKey>> compositeEventKeyToEmbedEventKeys = groupEventKeysByCompositeEventKey(aggregator, oftEventKeyToAggregate.keySet());
+        
+        for(Map.Entry<EventKey, Set<EventKey>> compositeEventKeyEntry : compositeEventKeyToEmbedEventKeys.entrySet())
+        {
+          aggregateComposite(aggregator, compositeEventKeyEntry.getKey(), compositeEventKeyEntry.getValue(), oftEventKeyToAggregate);
+        }
+      }
+    }
+    
+    
+    ////////////////////////////////////////
+//    for(Map.Entry<AggregationIdentifier, Set<EventKey>> entry : embedIdentifierToEventKeys.entrySet())
+//    {
+//      AbstractTopBottomAggregator<Object> aggregator = getTopBottomAggregator(entry.getKey());
+//      
+//      //get the aggregates for this composite aggregator as the dest aggregate
+//      //get aggregates from cacheForCompositeComputation( embed aggregator's aggregates ) as the src aggregate
+//    }
+      
+      
+    
+//    Map<Integer, AbstractTopBottomAggregator<Object>> idToTopBottomAggregators = getTopBottomAggregatorIdToInstance();
+//    for(Map.Entry<Integer, AbstractTopBottomAggregator<Object>> aggregatorEntry : idToTopBottomAggregators.entrySet())
+//    {
+//      Aggregate srcAggregate = getEmbedValue(aggregatorEntry.getValue());
+//      GPOMutable destValues = compositeAggregteCache.get(aggregatorEntry.getKey());
+//      tmpCompositeDestAggregate.setAggregates(destValues);
+//      aggregatorEntry.getValue().aggregate(tmpCompositeDestAggregate, srcAggregate);
+//    }
+      
+  }
+  
+  
+  /**
+   * group the event keys of embed aggregator by event key of composite aggregator.
+   * The composite event keys should have less fields than the embed aggregator event keys
+   * 
+   * @param aggregator
+   * @param embedAggregatorEventKeys
+   * @return
+   */
+  protected Map<EventKey, Set<EventKey>> groupEventKeysByCompositeEventKey(
+      AbstractTopBottomAggregator compositeAggregator, Set<EventKey> embedAggregatorEventKeys)
+  {
+    Map<EventKey, Set<EventKey>> groupedEventKeys = Maps.newHashMap();
+
+    for(EventKey embedEventKey : embedAggregatorEventKeys)
+    {
+      EventKey compositeEventKey = createCompositeEventKey(compositeAggregator, embedEventKey);
+      Set<EventKey> embedEventKeys = groupedEventKeys.get(compositeEventKey);
+      if(embedEventKeys == null)
+      {
+        embedEventKeys = Sets.newHashSet();
+        groupedEventKeys.put(compositeEventKey, embedEventKeys);
+      }
+      embedEventKeys.add(embedEventKey);
+    }
+    return groupedEventKeys;
+  }
+  
+  protected EventKey createCompositeEventKey(AbstractTopBottomAggregator<?> compositeAggregator, EventKey embedEventKey)
+  {
+    return createCompositeEventKey(embedEventKey.getBucketID(), embedEventKey.getSchemaID(), 
+        compositeAggregator.getDimensionDescriptorID(), compositeAggregator.getAggregatorID(),
+        compositeAggregator.getAggregateDescriptor().getFieldList(), embedEventKey);
+  }
+  /**
+   * The composite event keys should have less fields than the embed aggregator event keys
+   * @param bucketId
+   * @param schemaId
+   * @param dimensionDescriptorId
+   * @param aggregatorId
+   * @param compositeFieldNames
+   * @param embedEventKey
+   * @return
+   */
+  protected EventKey createCompositeEventKey(int bucketId, int schemaId, int dimensionDescriptorId, int aggregatorId,
+      List<String> compositeFieldNames, EventKey embedEventKey)
+  {
+    final GPOMutable embedKey = embedEventKey.getKey();
+    
+    GPOMutable key = cloneLimitToFields(embedKey, compositeFieldNames);
+
+    return new EventKey(bucketId, schemaId, dimensionDescriptorId, aggregatorId, key);
+  }
+  
+  /**
+   * clone a GPOMutable with selected field name
+   * TODO: this class can move to the GPOUtils
+   * @param fieldNames
+   * @return
+   */
+  public static GPOMutable cloneLimitToFields(GPOMutable orgGpo, List<String> fieldNames)
+  {
+    FieldsDescriptor orgFd = orgGpo.getFieldDescriptor();
+    Map<String, Type> fieldToType = Maps.newHashMap();
+    for(String fn : fieldNames)
+    {
+      fieldToType.put(fn, orgFd.getType(fn));
+    }
+    FieldsDescriptor fd = new FieldsDescriptor(fieldToType);
+    return new GPOMutable(fd);
+  }
+      
+  protected Aggregate fetchOrLoadAggregate(EventKey eventKey)
+  {
+    Aggregate aggregate = cache.get(eventKey);
+    if (aggregate != null)
+      return aggregate;
+
+    aggregate = load(eventKey);
+
+    if (aggregate != null) {
+      cache.put(eventKey, aggregate);
+    }
+    return aggregate;
+  }
+
+  //this is a tmp map use member variable just for share the variable
+  protected transient Map<EventKey, Aggregate> eventKeyToAggregate = Maps.newHashMap();
+  protected Map<EventKey, Aggregate> getAggregates(Set<EventKey> eventKeys)
+  {
+    eventKeyToAggregate.clear();
+    for(EventKey eventKey : eventKeys)
+    {
+      eventKeyToAggregate.put(eventKey, cache.get(eventKey));
+    }
+    return eventKeyToAggregate;
+  }
+  
+
+  /**
+   * 
+   * @param aggregator The composite aggregator for the aggregation
+   * @param compositeEventKey The composite event key, used to locate the target/dest aggregate
+   * @param inputEventKeys The input(incremental) event keys, used to locate the input aggregates
+   * @param inputEventKeyToAggregate The repository of input event key to aggregate. inputEventKeyToAggregate.keySet() should be a super set of inputEventKeys
+   */
+  protected void aggregateComposite(AbstractTopBottomAggregator aggregator, EventKey compositeEventKey, 
+      Set<EventKey> inputEventKeys, Map<EventKey, Aggregate> inputEventKeyToAggregate )
+  {
+    Aggregate srcAggregate = fetchOrLoadAggregate(compositeEventKey);
+    
+    if (srcAggregate == null) {
+      srcAggregate = new Aggregate(compositeEventKey,  new GPOMutable(aggregator.getAggregateDescriptor()));
+      cache.put(compositeEventKey, srcAggregate);
+    } 
+    
+    aggregator.aggregate(srcAggregate, inputEventKeys, inputEventKeyToAggregate);
+    
+  }
+ 
+  public Aggregate createAggregate(EventKey eventKey,
+      DimensionsConversionContext context,
+      int aggregatorIndex)
+  {
+    GPOMutable aggregates = new GPOMutable(context.aggregateDescriptor);
+
+    Aggregate aggregate = new Aggregate(eventKey, aggregates);
+    aggregate.setAggregatorIndex(aggregatorIndex);
+
+    return aggregate;
+  }
+  
+  protected abstract List<String> getOTFChildrenAggregatorNames(String oftAggregatorName);
+  
+  
+  protected Map<EventKey, Aggregate> computeOTFAggregates(int schemaID,  String oftAggregatorName, OTFAggregator oftAggregator)
+  {
+    //OTF aggregator. need to compute the OTF aggregate first.
+    List<String> childrenAggregator = getOTFChildrenAggregatorNames(oftAggregatorName);
+    
+    //get event keys for children of OTF 
+    List<Set<EventKey>> childrenEventKeysByAggregator = Lists.newArrayList();
+    for (String childAggregator : childrenAggregator) 
+    {
+      int ddId = this.getIncrementalAggregatorID(childAggregator);
+      AggregationIdentifier identifier = new AggregationIdentifier(schemaID, ddId, getIncrementalAggregatorID(childAggregator));
+      childrenEventKeysByAggregator.add(embedIdentifierToEventKeys.get(identifier));
+    }
+    
+    //arrange the EventKey by key value, the OTF requires the aggregates for same event key for computing.
+    List<List<EventKey>> childrenEventKeysByKeyValue = Lists.newArrayList();
+    Set<EventKey> eventKeys = childrenEventKeysByAggregator.get(0);
+    for(EventKey eventKey : eventKeys)
+    {
+      List<EventKey> eventKeysOfOneKeyValue = Lists.newArrayList();
+      eventKeysOfOneKeyValue.add(eventKey);
+      //the eventKey is from list(0)
+      //get one from one entry of the list with same key
+      final GPOMutable key = eventKey.getKey();
+      for(int i = 1; i< childrenEventKeysByAggregator.size(); ++i)
+      {
+        Set<EventKey> eventKeysOfOneAggregator = childrenEventKeysByAggregator.get(i);
+        if(eventKeysOfOneAggregator == null)
+          continue;
+        
+        EventKey matchedEventKey = null;
+        for(EventKey ek : eventKeysOfOneAggregator)
+        {
+          if(key.equals(ek.getKey()))
+          {
+            matchedEventKey = ek;
+            break;
+          }
+        }
+        if(matchedEventKey == null)
+        {
+          //can't find matchedEventKey, ignore
+          continue;
+        }
+        eventKeysOfOneKeyValue.add(matchedEventKey);
+      }
+      if(eventKeysOfOneKeyValue.size() != childrenAggregator.size())
+        LOG.warn("The fetched size is " + eventKeysOfOneKeyValue.size() + ", not same as expected size " + childrenAggregator.size());
+      else
+        childrenEventKeysByKeyValue.add(eventKeysOfOneKeyValue);
+    }
+    
+    Map<EventKey, Aggregate> compositeInputAggregates = Maps.newHashMap();
+    GPOMutable[] srcValues = new GPOMutable[childrenEventKeysByKeyValue.get(0).size()];
+    for(List<EventKey> sameKeyEvents: childrenEventKeysByKeyValue)
+    {
+      int i = 0;
+      for(EventKey ek : sameKeyEvents)
+      {
+        srcValues[i++] = cache.get(ek).getAggregates();
+      }
+      GPOMutable result = oftAggregator.aggregate(srcValues);
+      compositeInputAggregates.put(sameKeyEvents.get(0), new Aggregate(sameKeyEvents.get(0), result));
+    }
+    
+    return compositeInputAggregates;
+  }
+  
+  /**
+   * get event keys from the cache which belongs of embed aggregator 
+   * @param aggregator
+   * @return
+   */
+  protected Set<EventKey> getEventKeys(AbstractTopBottomAggregator<?> aggregator)
+  {
+    AggregationIdentifier identifier = new AggregationIdentifier(aggregator.getSchemaID(), aggregator.getEmbedAggregatorDdId(), aggregator.getEmbedAggregatorID());
+    return embedIdentifierToEventKeys.get(identifier);
+  }
+  
+  
+  protected abstract AbstractTopBottomAggregator<Object> getTopBottomAggregator(AggregationIdentifier aggregationIdentifier);
+
+  /**
+   * get all composite aggregators
+   * @return Map of aggregator id to top bottom aggregator
+   */
+  protected abstract Map<Integer, AbstractTopBottomAggregator<Object>> getTopBottomAggregatorIdToInstance();
+ 
   
   /**
    * get the value of the embed aggregator of this composite aggregator
    * precondition: the embed aggregator should already did aggregation and put into the cache.
-   * @param compositeAggregator
+   * 
+   * currently, go through the cache 
+   * @param topBottomAggregator
    * @return
    */
-  protected Aggregate getEmbedValue(AbstractCompositeAggregator<Object> compositeAggregator)
+  protected Aggregate getEmbedValue(AbstractTopBottomAggregator<Object> topBottomAggregator)
   {
+    
     //bright: TODO:
     return null;
   }

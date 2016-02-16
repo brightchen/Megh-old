@@ -4,14 +4,8 @@
  */
 package com.datatorrent.lib.dimensions.aggregator;
 
-import java.util.Set;
-
-import com.google.common.collect.Sets;
-
+import com.datatorrent.lib.appdata.schemas.FieldsDescriptor;
 import com.datatorrent.lib.dimensions.AbstractDimensionsComputationFlexibleSingleSchema.DimensionsConversionContext;
-import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
-import com.datatorrent.lib.dimensions.DimensionsEvent.InputEvent;
-import com.datatorrent.lib.statistics.DimensionsComputation.Aggregator;
 
 /**
  * SimpleCompositAggregator is the aggregator which embed other aggregator
@@ -19,7 +13,7 @@ import com.datatorrent.lib.statistics.DimensionsComputation.Aggregator;
  *
  * @param <T> the type of aggregator, could be OTFAggregator or IncrementalAggregator
  */
-public abstract class AbstractCompositeAggregator<T> implements Aggregator<InputEvent, Aggregate>
+public abstract class AbstractCompositeAggregator<T> implements CompositeAggregator
 {
   private static final long serialVersionUID = 661710563764433621L;
 
@@ -30,6 +24,8 @@ public abstract class AbstractCompositeAggregator<T> implements Aggregator<Input
    */
   protected T embedAggregator;
   protected String embedAggregatorName;
+
+  protected int aggregatorID;
   
   protected DimensionsConversionContext dimensionsConversionContext;
   
@@ -82,15 +78,58 @@ public abstract class AbstractCompositeAggregator<T> implements Aggregator<Input
     final int prime = 31;
     int result = 1;
     result = prime * result + ((dimensionsConversionContext == null) ? 0 : dimensionsConversionContext.hashCode());
-    result = prime * result + ((embedAggregator == null) ? 0 : embedAggregator.hashCode());
+//    result = prime * result + ((embedAggregator == null) ? 0 : embedAggregator.hashCode());
     result = prime * result + ((embedAggregatorName == null) ? 0 : embedAggregatorName.hashCode());
     return result;
   }
 
-//
-//  @Override
-//  public AbstractCompositeAggregator<T> clone()
-//  {
-//    return new AbstractCompositeAggregator().withEmbedAggregator(embedAggregator).withDimensionsConversionContext(dimensionsConversionContext);
-//  }
+
+
+  @Override
+  public int getDimensionDescriptorID()
+  {
+    // TODO Auto-generated method stub
+    return 0;
+  }
+
+  @Override
+  public int getAggregatorID()
+  {
+    return aggregatorID;
+  }
+  public void setAggregatorID(int aggregatorID)
+  {
+    this.aggregatorID = aggregatorID;
+  }
+
+  
+  @Override
+  public FieldsDescriptor getAggregateDescriptor()
+  {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+
+  @Override
+  public int getSchemaID()
+  {
+    // TODO Auto-generated method stub
+    return 0;
+  }
+
+  @Override
+  public int getEmbedAggregatorDdId()
+  {
+    // TODO Auto-generated method stub
+    return 0;
+  }
+
+  @Override
+  public int getEmbedAggregatorID()
+  {
+    // TODO Auto-generated method stub
+    return 0;
+  }  
+
 }

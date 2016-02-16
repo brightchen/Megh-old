@@ -63,6 +63,19 @@ public class AggregatorRegistry implements Serializable
       AggregatorIncrementalType.NAME_TO_ORDINAL);
 
   /**
+   * create an new instance of AggregatorRegistry instead of of share same one in case one application has multiple schema
+   * @return new created AggregatorRegistry instance;
+   */
+  public static final AggregatorRegistry newDefaultAggregatorRegistry()
+  {
+    AggregatorRegistry aggregatorRegistry = new AggregatorRegistry(
+        DEFAULT_NAME_TO_INCREMENTAL_AGGREGATOR, DEFAULT_NAME_TO_OTF_AGGREGATOR,
+        AggregatorIncrementalType.NAME_TO_ORDINAL);
+    aggregatorRegistry.setup();
+    return aggregatorRegistry;
+  }
+  
+  /**
    * This is a flag indicating whether or not this {@link AggregatorRegistry} has been setup before or not.
    */
   private transient boolean setup = false;

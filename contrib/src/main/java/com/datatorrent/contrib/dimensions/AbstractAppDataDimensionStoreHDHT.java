@@ -351,7 +351,7 @@ public abstract class AbstractAppDataDimensionStoreHDHT extends DimensionsStoreH
   }
 
   @Override
-  protected int getAggregatorID(String aggregatorName)
+  protected int getIncrementalAggregatorID(String aggregatorName)
   {
     return aggregatorRegistry.getIncrementalAggregatorNameToID().get(aggregatorName);
   }

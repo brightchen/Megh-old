@@ -135,14 +135,14 @@ public abstract class AbstractDimensionsComputationFlexibleSingleSchema<EVENT> i
           aggregatorRegistry);
     }
 
-    fulfillCompositeEmbedAggregators();
     IncrementalAggregator[] incrementalAggregatorArray = createIncrementalAggregators();
 
     dimensionsComputation = new DimensionsComputation<InputEvent, Aggregate>();
     dimensionsComputation.setIncrementalAggregators(incrementalAggregatorArray);
 
-    AbstractCompositeAggregator[] compositeAggregatorArray = createCompositeAggregators();
-    dimensionsComputation.setCompositeAggregators(compositeAggregatorArray);
+//bright: remove the composite aggregator need to compute in store.    
+//    AbstractCompositeAggregator[] compositeAggregatorArray = createCompositeAggregators();
+//    dimensionsComputation.setCompositeAggregators(compositeAggregatorArray);
     
 
     Sink<Aggregate> sink = new Sink<Aggregate>()
@@ -182,6 +182,7 @@ public abstract class AbstractDimensionsComputationFlexibleSingleSchema<EVENT> i
    * fulfill the information to configurationSchema
    * The embed aggregators could add dimension combination.
    */
+  //bright: remove this function as embed aggerator already fulfilled when doing configure. 
   protected void fulfillCompositeEmbedAggregators()
   {
     if(true)
@@ -372,7 +373,7 @@ public abstract class AbstractDimensionsComputationFlexibleSingleSchema<EVENT> i
         conversionContext.customTimeBucketRegistry = configurationSchema.getCustomTimeBucketRegistry();
         conversionContext.dd = dd;
         conversionContext.keyDescriptor = keyFieldsDescriptor;
-        conversionContext.aggregateDescriptor = map.get(aggID);
+        //conversionContext.aggregateDescriptor = map.get(aggID);
         conversionContext.aggregateDescriptor = mapOutput.get(aggID);
 
         {

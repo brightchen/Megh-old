@@ -13,8 +13,10 @@ public interface CompositeAggregator
   public int getDimensionDescriptorID();
   public int getAggregatorID();
   
-  public int getEmbedAggregatorDdId();
-  public int getEmbedAggregatorID();
+  public Set<Integer> getEmbedAggregatorDdIds();
+  
+  public Set<String> getFields();
+  //public int getEmbedAggregatorID();
   public FieldsDescriptor getAggregateDescriptor();
   
   /**

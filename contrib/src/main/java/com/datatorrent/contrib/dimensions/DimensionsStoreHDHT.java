@@ -260,6 +260,8 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
       timestamp = eventKey.getKey().getFieldLong(DimensionsDescriptor.DIMENSION_TIME);
     }
 
+    try
+    {
     //Time is a special case for HDHT all keys should be prefixed by a timestamp.
     byte[] timeBytes = Longs.toByteArray(timestamp);
     byte[] schemaIDBytes = Ints.toByteArray(eventKey.getSchemaID());
@@ -277,6 +279,12 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
     bal.clear();
 
     return serializedBytes;
+    }
+    catch(Exception e)
+    {
+      e.printStackTrace();
+      return null;
+    }
   }
 
   /**
@@ -641,8 +649,8 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
     for(AbstractTopBottomAggregator aggregator : topBottomAggregatorIdToInstance.values())
     {
       Set<AggregationIdentifier> embedAggregatorIdentifiers = getDependedIncrementalAggregationIdentifiers(aggregator);
-      Object embedAggregator = aggregator.getEmbedAggregator();
-      if(embedAggregator instanceof IncrementalAggregator)
+      String embedAggregatorName = aggregator.getEmbedAggregatorName();
+      if(isIncrementalAggregator(embedAggregatorName))
       {
         //embed is incremental aggregator
         Set<EventKey> eventKeysForIdentifier = embedIdentifierToEventKeys.get(embedAggregatorIdentifiers.iterator().next());
@@ -659,8 +667,7 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
       else
       {
         //embed is an oft aggregator
-        Map<EventKey, Aggregate> oftEventKeyToAggregate = computeOTFAggregates(aggregator.getSchemaID(), aggregator.getEmbedAggregatorName(), 
-            (OTFAggregator)aggregator.getEmbedAggregator());
+        Map<EventKey, Aggregate> oftEventKeyToAggregate = computeOTFAggregates(aggregator, embedAggregatorName, getOTFAggregatorByName(embedAggregatorName));
         
         //group the event by composite event key
         Map<EventKey, Set<EventKey>> compositeEventKeyToEmbedEventKeys = groupEventKeysByCompositeEventKey(aggregator, oftEventKeyToAggregate.keySet());
@@ -696,6 +703,10 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
   }
   
   
+  protected abstract boolean isIncrementalAggregator(String aggregatorName);
+  
+  protected abstract OTFAggregator getOTFAggregatorByName(String otfAggregatorName);
+  
   /**
    * group the event keys of embed aggregator by event key of composite aggregator.
    * The composite event keys should have less fields than the embed aggregator event keys
@@ -723,11 +734,18 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
     return groupedEventKeys;
   }
   
+  /**
+   * create the event key for the composite aggregate based on the event key of embed aggregator.
+   * @param compositeAggregator
+   * @param embedEventKey
+   * @return
+   */
   protected EventKey createCompositeEventKey(AbstractTopBottomAggregator<?> compositeAggregator, EventKey embedEventKey)
   {
     return createCompositeEventKey(embedEventKey.getBucketID(), embedEventKey.getSchemaID(), 
         compositeAggregator.getDimensionDescriptorID(), compositeAggregator.getAggregatorID(),
-        compositeAggregator.getAggregateDescriptor().getFieldList(), embedEventKey);
+        compositeAggregator.getFields(), 
+        embedEventKey);
   }
   /**
    * The composite event keys should have less fields than the embed aggregator event keys
@@ -740,11 +758,11 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
    * @return
    */
   protected EventKey createCompositeEventKey(int bucketId, int schemaId, int dimensionDescriptorId, int aggregatorId,
-      List<String> compositeFieldNames, EventKey embedEventKey)
+      Set<String> compositeFieldNames, EventKey embedEventKey)
   {
     final GPOMutable embedKey = embedEventKey.getKey();
     
-    GPOMutable key = cloneLimitToFields(embedKey, compositeFieldNames);
+    GPOMutable key = cloneGPOMutableLimitToFields(embedKey, compositeFieldNames);
 
     return new EventKey(bucketId, schemaId, dimensionDescriptorId, aggregatorId, key);
   }
@@ -755,16 +773,14 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
    * @param fieldNames
    * @return
    */
-  public static GPOMutable cloneLimitToFields(GPOMutable orgGpo, List<String> fieldNames)
+  public static GPOMutable cloneGPOMutableLimitToFields(GPOMutable orgGpo, Set<String> fieldNames)
   {
-    FieldsDescriptor orgFd = orgGpo.getFieldDescriptor();
-    Map<String, Type> fieldToType = Maps.newHashMap();
-    for(String fn : fieldNames)
-    {
-      fieldToType.put(fn, orgFd.getType(fn));
-    }
-    FieldsDescriptor fd = new FieldsDescriptor(fieldToType);
-    return new GPOMutable(fd);
+    Set<String> fieldsIncludeTime = Sets.newHashSet();
+    fieldsIncludeTime.addAll(fieldNames);
+    fieldsIncludeTime.add("timeBucket");
+    fieldsIncludeTime.add("time");
+    
+    return new GPOMutable(orgGpo, new Fields(fieldsIncludeTime));
   }
       
   protected Aggregate fetchOrLoadAggregate(EventKey eventKey)
@@ -830,19 +846,29 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
   protected abstract List<String> getOTFChildrenAggregatorNames(String oftAggregatorName);
   
   
-  protected Map<EventKey, Aggregate> computeOTFAggregates(int schemaID,  String oftAggregatorName, OTFAggregator oftAggregator)
+  /**
+   * compute to get the result of OTF aggregates(result). The input aggregate value from the cache.
+   * @param aggregator the composite aggregator of this OTF aggregator
+   * @param oftAggregatorName
+   * @param oftAggregator
+   * @return
+   */
+  protected Map<EventKey, Aggregate> computeOTFAggregates(AbstractTopBottomAggregator aggregator, String oftAggregatorName, OTFAggregator oftAggregator)
   {
-    //OTF aggregator. need to compute the OTF aggregate first.
+    Set<AggregationIdentifier> dependedIncrementalAggregatorIdentifiers = getDependedIncrementalAggregationIdentifiers(aggregator);
     List<String> childrenAggregator = getOTFChildrenAggregatorNames(oftAggregatorName);
     
     //get event keys for children of OTF 
     List<Set<EventKey>> childrenEventKeysByAggregator = Lists.newArrayList();
-    for (String childAggregator : childrenAggregator) 
+    for (AggregationIdentifier identifier : dependedIncrementalAggregatorIdentifiers) 
     {
-      int ddId = this.getIncrementalAggregatorID(childAggregator);
-      AggregationIdentifier identifier = new AggregationIdentifier(schemaID, ddId, getIncrementalAggregatorID(childAggregator));
-      childrenEventKeysByAggregator.add(embedIdentifierToEventKeys.get(identifier));
+      Set<EventKey> eventKeys = embedIdentifierToEventKeys.get(identifier);
+      if(eventKeys != null && !eventKeys.isEmpty())
+        childrenEventKeysByAggregator.add(eventKeys);
     }
+    
+    if(childrenEventKeysByAggregator.isEmpty())
+      return Collections.emptyMap();
     
     //arrange the EventKey by key value, the OTF requires the aggregates for same event key for computing.
     List<List<EventKey>> childrenEventKeysByKeyValue = Lists.newArrayList();
@@ -903,11 +929,11 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
    * @param aggregator
    * @return
    */
-  protected Set<EventKey> getEventKeys(AbstractTopBottomAggregator<?> aggregator)
-  {
-    AggregationIdentifier identifier = new AggregationIdentifier(aggregator.getSchemaID(), aggregator.getEmbedAggregatorDdId(), aggregator.getEmbedAggregatorID());
-    return embedIdentifierToEventKeys.get(identifier);
-  }
+//  protected Set<EventKey> getEventKeys(AbstractTopBottomAggregator<?> aggregator)
+//  {
+//    AggregationIdentifier identifier = new AggregationIdentifier(aggregator.getSchemaID(), aggregator.getEmbedAggregatorDdId(), aggregator.getEmbedAggregatorID());
+//    return embedIdentifierToEventKeys.get(identifier);
+//  }
   
   
   protected abstract AbstractTopBottomAggregator<Object> getTopBottomAggregator(AggregationIdentifier aggregationIdentifier);

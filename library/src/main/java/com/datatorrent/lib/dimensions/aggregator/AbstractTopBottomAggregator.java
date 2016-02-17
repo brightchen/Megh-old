@@ -11,7 +11,6 @@ import java.util.SortedSet;
 import com.google.common.collect.Sets;
 
 import com.datatorrent.lib.appdata.gpo.GPOMutable;
-import com.datatorrent.lib.appdata.schemas.FieldsDescriptor;
 import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
 import com.datatorrent.lib.dimensions.DimensionsEvent.EventKey;
 import com.datatorrent.lib.dimensions.DimensionsEvent.InputEvent;
@@ -23,11 +22,6 @@ public abstract class AbstractTopBottomAggregator<T> extends AbstractCompositeAg
   protected int count;
   protected SortedSet<String> subCombinations = Sets.newTreeSet();
   
-  public AbstractTopBottomAggregator<T> withEmbedAggregator(T embedAggregator)
-  {
-    this.setEmbedAggregator(embedAggregator);
-    return this;
-  }
   public AbstractTopBottomAggregator<T> withEmbedAggregatorName(String embedAggregatorName)
   {
     this.setEmbedAggregatorName(embedAggregatorName);

@@ -173,20 +173,13 @@ public class DimensionalCompositeSchemaTest
     final String[] combination_location = new String[]{"location"};
     final String[] combination_advertiser = new String[]{"advertiser"};
     final String[] combination_location_publisher = new String[]{"location", "publisher"};
-    expectedNameToAggregator.put("TOPN-SUM-10_location", new AggregatorTop().withCount(10).withEmbedAggregator(incrementalNameToAggregator.get("SUM"))
-        .withEmbedAggregatorName("SUM").withSubCombinations(combination_location));
-    expectedNameToAggregator.put("BOTTOMN-AVG-20_location", new AggregatorBottom().withCount(20).withEmbedAggregator(otfNameToAggregator.get("AVG"))
-        .withEmbedAggregatorName("AVG").withSubCombinations(combination_location));
-    expectedNameToAggregator.put("TOPN-SUM-10_location_publisher", new AggregatorTop().withCount(10).withEmbedAggregator(incrementalNameToAggregator.get("SUM"))
-        .withEmbedAggregatorName("SUM").withSubCombinations(combination_location_publisher));
-    expectedNameToAggregator.put("TOPN-SUM-10_advertiser", new AggregatorTop().withCount(10).withEmbedAggregator(incrementalNameToAggregator.get("SUM"))
-        .withEmbedAggregatorName("SUM").withSubCombinations(combination_advertiser));
-    expectedNameToAggregator.put("TOPN-COUNT-10_location", new AggregatorTop().withCount(10).withEmbedAggregator(incrementalNameToAggregator.get("COUNT"))
-        .withEmbedAggregatorName("COUNT").withSubCombinations(combination_location));
-    expectedNameToAggregator.put("BOTTOMN-AVG-10_location", new AggregatorBottom().withCount(10).withEmbedAggregator(otfNameToAggregator.get("AVG"))
-        .withEmbedAggregatorName("AVG").withSubCombinations(combination_location));
-    expectedNameToAggregator.put("BOTTOMN-SUM-10_location", new AggregatorBottom().withCount(10).withEmbedAggregator(incrementalNameToAggregator.get("SUM"))
-        .withEmbedAggregatorName("SUM").withSubCombinations(combination_location));
+    expectedNameToAggregator.put("TOPN-SUM-10_location", new AggregatorTop().withCount(10).withEmbedAggregatorName("SUM").withSubCombinations(combination_location));
+    expectedNameToAggregator.put("BOTTOMN-AVG-20_location", new AggregatorBottom().withCount(20).withEmbedAggregatorName("AVG").withSubCombinations(combination_location));
+    expectedNameToAggregator.put("TOPN-SUM-10_location_publisher", new AggregatorTop().withCount(10).withEmbedAggregatorName("SUM").withSubCombinations(combination_location_publisher));
+    expectedNameToAggregator.put("TOPN-SUM-10_advertiser", new AggregatorTop().withCount(10).withEmbedAggregatorName("SUM").withSubCombinations(combination_advertiser));
+    expectedNameToAggregator.put("TOPN-COUNT-10_location", new AggregatorTop().withCount(10).withEmbedAggregatorName("COUNT").withSubCombinations(combination_location));
+    expectedNameToAggregator.put("BOTTOMN-AVG-10_location", new AggregatorBottom().withCount(10).withEmbedAggregatorName("AVG").withSubCombinations(combination_location));
+    expectedNameToAggregator.put("BOTTOMN-SUM-10_location", new AggregatorBottom().withCount(10).withEmbedAggregatorName("SUM").withSubCombinations(combination_location));
     
     MapDifference difference = Maps.difference(compsiteNameToAggregator, expectedNameToAggregator);
     Assert.assertTrue("Generated Composit Aggregators are not same as expected.\n" + difference.toString(), difference.areEqual()); 

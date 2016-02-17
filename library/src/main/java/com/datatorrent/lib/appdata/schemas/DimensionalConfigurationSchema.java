@@ -976,7 +976,7 @@ public class DimensionalConfigurationSchema
 //                    name, aggregatorSet, aggregatorToType, typeT, aggregatorOTFSet, false);
               
               addCompositeAggregator(aggregatorName, allValueToCompositeAggregator, aggregateCompositeSet, name, 
-                  embededAggregatorName, null, propertyNameToValue);
+                  embededAggregatorName, propertyNameToValue);
 
             }
             else
@@ -1284,7 +1284,7 @@ public class DimensionalConfigurationSchema
                 specificValueToCompositeAggregator.put(valueName, compositeAggregators);
               }
               addCompositeAggregator(aggregatorName, allValueToCompositeAggregator, compositeAggregators,
-                  valueName, embededAggregatorName, null, propertyNameToValue); 
+                  valueName, embededAggregatorName, propertyNameToValue); 
             }
             else
             {
@@ -1349,6 +1349,9 @@ public class DimensionalConfigurationSchema
     buildDimensionsDescriptorIDAggregatorIDMaps();
     
     aggregatorRegistry.buildTopBottomAggregatorIDToAggregator();
+    
+    //fulfill the embed ddids of composite aggregators
+    fulfillCompositeAggregatorExtraInfo();
   }
 
   
@@ -1722,7 +1725,6 @@ public class DimensionalConfigurationSchema
       Set<String> aggregateCompositeSet,
       String valueName,
       String embededAggregatorName,
-      Object embededAggregator,
       Map<String, Object> properties
       )
   {
@@ -1730,8 +1732,8 @@ public class DimensionalConfigurationSchema
       throw new IllegalArgumentException(aggregatorType + " is not a valid composite aggregator.");
     }
     
-    Pair<String, AbstractCompositeAggregator<Object>> pair = createCompositeAggregator( aggregatorType, 
-        embededAggregatorName, embededAggregator, properties);
+    Pair<String, AbstractCompositeAggregator<Object>> pair = createCompositeAggregator(aggregatorType, 
+        embededAggregatorName, properties);
     
     String aggregatorName = pair.first;
     //Check for duplicate
@@ -1767,18 +1769,16 @@ public class DimensionalConfigurationSchema
    * Wrapper the logic of create composite aggregator and its name.
    * Override this method if feature extended or changed.
    * @param aggregatorType
-   * @param embededAggregatorName
    * @param embededAggregator
    * @param propertyName
    * @param propertyValue
    * @return
    */
   public Pair<String, AbstractCompositeAggregator<Object>> createCompositeAggregator(String aggregatorType, 
-        String embededAggregatorName, Object embededAggregator, 
-        Map<String, Object> properties)
+        String embededAggregatorName, Map<String, Object> properties)
   {
     String aggregatorName = compositeAggregatorFactory.getCompositeAggregatorName(aggregatorType, embededAggregatorName, properties);
-    AbstractCompositeAggregator<Object> aggregator = compositeAggregatorFactory.createCompositeAggregator(aggregatorType, embededAggregatorName, embededAggregator, properties);
+    AbstractCompositeAggregator<Object> aggregator = compositeAggregatorFactory.createCompositeAggregator(aggregatorType, embededAggregatorName, properties);
     return new Pair<String, AbstractCompositeAggregator<Object>>(aggregatorName, aggregator);
   }
   
@@ -1850,10 +1850,7 @@ public class DimensionalConfigurationSchema
         buildNonCompositeAggregatorIDMap(entry.getKey(), entry.getValue(), aggIDList, inputMap, outputMap);
       }
     }
-    
-    // bright: TODO: add embed aggregtor information here.
-    // the combination of embed aggregator is the combination of composite aggreagtor's combination and sub-combination
-    
+       
     
     //get the max aggregator id for generating the composite aggregator id
     int maxAggregatorID = getLargestNonCompositeAggregatorID();
@@ -1939,6 +1936,50 @@ public class DimensionalConfigurationSchema
     outputMap.put(aggregatorID,
         AggregatorUtils.getOutputFieldsDescriptor(inputDescriptor,
         incrementalAggregator));
+  }
+  
+  
+  /**
+   * fulfill the embed ddids of composite aggregators
+   * get the dimensional descriptor of composite aggregator; genereate field keys of embed aggregator
+   */
+  protected void fulfillCompositeAggregatorExtraInfo()
+  {
+    Map<Set<String>, Integer> keysToCombinationId = getKeysToCombinationId();
+    final int timeBucketSize = customTimeBuckets.size();
+    
+    for(int index = 0; index < dimensionsDescriptorIDToCompositeAggregatorToAggregateDescriptor.size(); ++index)
+    {
+      Map<String, FieldsDescriptor> compositeAggregatorNameToDescriptor = dimensionsDescriptorIDToCompositeAggregatorToAggregateDescriptor.get(index);
+      for(String compositeAggregatorName : compositeAggregatorNameToDescriptor.keySet())
+      {
+        AbstractTopBottomAggregator<Object> compositeAggregator = aggregatorRegistry.getNameToTopBottomAggregator().get(compositeAggregatorName);
+        
+        //keys for embed aggregator
+        Set<String> keys = Sets.newHashSet();
+        DimensionsDescriptor dd = dimensionsDescriptorIDToDimensionsDescriptor.get(index);
+        
+        keys.addAll(dd.getFields().getFieldsList());
+        
+        {
+          Set<String> compositeKeys = Sets.newHashSet();
+          compositeKeys.addAll(keys);
+          compositeAggregator.setFields(compositeKeys);
+          
+          compositeAggregator.setAggregateDescriptor(compositeAggregatorNameToDescriptor.get(compositeAggregatorName));
+        }
+        
+        keys.addAll(compositeAggregator.getSubCombinations());
+        
+        Integer combinationId = keysToCombinationId.get(keys);
+        if(combinationId == null)
+        {
+          throw new RuntimeException("Can't find combination id for keys: " + keys);
+        }
+        for(int ddid = combinationId*timeBucketSize; ddid < (combinationId+1)*timeBucketSize; ++ddid)
+          compositeAggregator.addEmbedAggregatorDdId(ddid);
+      }
+    }
   }
   
   protected String getEmbededAggregatorName(String compositeAggregatorName)

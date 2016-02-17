@@ -1,11 +1,6 @@
 package com.datatorrent.lib.dimensions.aggregator;
 
-import java.util.Map;
-import java.util.Set;
-
-import com.datatorrent.lib.appdata.schemas.FieldsDescriptor;
 import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
-import com.datatorrent.lib.dimensions.DimensionsEvent.EventKey;
 import com.datatorrent.lib.dimensions.DimensionsEvent.InputEvent;
 
 public class AggregatorBottom<T> extends AbstractTopBottomAggregator<T>

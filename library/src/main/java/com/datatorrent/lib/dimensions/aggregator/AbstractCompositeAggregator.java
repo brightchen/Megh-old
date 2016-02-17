@@ -4,6 +4,10 @@
  */
 package com.datatorrent.lib.dimensions.aggregator;
 
+import java.util.Set;
+
+import com.google.common.collect.Sets;
+
 import com.datatorrent.lib.appdata.schemas.FieldsDescriptor;
 import com.datatorrent.lib.dimensions.AbstractDimensionsComputationFlexibleSingleSchema.DimensionsConversionContext;
 
@@ -17,35 +21,15 @@ public abstract class AbstractCompositeAggregator<T> implements CompositeAggrega
 {
   private static final long serialVersionUID = 661710563764433621L;
 
-  
-  /**
-   * The embed aggregator could be OTFAggregator or IncrementalAggregator, 
-   * but not another composite aggregator
-   */
-  protected T embedAggregator;
   protected String embedAggregatorName;
-
   protected int aggregatorID;
+  protected FieldsDescriptor aggregateDescriptor;
+  //protected int embedAggregatorID;
+  protected Set<Integer> embedAggregatorDdIds = Sets.newHashSet();
+  protected Set<String> fields = Sets.newHashSet();
   
   protected DimensionsConversionContext dimensionsConversionContext;
   
-  public AbstractCompositeAggregator<T> withEmbedAggregator(T embedAggregator)
-  {
-    this.setEmbedAggregator(embedAggregator);
-    return this;
-  }
-  
-  public T getEmbedAggregator()
-  {
-    return embedAggregator;
-  }
-
-  public void setEmbedAggregator(T embedAggregator)
-  {
-    this.embedAggregator = embedAggregator;
-  }
-  
-
   public DimensionsConversionContext getDimensionsConversionContext()
   {
     return dimensionsConversionContext;
@@ -84,7 +68,6 @@ public abstract class AbstractCompositeAggregator<T> implements CompositeAggrega
   }
 
 
-
   @Override
   public int getDimensionDescriptorID()
   {
@@ -102,14 +85,26 @@ public abstract class AbstractCompositeAggregator<T> implements CompositeAggrega
     this.aggregatorID = aggregatorID;
   }
 
-  
   @Override
   public FieldsDescriptor getAggregateDescriptor()
   {
-    // TODO Auto-generated method stub
-    return null;
+    return aggregateDescriptor;
+  }
+  public void setAggregateDescriptor(FieldsDescriptor aggregateDescriptor)
+  {
+    this.aggregateDescriptor = aggregateDescriptor;
+  }
+  
+  @Override
+  public Set<String> getFields()
+  {
+    return fields;
   }
 
+  public void setFields(Set<String> fields)
+  {
+    this.fields = fields;
+  }
 
   @Override
   public int getSchemaID()
@@ -118,18 +113,31 @@ public abstract class AbstractCompositeAggregator<T> implements CompositeAggrega
     return 0;
   }
 
+  //implement this, the ddid in fact should be a set or list. or return the first ddid, and use the timebucket to get other ddids.
+  //or think about get rid of this method in this class and implement outside.
+  //if the embeded aggregator is OTF, just keep the ddid of OTF as depended incremental aggregators should have same ddid
   @Override
-  public int getEmbedAggregatorDdId()
+  public Set<Integer> getEmbedAggregatorDdIds()
   {
-    // TODO Auto-generated method stub
-    return 0;
+    return embedAggregatorDdIds;
   }
 
-  @Override
-  public int getEmbedAggregatorID()
+  public void addEmbedAggregatorDdId(int ddid)
   {
-    // TODO Auto-generated method stub
-    return 0;
-  }  
-
+    embedAggregatorDdIds.add(ddid);
+  }
+  public void addEmbedAggregatorDdIds(Set<Integer> ddids)
+  {
+    embedAggregatorDdIds.addAll(ddids);
+  }
+  
+//  @Override
+//  public int getEmbedAggregatorID()
+//  {
+//    return embedAggregatorID;
+//  }  
+//  public void setEmbedAggregatorID(int embedAggregatorID)
+//  {
+//    this.embedAggregatorID = embedAggregatorID;
+//  }  
 }

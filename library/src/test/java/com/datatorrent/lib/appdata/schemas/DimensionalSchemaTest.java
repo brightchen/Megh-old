@@ -4,18 +4,11 @@
  */
 package com.datatorrent.lib.appdata.schemas;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.MapDifference;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
@@ -25,17 +18,12 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datatorrent.lib.appdata.query.serde.MessageSerializerFactory;
-import com.datatorrent.lib.dimensions.aggregator.AggregatorBottom;
-import com.datatorrent.lib.dimensions.aggregator.AggregatorRegistry;
-import com.datatorrent.lib.dimensions.aggregator.AggregatorTop;
-import com.datatorrent.lib.dimensions.aggregator.IncrementalAggregator;
-import com.datatorrent.lib.dimensions.aggregator.OTFAggregator;
-import com.datatorrent.lib.dimensions.aggregator.AbstractCompositeAggregator;
-import com.datatorrent.lib.dimensions.aggregator.AbstractTopBottomAggregator;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
+import com.datatorrent.lib.appdata.query.serde.MessageSerializerFactory;
+import com.datatorrent.lib.dimensions.aggregator.AggregatorRegistry;
 
 public class DimensionalSchemaTest
 {

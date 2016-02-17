@@ -18,13 +18,13 @@ public class TopBottomAggregatorFactory extends AbstractCompositeAggregatorFacto
   public static final TopBottomAggregatorFactory defaultInstance = new TopBottomAggregatorFactory();
   
   @Override
-  public <T> AbstractTopBottomAggregator<T> createCompositeAggregator(String aggregatorType, String embedAggregatorName, T embedAggregator,
+  public <T> AbstractTopBottomAggregator<T> createCompositeAggregator(String aggregatorType, String embedAggregatorName,
       Map<String, Object> properties)
   {
-    return createTopBottomAggregator(aggregatorType, embedAggregatorName, embedAggregator, getCount(properties), getSubCombinations(properties));
+    return createTopBottomAggregator(aggregatorType, embedAggregatorName, getCount(properties), getSubCombinations(properties));
   }
   
-  public <T> AbstractTopBottomAggregator<T> createTopBottomAggregator(String aggregatorType, String embedAggregatorName, T embedAggregator, 
+  public <T> AbstractTopBottomAggregator<T> createTopBottomAggregator(String aggregatorType, String embedAggregatorName,
       int count, String[] subCombinations)
   {
     AbstractTopBottomAggregator<T> aggregator = null;
@@ -40,7 +40,6 @@ public class TopBottomAggregatorFactory extends AbstractCompositeAggregatorFacto
     {
       throw new IllegalArgumentException("Invalid composite type: " + aggregatorType);
     }
-    aggregator.setEmbedAggregator(embedAggregator);
     aggregator.setEmbedAggregatorName(embedAggregatorName);
     aggregator.setCount(count);
     aggregator.setSubCombinations(subCombinations);

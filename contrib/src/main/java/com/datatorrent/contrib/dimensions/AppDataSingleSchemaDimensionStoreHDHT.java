@@ -378,18 +378,41 @@ public class AppDataSingleSchemaDimensionStoreHDHT extends AbstractAppDataDimens
   protected Set<AggregationIdentifier> getDependedIncrementalAggregationIdentifiers(
       AbstractTopBottomAggregator<?> topBottomAggregator)
   {
-    Object embedAggregator = topBottomAggregator.getEmbedAggregator();
+    String embedAggregatorName = topBottomAggregator.getEmbedAggregatorName();
     Set<AggregationIdentifier> identifiers = Sets.newHashSet();
-    if(embedAggregator instanceof IncrementalAggregator)
+    if(isIncrementalAggregator(embedAggregatorName))
     {
-      identifiers.add(new AggregationIdentifier(topBottomAggregator.getSchemaID(), topBottomAggregator.getEmbedAggregatorDdId(), topBottomAggregator.getEmbedAggregatorID()));
+      addIdentifiers(identifiers, topBottomAggregator.getSchemaID(), topBottomAggregator.getEmbedAggregatorDdIds(), 
+          this.getIncrementalAggregatorID(embedAggregatorName));
       return identifiers;
     }
     
+    //must OTF aggregator
     List<String> dependedAggregatorNames = getOTFChildrenAggregatorNames(topBottomAggregator.getEmbedAggregatorName());
     for(String dependedAggregatorName : dependedAggregatorNames)
-      identifiers.add(new AggregationIdentifier(topBottomAggregator.getSchemaID(), topBottomAggregator.getEmbedAggregatorDdId(), this.getIncrementalAggregatorID(dependedAggregatorName)));
+      addIdentifiers(identifiers, topBottomAggregator.getSchemaID(), topBottomAggregator.getEmbedAggregatorDdIds(), getIncrementalAggregatorID(dependedAggregatorName));
     
     return identifiers;
+  }
+  
+  protected void addIdentifiers(Set<AggregationIdentifier> identifiers, int schemaID, Set<Integer> ddids, int aggregatorID)
+  {
+    for(int ddid : ddids)
+    {
+      identifiers.add(new AggregationIdentifier(schemaID, ddid, aggregatorID));
+    }
+  }
+  
+ 
+  @Override
+  protected boolean isIncrementalAggregator(String aggregatorName)
+  {
+    return getAggregatorRegistry().isIncrementalAggregator(aggregatorName);
+  }
+  
+  @Override
+  protected OTFAggregator getOTFAggregatorByName(String otfAggregatorName)
+  {
+    return getAggregatorRegistry().getNameToOTFAggregators().get(otfAggregatorName);
   }
 }

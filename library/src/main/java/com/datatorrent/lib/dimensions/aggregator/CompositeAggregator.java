@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.datatorrent.lib.appdata.schemas.FieldsDescriptor;
+import com.datatorrent.lib.appdata.schemas.Type;
 import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
 import com.datatorrent.lib.dimensions.DimensionsEvent.EventKey;
 
@@ -19,11 +20,13 @@ public interface CompositeAggregator
   //public int getEmbedAggregatorID();
   public FieldsDescriptor getAggregateDescriptor();
   
+  public FieldsDescriptor getMetaDataDescriptor();
   /**
-  * @param compositeEventKey The composite event key, used to locate the target/dest aggregate
-  * @param inputEventKeys The input(incremental) event keys, used to locate the input aggregates
-  * @param inputEventKeyToAggregate The repository of input event key to aggregate. inputEventKeyToAggregate.keySet() should be a super set of inputEventKeys
-  * */
+   * Returns the output type of the {@link CompositeAggregator}. <b>Note<b> that any combination of input types
+   * will produce the same output type for {@link CompositeAggregator}s.
+   * @return The output type of the {@link CompositeAggregator}.
+   */
+  public Type getOutputType();
   
   /**
    * 

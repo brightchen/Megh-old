@@ -22,6 +22,7 @@ public abstract class AbstractCompositeAggregator<T> implements CompositeAggrega
   private static final long serialVersionUID = 661710563764433621L;
 
   protected String embedAggregatorName;
+  protected int dimensionDescriptorID;
   protected int aggregatorID;
   protected FieldsDescriptor aggregateDescriptor;
   //protected int embedAggregatorID;
@@ -71,10 +72,13 @@ public abstract class AbstractCompositeAggregator<T> implements CompositeAggrega
   @Override
   public int getDimensionDescriptorID()
   {
-    // TODO Auto-generated method stub
-    return 0;
+    return dimensionDescriptorID;
   }
-
+  public void setDimensionDescriptorID(int dimensionDescriptorID)
+  {
+    this.dimensionDescriptorID = dimensionDescriptorID;
+  }
+  
   @Override
   public int getAggregatorID()
   {
@@ -131,13 +135,13 @@ public abstract class AbstractCompositeAggregator<T> implements CompositeAggrega
     embedAggregatorDdIds.addAll(ddids);
   }
   
-//  @Override
-//  public int getEmbedAggregatorID()
-//  {
-//    return embedAggregatorID;
-//  }  
-//  public void setEmbedAggregatorID(int embedAggregatorID)
-//  {
-//    this.embedAggregatorID = embedAggregatorID;
-//  }  
+  /**
+   * bright: TODO: check
+   */
+  @Override
+  public FieldsDescriptor getMetaDataDescriptor()
+  {
+    return null;
+  }
+  
 }

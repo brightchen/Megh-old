@@ -39,6 +39,7 @@ import com.datatorrent.lib.appdata.schemas.SchemaQuery;
 import com.datatorrent.lib.appdata.schemas.SchemaRegistry;
 import com.datatorrent.lib.appdata.schemas.SchemaResult;
 import com.datatorrent.lib.dimensions.aggregator.AggregatorRegistry;
+import com.datatorrent.lib.dimensions.aggregator.CompositeAggregator;
 import com.datatorrent.lib.dimensions.aggregator.IncrementalAggregator;
 
 /**
@@ -350,6 +351,12 @@ public abstract class AbstractAppDataDimensionStoreHDHT extends DimensionsStoreH
     return aggregatorRegistry.getIncrementalAggregatorIDToAggregator().get(aggregatorID);
   }
 
+  @Override
+  protected CompositeAggregator getCompositeAggregator(int aggregatorID)
+  {
+    return aggregatorRegistry.getTopBottomAggregatorIDToAggregator().get(aggregatorID);
+  }
+  
   @Override
   protected int getIncrementalAggregatorID(String aggregatorName)
   {

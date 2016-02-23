@@ -4,19 +4,22 @@
  */
 package com.datatorrent.lib.dimensions.aggregator;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import com.datatorrent.lib.appdata.gpo.GPOMutable;
+import com.datatorrent.lib.appdata.schemas.Type;
 import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
 import com.datatorrent.lib.dimensions.DimensionsEvent.EventKey;
-import com.datatorrent.lib.dimensions.DimensionsEvent.InputEvent;
-import com.datatorrent.lib.statistics.DimensionsComputation.Aggregator;
 
-public abstract class AbstractTopBottomAggregator<T> extends AbstractCompositeAggregator<T> implements Aggregator<InputEvent, Aggregate>
+public abstract class AbstractTopBottomAggregator<T> extends AbstractCompositeAggregator<T>
 {
   public static final String PROP_COUNT = "count";
   protected int count;
@@ -63,184 +66,14 @@ public abstract class AbstractTopBottomAggregator<T> extends AbstractCompositeAg
     return subCombinations;
   }
 
+  /**
+   * TOP/BOTTOM return a list of value
+   */
+  public Type getOutputType()
+  {
+    return Type.OBJECT;
+  }
   
-  @Override
-  public void aggregate(Aggregate dest, Aggregate src)
-  {
-    GPOMutable destAggs = dest.getAggregates();
-    GPOMutable srcAggs = src.getAggregates();
-
-    aggregateAggs(destAggs, srcAggs);
-  }
-
-  public void aggregateAggs(GPOMutable destAggs, GPOMutable srcAggs)
-  {
-    {
-      byte[] destByte = destAggs.getFieldsByte();
-      if (destByte != null) {
-        byte[] srcByte = srcAggs.getFieldsByte();
-
-        for (int index = 0;
-            index < destByte.length;
-            index++) {
-          destByte[index] += srcByte[index];
-        }
-      }
-    }
-
-    {
-      short[] destShort = destAggs.getFieldsShort();
-      if (destShort != null) {
-        short[] srcShort = srcAggs.getFieldsShort();
-
-        for (int index = 0;
-            index < destShort.length;
-            index++) {
-          destShort[index] += srcShort[index];
-        }
-      }
-    }
-
-    {
-      int[] destInteger = destAggs.getFieldsInteger();
-      if (destInteger != null) {
-        int[] srcInteger = srcAggs.getFieldsInteger();
-
-        for (int index = 0;
-            index < destInteger.length;
-            index++) {
-          destInteger[index] += srcInteger[index];
-        }
-      }
-    }
-
-    {
-      long[] destLong = destAggs.getFieldsLong();
-      if (destLong != null) {
-        long[] srcLong = srcAggs.getFieldsLong();
-
-        for (int index = 0;
-            index < destLong.length;
-            index++) {
-          destLong[index] += srcLong[index];
-        }
-      }
-    }
-
-    {
-      float[] destFloat = destAggs.getFieldsFloat();
-      if (destFloat != null) {
-        float[] srcFloat = srcAggs.getFieldsFloat();
-
-        for (int index = 0;
-            index < destFloat.length;
-            index++) {
-          destFloat[index] += srcFloat[index];
-        }
-      }
-    }
-
-    {
-      double[] destDouble = destAggs.getFieldsDouble();
-      if (destDouble != null) {
-        double[] srcDouble = srcAggs.getFieldsDouble();
-
-        for (int index = 0;
-            index < destDouble.length;
-            index++) {
-          destDouble[index] += srcDouble[index];
-        }
-      }
-    }
-  }
-
-  @Override
-  public void aggregate(Aggregate dest, InputEvent src)
-  {
-    GPOMutable destAggs = dest.getAggregates();
-    GPOMutable srcAggs = src.getAggregates();
-
-    aggregateInput(destAggs, srcAggs);
-  }
-
-  public void aggregateInput(GPOMutable destAggs, GPOMutable srcAggs)
-  {
-    int[] srcIndices = this.dimensionsConversionContext.indexSubsetAggregates.fieldsByteIndexSubset;
-    
-    {
-      byte[] destByte = destAggs.getFieldsByte();
-      if (destByte != null) {
-        byte[] srcByte = srcAggs.getFieldsByte();
-        
-        for (int index = 0;
-            index < destByte.length;
-            index++) {
-          destByte[index] += srcByte[srcIndices[index]];
-        }
-      }
-    }
-
-    {
-      short[] destShort = destAggs.getFieldsShort();
-      if (destShort != null) {
-        short[] srcShort = srcAggs.getFieldsShort();
-        for (int index = 0;
-            index < destShort.length;
-            index++) {
-          destShort[index] += srcShort[srcIndices[index]];
-        }
-      }
-    }
-
-    {
-      int[] destInteger = destAggs.getFieldsInteger();
-      if (destInteger != null) {
-        int[] srcInteger = srcAggs.getFieldsInteger();
-        for (int index = 0;
-            index < destInteger.length;
-            index++) {
-          destInteger[index] += srcInteger[srcIndices[index]];
-        }
-      }
-    }
-
-    {
-      long[] destLong = destAggs.getFieldsLong();
-      if (destLong != null) {
-        long[] srcLong = srcAggs.getFieldsLong();
-        for (int index = 0;
-            index < destLong.length;
-            index++) {
-          destLong[index] += srcLong[srcIndices[index]];
-        }
-      }
-    }
-
-    {
-      float[] destFloat = destAggs.getFieldsFloat();
-      if (destFloat != null) {
-        float[] srcFloat = srcAggs.getFieldsFloat();
-        for (int index = 0;
-            index < destFloat.length;
-            index++) {
-          destFloat[index] += srcFloat[srcIndices[index]];
-        }
-      }
-    }
-
-    {
-      double[] destDouble = destAggs.getFieldsDouble();
-      if (destDouble != null) {
-        double[] srcDouble = srcAggs.getFieldsDouble();
-        for (int index = 0;
-            index < destDouble.length;
-            index++) {
-          destDouble[index] += srcDouble[srcIndices[index]];
-        }
-      }
-    }
-  }
-
   @Override
   public int hashCode()
   {
@@ -259,9 +92,6 @@ public abstract class AbstractTopBottomAggregator<T> extends AbstractCompositeAg
       return false;
     
     AbstractTopBottomAggregator other = (AbstractTopBottomAggregator)obj;
-//    if (embedAggregator != other.embedAggregator
-//        && (embedAggregator == null || !embedAggregator.equals(other.embedAggregator)))
-//      return false;
     if (embedAggregatorName != other.embedAggregatorName
         && (embedAggregatorName == null || !embedAggregatorName.equals(other.embedAggregatorName)))
       return false;
@@ -275,12 +105,202 @@ public abstract class AbstractTopBottomAggregator<T> extends AbstractCompositeAg
   }
   
   
-
+  /**
+   * The result keep a list of object for each aggregate value
+   * The value of resultAggregate should keep a list of inputEventKey(the value can be get from cache or load) or a map from inputEventKey to the value
+   * instead of just a list of aggregate value. As the value could be changed in current window, and this change should be applied.
+   *
+   * precondition: resultAggregate.eventKey matches with inputSubEventKeys
+   * notes: this algorithm only support TOP for positive values and BOTTOM for negative values
+   */
   @Override
-  public void aggregate(Aggregate resultAggregate, Set<EventKey> inputEventKeys,
+  public void aggregate(Aggregate resultAggregate, Set<EventKey> inputSubEventKeys,
       Map<EventKey, Aggregate> inputAggregatesRepo)
   {
-    // TODO Auto-generated method stub
+    //there are problem for composite's value field descriptor, just ignore now.
+    GPOMutable resultGpo = resultAggregate.getAggregates();
+    final List<String> compositeFieldList = resultAggregate.getEventKey().getKey().getFieldDescriptor().getFieldList();
+    
+    //Map<EventKey, Aggregate> existedSubEventKeyToAggregate = Maps.newHashMap();
+    for (String valueField : resultGpo.getFieldDescriptor().getFieldList()) {
+      //the resultGpo keep a list of sub aggregates
+      updateAggregate(resultAggregate, valueField, inputSubEventKeys, inputAggregatesRepo);
+
+      //compare the existed sub aggregates with the new input aggregates to update the list
+      for (EventKey eventKey : inputSubEventKeys) {
+        aggregate(compositeFieldList, resultGpo, eventKey, inputAggregatesRepo.get(eventKey).getAggregates());
+      }
+    }
+
+  }
+  
+  
+  /**
+   * get result aggregates from resultAggregate and save to existedSubEventKeyToAggregate
+   * get the result map from resultGpo
+   * @param resultGpo
+   * @return
+   */
+//  protected void getExistedSubAggregatesTo(Map<EventKey, ?> existedSubEventKeyToAggregate, Aggregate resultAggregate, String valueField)
+//  {
+//    @SuppressWarnings("unchecked")
+//    Map<String, Object> aggregateValue = (Map<String, Object>)resultAggregate.getAggregates().getFieldObject(valueField);
+//    if(aggregateValue == null)
+//      return;
+//    
+//    for(EventKey subEventKey : existedSubEventKeyToAggregate.keySet())
+//    {
+//      //the storeMapKey depends on subCombination
+//      String storeMapKey = getStoreMapKey(subEventKey, resultAggregate.getEventKey().getKey().getFieldDescriptor().getFieldList());
+//      if(aggregateValue.get(storeMapKey) != null)
+//      {
+//        aggregateValue.put(storeMapKey, aggregateValue.get(storeMapKey));
+//      }
+//    }
+//  }
+//  
+  protected transient List<String> tmpStoreFieldList = Lists.newArrayList();
+  protected static final String KEY_VALUE_SEPERATOR = "-";
+  /**
+   * get store map key from the eventKey
+   * 
+   * @param eventKey
+   * @return
+   */
+  protected String getStoreMapKey(EventKey subEventKey, List<String> compositeEventFieldList)
+  {
+    tmpStoreFieldList.clear();
+    tmpStoreFieldList.addAll(subEventKey.getKey().getFieldDescriptor().getFieldList());
+    tmpStoreFieldList.removeAll(compositeEventFieldList);
+    Collections.sort(tmpStoreFieldList);
+    StringBuilder key = new StringBuilder();
+    for(String field: tmpStoreFieldList)
+    {
+      key.append(subEventKey.getKey().getField(field)).append(KEY_VALUE_SEPERATOR);
+    }
+    key.deleteCharAt(key.length()-1);
+    
+    return key.toString();
+  }
+  
+
+  /**
+   * update existed sub aggregate. 
+   * The sub aggregates which kept in composite aggregate as candidate could be changed. synchronize the value with input aggregates.
+   * 
+   * @param resultAggregate
+   * @param valueField
+   * @param inputSubEventKeys
+   * @param inputAggregatesRepo
+   */
+  @SuppressWarnings("unchecked")
+  protected void updateAggregate(Aggregate resultAggregate, String valueField,
+      Set<EventKey> inputSubEventKeys, Map<EventKey, Aggregate> inputAggregatesRepo)
+  {
+    Map<String, Object> resultAggregateFieldToValue = (Map<String, Object>)resultAggregate.getAggregates().getFieldObject(valueField);
+    if(resultAggregateFieldToValue == null)
+      return;
+    
+    for(EventKey inputSubEventKey : inputSubEventKeys)
+    {
+      Aggregate inputSubAggregate = inputAggregatesRepo.get(inputSubEventKey);
+      String mapKey = getStoreMapKey(inputSubAggregate.getEventKey(), resultAggregate.getEventKey().getKey().getFieldDescriptor().getFieldList());
+      //Aggregate existedAggregate = existedSubEventKeyToAggregate.get(inputSubEventKey);
+      if(resultAggregateFieldToValue.get(mapKey) != null)
+      {
+        resultAggregateFieldToValue.put(mapKey, inputSubAggregate.getAggregates().getField(valueField));
+      }
+     
+    }
+  }
+  
+  /**
+   * need a map of value field from the inputGpo to resultGpo, use the index of Fields as the index
+   * @param resultGpo
+   * @param inputGpo
+   */
+  @SuppressWarnings("unchecked")
+  protected void aggregate(final List<String> compositeFieldList, GPOMutable resultGpo, EventKey subEventKey, GPOMutable inputGpo)
+  {
+    //the field and type should get from resultGpo instead of inputGpo as inputGpo maybe shared by other value fields
+    List<String> aggregateFields = resultGpo.getFieldDescriptor().getFieldList();
+    Map<String, Type> fieldToType = resultGpo.getFieldDescriptor().getFieldToType();
+    for(String aggregateField : aggregateFields)
+    {
+      Map<String, Object> fieldValue = (Map<String, Object>)resultGpo.getFieldObject(aggregateField);
+      if(fieldValue == null)
+      {
+        fieldValue = createAggregateValueForField(aggregateField, fieldToType.get(aggregateField));
+        resultGpo.setFieldObject(aggregateField, fieldValue);
+      }
+      aggregate(compositeFieldList, fieldValue, subEventKey, inputGpo.getField(aggregateField), fieldToType.get(aggregateField));
+    }
+  }
+  
+  /**
+   * seperate it in case sub class override it.
+   * @param fieldName
+   * @param fieldElementType
+   * @return
+   */
+  protected Map<String, Object> createAggregateValueForField(String fieldName, Type fieldElementType)
+  {
+    return Maps.newHashMap();
+  }
+  
+  /**
+   * compare the result(resultMap) with input(inputFieldName, inputFieldValue)
+   * @param resultMap
+   * @param inputFieldName
+   * @param inputFieldValue
+   * @param type
+   */
+  protected void aggregate(final List<String> compositeFieldList, Map<String, Object> resultMap,
+      EventKey subEventKey, Object inputFieldValue, Type type)
+  {
+    if(resultMap.size() < count)
+    {
+      resultMap.put(getStoreMapKey(subEventKey, compositeFieldList), inputFieldValue);
+      return;
+    }
+    for(String key : resultMap.keySet())
+    {
+      Object resultValue = resultMap.get(key);
+      if(shouldReplaceResultElement(resultValue, inputFieldValue, type))
+      {
+        resultMap.put(key, inputFieldValue);
+        break;
+      }
+    }
+
+  }
+  
+  /**
+   * shoud the result element replaced by input element.
+   * the inputElement and resultElement should be same type
+   * @param resultElement
+   * @param inputElement
+   * @param type
+   * @return
+   */
+  protected boolean shouldReplaceResultElement(Object resultElement, Object inputElement, Type type)
+  {
+    if(inputElement == null)
+      return false;
+    if(resultElement == null)
+      return true;
+    
+    if(resultElement instanceof Comparable)
+    {
+      @SuppressWarnings("unchecked")
+      int compareResult = ((Comparable<Object>)resultElement).compareTo(inputElement);
+      return shouldReplaceResultElement(compareResult);
+    }
+    
+    //handle other cases
+    throw new RuntimeException("Should NOT come here.");
     
   }
+  
+  protected abstract boolean shouldReplaceResultElement(int resultCompareToInput);
 }

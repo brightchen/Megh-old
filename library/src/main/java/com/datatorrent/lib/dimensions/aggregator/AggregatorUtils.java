@@ -112,6 +112,21 @@ public final class AggregatorUtils
     return new FieldsDescriptor(fieldToType);
   }
 
+  public static FieldsDescriptor getOutputFieldsDescriptor(FieldsDescriptor inputFieldsDescriptor,
+      CompositeAggregator compositeAggregator)
+  {
+    Map<String, Type> fieldToType = Maps.newHashMap();
+
+    for (Map.Entry<String, Type> entry :
+        inputFieldsDescriptor.getFieldToType().entrySet()) {
+      String fieldName = entry.getKey();
+      Type outputType = compositeAggregator.getOutputType();
+      fieldToType.put(fieldName, outputType);
+    }
+
+    return new CompositeAggregatorFieldsDescriptor(fieldToType);
+  }
+  
   /**
    * This is a utility method which creates an output {@link FieldsDescriptor} from the
    * given field names and the given {@link OTFAggregator}.

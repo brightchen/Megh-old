@@ -453,9 +453,20 @@ public class DimensionalConfigurationSchema
       Map<String, FieldsDescriptor> aggregatorToValuesDescriptor = Maps.newHashMap();
 
       for (Map.Entry<String, Set<String>> entry : aggregatorToValues.entrySet()) {
-        aggregatorToValuesDescriptor.put(
-            entry.getKey(),
-            inputValuesDescriptor.getSubset(new Fields(entry.getValue())));
+        final String aggregatorName = entry.getKey();
+        if(isCompositeAggregator(aggregatorName))
+        {
+          //for composite aggregator, the input type and output type are different
+          aggregatorToValuesDescriptor.put(aggregatorName, 
+              AggregatorUtils.getOutputFieldsDescriptor(inputValuesDescriptor.getSubset(new Fields(entry.getValue())), 
+                  this.getCompositeAggregatorByName(aggregatorName)));
+        }
+        else
+        {
+          aggregatorToValuesDescriptor.put(
+              aggregatorName,
+              inputValuesDescriptor.getSubset(new Fields(entry.getValue())));
+        }
       }
 
       tempDdIDToAggregatorToAggregateDescriptor.add(aggregatorToValuesDescriptor);
@@ -1389,8 +1400,14 @@ public class DimensionalConfigurationSchema
     return propertyNameToValue;
   }
 
+  /**
+   * The composite aggregator is not only aggregator type. 
+   * @param aggregatorName
+   * @return
+   */
   protected boolean isCompositeAggregator(String aggregatorName)
   {
+    aggregatorName = aggregatorName.split("-")[0];
     for(int index = 0; index < COMPOSITE_AGGREGATORS.length; ++index)
     {
       if(COMPOSITE_AGGREGATORS[index].equals(aggregatorName))
@@ -1861,7 +1878,7 @@ public class DimensionalConfigurationSchema
         index < dimensionsDescriptorIDToCompositeAggregatorToAggregateDescriptor.size();
         index++) {
       IntArrayList aggIDList = new IntArrayList();
-      //As the input FD and output FD will be get from aggregatorID, so it should be ok to share same map.
+      //NOTE: share same map with incremental aggreator. As the input FD and output FD will be get from aggregatorID, so it should be ok to share same map.
       Int2ObjectMap<FieldsDescriptor> inputMap = dimensionsDescriptorIDToAggregatorIDToInputAggregatorDescriptor.get(index);
       Int2ObjectMap<FieldsDescriptor> outputMap = dimensionsDescriptorIDToAggregatorIDToOutputAggregatorDescriptor.get(index);
 
@@ -1890,22 +1907,7 @@ public class DimensionalConfigurationSchema
         inputMap.put(aggregatorID, inputDescriptor);
         //buildNonCompositeAggregatorIDMap(getEmbededAggregatorName(aggregatorName), entry.getValue(), aggIDList, inputMap, outputMap);
         
-        final String embededAggregatorName = compositeAggregator.getEmbedAggregatorName();
-        if(isIncrementalAggregator(embededAggregatorName))
-        {
-          //the composite's output FD should same as its embeded Aggregator
-          outputMap.put(aggregatorID,
-              AggregatorUtils.getOutputFieldsDescriptor(inputDescriptor,(IncrementalAggregator)aggregatorRegistry.getNameToIncrementalAggregator().get(embededAggregatorName)));
-          
-        }
-        else if(isOTFAggregator(embededAggregatorName))
-        {
-          //the composite's output FD should same as its embeded Aggregator
-          outputMap.put(aggregatorID,
-              AggregatorUtils.getOutputFieldsDescriptor(inputDescriptor,(OTFAggregator)aggregatorRegistry.getNameToOTFAggregators().get(embededAggregatorName)));
-        }
-        else
-          throw new RuntimeException("Invalid embeded Aggregator name: " + embededAggregatorName);
+        outputMap.put(aggregatorID, AggregatorUtils.getOutputFieldsDescriptor(inputDescriptor,compositeAggregator));
       }
     }
   }
@@ -1954,6 +1956,12 @@ public class DimensionalConfigurationSchema
       for(String compositeAggregatorName : compositeAggregatorNameToDescriptor.keySet())
       {
         AbstractTopBottomAggregator<Object> compositeAggregator = aggregatorRegistry.getNameToTopBottomAggregator().get(compositeAggregatorName);
+        
+        //set DimensionDescriptorID
+        compositeAggregator.setDimensionDescriptorID(index);
+        
+        //aggregator id
+        compositeAggregator.setAggregatorID(aggregatorRegistry.getTopBottomAggregatorNameToID().get(compositeAggregatorName));
         
         //keys for embed aggregator
         Set<String> keys = Sets.newHashSet();

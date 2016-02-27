@@ -1,9 +1,14 @@
+/**
+ * Copyright (c) 2016 DataTorrent, Inc.
+ * All rights reserved.
+ */
 package com.datatorrent.contrib.dimensions;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -16,8 +21,11 @@ import com.google.common.collect.Sets;
 import com.datatorrent.contrib.dimensions.AppDataSingleSchemaDimensionStoreHDHTTest.StoreFSTestWatcher;
 import com.datatorrent.contrib.hdht.tfile.TFileImpl;
 import com.datatorrent.lib.appdata.gpo.GPOMutable;
+import com.datatorrent.lib.appdata.query.QueryManagerAsynchronous;
 import com.datatorrent.lib.appdata.schemas.DimensionalConfigurationSchema;
 import com.datatorrent.lib.appdata.schemas.FieldsDescriptor;
+import com.datatorrent.lib.appdata.schemas.SchemaQuery;
+import com.datatorrent.lib.appdata.schemas.SchemaResult;
 import com.datatorrent.lib.appdata.schemas.SchemaUtils;
 import com.datatorrent.lib.appdata.schemas.TimeBucket;
 import com.datatorrent.lib.dimensions.AbstractDimensionsComputationFlexibleSingleSchema;
@@ -26,7 +34,6 @@ import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
 import com.datatorrent.lib.dimensions.DimensionsEvent.EventKey;
 import com.datatorrent.lib.dimensions.aggregator.AggregatorIncrementalType;
 import com.datatorrent.lib.util.TestUtils.TestInfo;
-
 
 public class CompositeDimensionComputationTester
 {
@@ -46,6 +53,8 @@ public class CompositeDimensionComputationTester
   protected final String publisher = "google";
   //protected final String advertiser = "safeway";
   protected DimensionalConfigurationSchema eventSchema;
+  protected TestStoreHDHT store;
+  protected Set<EventKey> totalEventKeys = Sets.newHashSet();
   
   public static class TestStoreHDHT extends AppDataSingleSchemaDimensionStoreHDHT
   {
@@ -60,10 +69,39 @@ public class CompositeDimensionComputationTester
     {
       return compositeAggregteCache;
     }
+    
+    public QueryManagerAsynchronous<SchemaQuery, Void, Void, SchemaResult> getSchemaProcessor()
+    {
+      return schemaProcessor;
+    }
   }
   
   @Test
   public void aggregationTest()
+  {
+    testCompositeAggregation();
+  }
+  
+  public void setupStore()
+  {
+    String eventSchemaString = SchemaUtils.jarResourceFileToString(configureFile);
+
+    String basePath = testMeta.getDir();
+    TFileImpl hdsFile = new TFileImpl.DefaultTFileImpl();
+    hdsFile.setBasePath(basePath);
+
+    store = new TestStoreHDHT();
+
+    store.setCacheWindowDuration(2);
+    store.setConfigurationSchemaJSON(eventSchemaString);
+    store.setFileStore(hdsFile);
+    store.setFlushIntervalCount(1);
+    store.setFlushSize(0);
+
+    store.setup(null);
+  }
+  
+  protected void testCompositeAggregation()
   {
     final String[] locations = {"CA", "WA", "ON", "BC"};
     final Map<String, Long> locationToImpressions = Maps.newHashMap();
@@ -104,22 +142,7 @@ public class CompositeDimensionComputationTester
       }
     }
     
-
-    String eventSchemaString = SchemaUtils.jarResourceFileToString(configureFile);
-
-    String basePath = testMeta.getDir();
-    TFileImpl hdsFile = new TFileImpl.DefaultTFileImpl();
-    hdsFile.setBasePath(basePath);
-
-    TestStoreHDHT store = new TestStoreHDHT();
-
-    store.setCacheWindowDuration(2);
-    store.setConfigurationSchemaJSON(eventSchemaString);
-    store.setFileStore(hdsFile);
-    store.setFlushIntervalCount(1);
-    store.setFlushSize(0);
-
-    store.setup(null);
+    setupStore();
 
     eventSchema = store.configurationSchema;
 
@@ -136,8 +159,7 @@ public class CompositeDimensionComputationTester
       valueKeyToValue.put(VN_cost, locationToCost.get(location));
     }
     
-    Set<EventKey> totalEventKeys = Sets.newHashSet();
-    
+
     long windowId = 1L;
     for(int index = 0; index < windowSize; ++index)
     {
@@ -146,6 +168,8 @@ public class CompositeDimensionComputationTester
       {
         store.input.put(aggregate);
       }
+      
+      doBeforeEndWindow(windowId);
       store.endWindow();
       
       totalEventKeys.addAll(store.getCache().keySet());
@@ -183,8 +207,6 @@ public class CompositeDimensionComputationTester
       fieldNameSet.remove("timeBucket");
       Assert.assertTrue(fieldNameSet.size() == 1 && fieldNameSet.iterator().next().equals(FN_publisher));
 
-      
-      
       Map<String, Map<String,Object>> valueFieldToValue = Maps.newHashMap();
       valueFieldToValue.put(VN_cost, (Map<String,Object>)values.getFieldObject(VN_cost));
       //the AVG has one value cost, and TOP has value {impressions, cost}
@@ -199,16 +221,19 @@ public class CompositeDimensionComputationTester
       }
     }
     
-    
-    store.checkpointed(windowId);
-    store.committed(windowId);
 
-    store.teardown();
-    
     MapDifference diff = Maps.difference(expectedAggregatorToValueFieldToValue, aggregatorToValueFieldToValue);
     Assert.assertTrue(diff.toString(), diff.areEqual());
   }
 
+  protected void doBeforeEndWindow(long windowId){}
+  
+  @After
+  public void teardown()
+  {
+    if(store != null)
+      store.teardown();
+  }
   
   /**
    * The impressions and cost could be SUM or COUNT

@@ -355,9 +355,21 @@ public class AggregatorRegistry implements Serializable
    */
   public boolean isAggregator(String aggregatorName)
   {
-    return classToIncrementalAggregatorName.values().contains(aggregatorName) ||
-        nameToOTFAggregator.containsKey(aggregatorName) || (AggregatorTopBottomType.valueOf(aggregatorName) != null);
-        
+    try
+    {
+      if( classToIncrementalAggregatorName.values().contains(aggregatorName) ||
+          nameToOTFAggregator.containsKey(aggregatorName))
+        return true;
+      
+      //the composite probably send whole aggregator name
+      String aggregatorType = aggregatorName.split("-")[0];
+      return (AggregatorTopBottomType.valueOf(aggregatorType) != null);
+    }
+    catch(Exception e)
+    {
+      lOG.error(e.getMessage());
+      return false;
+    }
   }
 
   /**
@@ -378,9 +390,9 @@ public class AggregatorRegistry implements Serializable
     return nameToOTFAggregator.containsKey(aggregatorName);
   }
   
-  public boolean isTopBottomAggregator(String aggregatorName)
+  public boolean isTopBottomAggregatorType(String aggregatorType)
   {
-    return (AggregatorTopBottomType.valueOf(aggregatorName) != null);
+    return (AggregatorTopBottomType.valueOf(aggregatorType) != null);
   }
   /**
    * Gets the mapping from an {@link IncrementalAggregator}'s class to the {@link IncrementalAggregator}.

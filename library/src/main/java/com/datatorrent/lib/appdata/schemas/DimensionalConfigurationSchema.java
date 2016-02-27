@@ -33,6 +33,7 @@ import com.datatorrent.lib.dimensions.aggregator.AbstractCompositeAggregator;
 import com.datatorrent.lib.dimensions.aggregator.AbstractTopBottomAggregator;
 import com.datatorrent.lib.dimensions.aggregator.AggregatorRegistry;
 import com.datatorrent.lib.dimensions.aggregator.AggregatorUtils;
+import com.datatorrent.lib.dimensions.aggregator.CompositeAggregator;
 import com.datatorrent.lib.dimensions.aggregator.CompositeAggregatorFactory;
 import com.datatorrent.lib.dimensions.aggregator.DefaultCompositeAggregatorFactory;
 import com.datatorrent.lib.dimensions.aggregator.IncrementalAggregator;
@@ -961,38 +962,37 @@ public class DimensionalConfigurationSchema
           
           //the aggrator is not only has name any more, it could be an object or a String
           //example: {"aggregator":"BOTTOMN","property":"count","value":"20","embededAggregator":"AVG"}
-          String aggregatorName = null;
-          aggregatorName = aggregators.getString(aggregatorIndex);
-          if(isJsonSimpleString(aggregatorName))
+          String aggregatorType = null;
+          aggregatorType = aggregators.getString(aggregatorIndex);
+          if(isJsonSimpleString(aggregatorType))
           {
             //it's is simple aggregator
-            addNonCompositeAggregator(aggregatorName, allValueToAggregator, allValueToOTFAggregator, 
+            addNonCompositeAggregator(aggregatorType, allValueToAggregator, allValueToOTFAggregator, 
                  name, aggregatorSet, aggregatorToType, typeT, aggregatorOTFSet, true);
           }
           else
           {
             //it is a composite aggragate
             JSONObject jsonAggregator = aggregators.getJSONObject(aggregatorIndex);
-            aggregatorName = jsonAggregator.getString(FIELD_VALUES_AGGREGATOR);
-            Map<String, Object> propertyNameToValue = getPropertyNameToValue(jsonAggregator, aggregatorName);
+            aggregatorType = jsonAggregator.getString(FIELD_VALUES_AGGREGATOR);
+            Map<String, Object> propertyNameToValue = getPropertyNameToValue(jsonAggregator, aggregatorType);
             
             //the steps following is for composite aggregator.
-            if(isCompositeAggregator(aggregatorName))
+            if(isCompositeAggregator(aggregatorType))
             {
               String embededAggregatorName = (String)propertyNameToValue.get(PROPERTY_NAME_EMBEDED_AGGREGATOR);
               
-              //don't add embed aggregator here as the emebed aggregator is with different dimension as this dimension
-              //maybe haven't created yet.
-//              Object embededAggregator = addNonCompositeAggregator(embededAggregatorName, allValueToAggregator, allValueToOTFAggregator, 
-//                    name, aggregatorSet, aggregatorToType, typeT, aggregatorOTFSet, false);
-              
-              addCompositeAggregator(aggregatorName, allValueToCompositeAggregator, aggregateCompositeSet, name, 
-                  embededAggregatorName, propertyNameToValue);
+              /**
+               * don't add embed aggregator here as the emebed aggregator is with different dimension as this dimension
+               * maybe haven't created yet.
+               */
+              CompositeAggregator aggregator = addCompositeAggregator(aggregatorType, allValueToCompositeAggregator, aggregateCompositeSet, name, 
+                  embededAggregatorName, propertyNameToValue, aggregatorToType);
 
             }
             else
             {
-              throw new IllegalArgumentException("Unknow aggregator name: " + aggregatorName + ", please check if it valid.");
+              throw new IllegalArgumentException("Unknow aggregator type: " + aggregatorType + ", please check if it valid.");
             }
           
           }
@@ -1283,19 +1283,18 @@ public class DimensionalConfigurationSchema
             {
               String embededAggregatorName = (String)propertyNameToValue.get(PROPERTY_NAME_EMBEDED_AGGREGATOR);
                 
-              //don't add embed aggregator here as the emebed aggregator is with different dimension as this dimension
-              //maybe haven't created yet. the subCombination should be part of the combination 
-//              Object embededAggregator = addNonCompositeAggregator(embededAggregatorName, allValueToAggregator, allValueToOTFAggregator, 
-//                  valueName, specificValueToAggregator.get(valueName), schemaAllValueToAggregatorToType.get(valueName), 
-//                  aggFieldToType.get(valueName), specificValueToOTFAggregator.get(valueName), false);
+              /**
+               * don't add embed aggregator here as the emebed aggregator is with different dimension as this dimension
+               * maybe haven't created yet. the subCombination should be part of the combination 
+               */
               Set<String> compositeAggregators = specificValueToCompositeAggregator.get(valueName);
               if(compositeAggregators == null)
               {
                 compositeAggregators = Sets.newHashSet();
                 specificValueToCompositeAggregator.put(valueName, compositeAggregators);
               }
-              addCompositeAggregator(aggregatorName, allValueToCompositeAggregator, compositeAggregators,
-                  valueName, embededAggregatorName, propertyNameToValue); 
+              CompositeAggregator aggregator = addCompositeAggregator(aggregatorName, allValueToCompositeAggregator, compositeAggregators,
+                  valueName, embededAggregatorName, propertyNameToValue, null); 
             }
             else
             {
@@ -1662,6 +1661,7 @@ public class DimensionalConfigurationSchema
     }
   }
   
+
   protected boolean isJsonSimpleString(String string)
   {
     return !string.contains("{") && !string.contains("[");
@@ -1742,17 +1742,17 @@ public class DimensionalConfigurationSchema
       Set<String> aggregateCompositeSet,
       String valueName,
       String embededAggregatorName,
-      Map<String, Object> properties
+      Map<String, Object> properties,
+      Map<String, Type> aggregatorToType
       )
   {
-    if(!aggregatorRegistry.isTopBottomAggregator(aggregatorType)){
+    if(!aggregatorRegistry.isTopBottomAggregatorType(aggregatorType)){
       throw new IllegalArgumentException(aggregatorType + " is not a valid composite aggregator.");
     }
     
-    Pair<String, AbstractCompositeAggregator<Object>> pair = createCompositeAggregator(aggregatorType, 
-        embededAggregatorName, properties);
+    final String aggregatorName = compositeAggregatorFactory.getCompositeAggregatorName(aggregatorType, embededAggregatorName, properties);
+    final AbstractCompositeAggregator<Object> aggregator = compositeAggregatorFactory.createCompositeAggregator(aggregatorType, embededAggregatorName, properties);
     
-    String aggregatorName = pair.first;
     //Check for duplicate
     Set<String> aggregatorNames = allValueToCompositeAggregator.get(valueName);
     
@@ -1769,8 +1769,6 @@ public class DimensionalConfigurationSchema
     
     aggregateCompositeSet.add(aggregatorName);
     
-    //create aggregator before add name in case exception.
-    AbstractCompositeAggregator<Object> aggregator = pair.second;
 
     //we don't know how to handle a generic composite aggregator, handle Top/Bottom aggregator here only
     //Add aggregator to the repository
@@ -1779,25 +1777,12 @@ public class DimensionalConfigurationSchema
     
     LOG.debug("field name {} and adding aggregator names {}:", valueName, aggregatorNames);
     
+    if(aggregatorToType != null)
+      aggregatorToType.put(aggregatorName, aggregator.getOutputType());
+    
     return aggregator;
   }
-  
-  /**
-   * Wrapper the logic of create composite aggregator and its name.
-   * Override this method if feature extended or changed.
-   * @param aggregatorType
-   * @param embededAggregator
-   * @param propertyName
-   * @param propertyValue
-   * @return
-   */
-  public Pair<String, AbstractCompositeAggregator<Object>> createCompositeAggregator(String aggregatorType, 
-        String embededAggregatorName, Map<String, Object> properties)
-  {
-    String aggregatorName = compositeAggregatorFactory.getCompositeAggregatorName(aggregatorType, embededAggregatorName, properties);
-    AbstractCompositeAggregator<Object> aggregator = compositeAggregatorFactory.createCompositeAggregator(aggregatorType, embededAggregatorName, properties);
-    return new Pair<String, AbstractCompositeAggregator<Object>>(aggregatorName, aggregator);
-  }
+
   
   /**
    * This is a helper method which retrieves the schema tags from the {@link JSONObject} if they are present.

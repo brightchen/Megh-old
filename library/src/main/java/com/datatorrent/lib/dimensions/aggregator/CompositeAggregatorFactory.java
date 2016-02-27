@@ -13,7 +13,36 @@ import java.util.Map;
  */
 public interface CompositeAggregatorFactory
 {
+  /**
+   * check if aggregatorName is a valid composite aggregator name or not.
+   * @param aggregatorName
+   * @return
+   */
+  //public boolean isValidCompositeAggregatorName(String aggregatorName);
+  
+  /**
+   * get composite aggregator name based on composite aggregator information
+   * @param aggregatorType
+   * @param embedAggregatorName
+   * @param properties
+   * @return
+   */
   public String getCompositeAggregatorName(String aggregatorType, String embedAggregatorName, Map<String, Object> properties);
+  
+  /**
+   * create composite aggregator name based on composite aggregator information
+   * @param aggregatorType
+   * @param embedAggregatorName
+   * @param properties
+   * @return
+   */
   public <T> AbstractCompositeAggregator<T> createCompositeAggregator(String aggregatorType, String embedAggregatorName, Map<String, Object> properties);
+  
+  /**
+   * create composite aggregator based on composite aggregator name, the input validAggregatorName should be a valid composite aggregator name
+   * @param aggregatorName
+   * @return
+   */
+  //public <T> AbstractCompositeAggregator<T> createCompositeAggregator(String validCompositeAggregatorName);
  
 }

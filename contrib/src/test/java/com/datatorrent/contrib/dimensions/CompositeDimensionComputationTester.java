@@ -82,7 +82,7 @@ public class CompositeDimensionComputationTester
     testCompositeAggregation();
   }
   
-  public void setupStore()
+  public TestStoreHDHT setupStore(TestInfo testMeta)
   {
     String eventSchemaString = SchemaUtils.jarResourceFileToString(configureFile);
 
@@ -99,6 +99,8 @@ public class CompositeDimensionComputationTester
     store.setFlushSize(0);
 
     store.setup(null);
+    
+    return store;
   }
   
   protected void testCompositeAggregation()
@@ -142,7 +144,7 @@ public class CompositeDimensionComputationTester
       }
     }
     
-    setupStore();
+    setupStore(testMeta);
 
     eventSchema = store.configurationSchema;
 

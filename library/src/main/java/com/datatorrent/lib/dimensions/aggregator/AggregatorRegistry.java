@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 /**
  * <p>
@@ -95,7 +94,7 @@ public class AggregatorRegistry implements Serializable
    */
   private transient Map<Integer, IncrementalAggregator> incrementalAggregatorIDToAggregator;
   
-  protected transient Map<Integer, AbstractTopBottomAggregator<Object>> topBottomAggregatorIDToAggregator;
+  protected transient Map<Integer, AbstractTopBottomAggregator> topBottomAggregatorIDToAggregator;
   
   /**
    * This is a map from the name assigned to an {@link IncrementalAggregator} to the {@link IncrementalAggregator}.
@@ -109,7 +108,7 @@ public class AggregatorRegistry implements Serializable
   /**
    * the map from TOPN and BOTTOM aggregator to name
    */
-  private Map<String, AbstractTopBottomAggregator<Object>> nameToTopBottomAggregator = Maps.newHashMap();
+  private Map<String, AbstractTopBottomAggregator> nameToTopBottomAggregator = Maps.newHashMap();
   
   /**
    * This is a map from the name of an {@link IncrementalAggregator} to the ID of that {@link IncrementalAggregator}.
@@ -260,7 +259,7 @@ public class AggregatorRegistry implements Serializable
       Preconditions.checkNotNull(entry.getValue());
     }
     
-    for (Map.Entry<String, AbstractTopBottomAggregator<Object>> entry : nameToTopBottomAggregator.entrySet()) {
+    for (Map.Entry<String, AbstractTopBottomAggregator> entry : nameToTopBottomAggregator.entrySet()) {
       Preconditions.checkNotNull(entry.getKey());
       Preconditions.checkNotNull(entry.getValue());
     }
@@ -414,7 +413,7 @@ public class AggregatorRegistry implements Serializable
     return incrementalAggregatorIDToAggregator;
   }
 
-  public Map<Integer, AbstractTopBottomAggregator<Object>> getTopBottomAggregatorIDToAggregator()
+  public Map<Integer, AbstractTopBottomAggregator> getTopBottomAggregatorIDToAggregator()
   {
     return topBottomAggregatorIDToAggregator;
   }
@@ -465,7 +464,7 @@ public class AggregatorRegistry implements Serializable
     return nameToOTFAggregator;
   }
 
-  public Map<String, AbstractTopBottomAggregator<Object>> getNameToTopBottomAggregator()
+  public Map<String, AbstractTopBottomAggregator> getNameToTopBottomAggregator()
   {
     return nameToTopBottomAggregator;
   }

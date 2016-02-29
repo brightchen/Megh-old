@@ -352,13 +352,13 @@ public class AppDataSingleSchemaDimensionStoreHDHT extends AbstractAppDataDimens
    * @return Map of aggregator id to top bottom aggregator
    */
   @Override
-  protected Map<Integer, AbstractTopBottomAggregator<Object>> getTopBottomAggregatorIdToInstance()
+  protected Map<Integer, AbstractTopBottomAggregator> getTopBottomAggregatorIdToInstance()
   {
     return this.aggregatorRegistry.getTopBottomAggregatorIDToAggregator();
   }
   
   @Override
-  protected AbstractTopBottomAggregator<Object> getTopBottomAggregator(AggregationIdentifier aggregationIdentifier)
+  protected AbstractTopBottomAggregator getTopBottomAggregator(AggregationIdentifier aggregationIdentifier)
   {
     return getTopBottomAggregatorIdToInstance().get(aggregationIdentifier.getAggregatorID());
   }
@@ -376,7 +376,7 @@ public class AppDataSingleSchemaDimensionStoreHDHT extends AbstractAppDataDimens
    */
   @Override
   protected Set<AggregationIdentifier> getDependedIncrementalAggregationIdentifiers(
-      AbstractTopBottomAggregator<?> topBottomAggregator)
+      AbstractTopBottomAggregator topBottomAggregator)
   {
     String embedAggregatorName = topBottomAggregator.getEmbedAggregatorName();
     Set<AggregationIdentifier> identifiers = Sets.newHashSet();

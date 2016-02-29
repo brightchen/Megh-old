@@ -19,6 +19,7 @@ import com.datatorrent.lib.dimensions.aggregator.AbstractTopBottomAggregator;
 import com.datatorrent.lib.dimensions.aggregator.AggregatorBottom;
 import com.datatorrent.lib.dimensions.aggregator.AggregatorRegistry;
 import com.datatorrent.lib.dimensions.aggregator.AggregatorTop;
+import com.datatorrent.lib.dimensions.aggregator.CompositeAggregatorFieldsDescriptor;
 import com.datatorrent.lib.dimensions.aggregator.IncrementalAggregator;
 import com.datatorrent.lib.dimensions.aggregator.OTFAggregator;
 
@@ -47,7 +48,7 @@ public class DimensionalCompositeSchemaTest
     final DimensionalSchema dimensional = new DimensionalSchema(dimensionConfigSchema);
     
     Map<String, IncrementalAggregator> incrementalNameToAggregator = dimensional.getAggregatorRegistry().getNameToIncrementalAggregator();
-    Map<String, AbstractTopBottomAggregator<Object>> compsiteNameToAggregator = dimensional.getAggregatorRegistry().getNameToTopBottomAggregator();
+    Map<String, AbstractTopBottomAggregator> compsiteNameToAggregator = dimensional.getAggregatorRegistry().getNameToTopBottomAggregator();
     Assert.assertTrue(compsiteNameToAggregator.size()==1 && compsiteNameToAggregator.keySet().iterator().next().equals(compositeAggregatorName));
     
     Map<String, Integer> incremantalAggregatorNameToID = dimensionConfigSchema.getAggregatorRegistry().getIncrementalAggregatorNameToID();
@@ -96,7 +97,7 @@ public class DimensionalCompositeSchemaTest
     final DimensionalSchema dimensional = new DimensionalSchema(dimensionConfigSchema);
     
     Map<String, IncrementalAggregator> incrementalNameToAggregator = dimensional.getAggregatorRegistry().getNameToIncrementalAggregator();
-    Map<String, AbstractTopBottomAggregator<Object>> compsiteNameToAggregator = dimensional.getAggregatorRegistry().getNameToTopBottomAggregator();
+    Map<String, AbstractTopBottomAggregator> compsiteNameToAggregator = dimensional.getAggregatorRegistry().getNameToTopBottomAggregator();
     //check composite aggregate names
     Assert.assertTrue(compsiteNameToAggregator.size()==2 && compsiteNameToAggregator.keySet().equals(Sets.newHashSet(compositeAggregatorNames)));
     
@@ -163,13 +164,13 @@ public class DimensionalCompositeSchemaTest
     final DimensionalConfigurationSchema dimensionConfigSchema = new DimensionalConfigurationSchema(eventSchemaJSON, AggregatorRegistry.newDefaultAggregatorRegistry());
     final DimensionalSchema dimensional = new DimensionalSchema(dimensionConfigSchema);
 
-    Map<String, AbstractTopBottomAggregator<Object>> compsiteNameToAggregator = dimensional.getAggregatorRegistry().getNameToTopBottomAggregator();
+    Map<String, AbstractTopBottomAggregator> compsiteNameToAggregator = dimensional.getAggregatorRegistry().getNameToTopBottomAggregator();
     Map<String, IncrementalAggregator> incrementalNameToAggregator = dimensional.getAggregatorRegistry().getNameToIncrementalAggregator();
     Map<String, OTFAggregator> otfNameToAggregator = dimensional.getAggregatorRegistry().getNameToOTFAggregators();
     
     //verify the name to aggregator
     //expected name to aggregator
-    Map<String, AbstractTopBottomAggregator<Object>> expectedNameToAggregator = Maps.newHashMap();
+    Map<String, AbstractTopBottomAggregator> expectedNameToAggregator = Maps.newHashMap();
     final String[] combination_location = new String[]{"location"};
     final String[] combination_advertiser = new String[]{"advertiser"};
     final String[] combination_location_publisher = new String[]{"location", "publisher"};
@@ -211,73 +212,75 @@ public class DimensionalCompositeSchemaTest
     Assert.assertTrue(ddIDToCompositeAggregatorIDs.size() == expectedDdIDNum);
     
     //expectedAggregateNameToFD
-    Map<String, FieldsDescriptor> expectedCommonAggregateNameToFD = Maps.newHashMap();
+    Map<String, CompositeAggregatorFieldsDescriptor> expectedCommonAggregateNameToFD = Maps.newHashMap();
+    
+    final Type topBottomType = Type.OBJECT;
     //common
     {
       //TOPN-SUM-10_location
       Map<String, Type> fieldToType = Maps.newHashMap();
-      fieldToType.put("impressions", Type.LONG);
-      fieldToType.put("clicks", Type.LONG);
-      expectedCommonAggregateNameToFD.put("TOPN-SUM-10_location", new FieldsDescriptor(fieldToType));
+      fieldToType.put("impressions", topBottomType);
+      fieldToType.put("clicks", topBottomType);
+      expectedCommonAggregateNameToFD.put("TOPN-SUM-10_location", new CompositeAggregatorFieldsDescriptor(fieldToType));
     }
     {
       //BOTTOMN-AVG-20_location
       Map<String, Type> fieldToType = Maps.newHashMap();
-      fieldToType.put("clicks", Type.LONG);
-      expectedCommonAggregateNameToFD.put("BOTTOMN-AVG-20_location", new FieldsDescriptor(fieldToType));
+      fieldToType.put("clicks", topBottomType);
+      expectedCommonAggregateNameToFD.put("BOTTOMN-AVG-20_location", new CompositeAggregatorFieldsDescriptor(fieldToType));
     }
     
     //specific
     //first
-    Map<String, FieldsDescriptor> expectedFirstCombinationAggregateNameToFD = Maps.newHashMap();
+    Map<String, CompositeAggregatorFieldsDescriptor> expectedFirstCombinationAggregateNameToFD = Maps.newHashMap();
     {
       //TOPN-SUM-10_location_publisher
       Map<String, Type> fieldToType = Maps.newHashMap();
-      fieldToType.put("impressions", Type.LONG);
-      expectedFirstCombinationAggregateNameToFD.put("TOPN-SUM-10_location_publisher", new FieldsDescriptor(fieldToType));
+      fieldToType.put("impressions", topBottomType);
+      expectedFirstCombinationAggregateNameToFD.put("TOPN-SUM-10_location_publisher", new CompositeAggregatorFieldsDescriptor(fieldToType));
     }
     
     //second
-    Map<String, FieldsDescriptor> expectedSecondCombinationAggregateNameToFD = Maps.newHashMap();
+    Map<String, CompositeAggregatorFieldsDescriptor> expectedSecondCombinationAggregateNameToFD = Maps.newHashMap();
     {
       //TOPN-SUM-10_advertiser
       Map<String, Type> fieldToType = Maps.newHashMap();
-      fieldToType.put("impressions", Type.LONG);
-      expectedSecondCombinationAggregateNameToFD.put("TOPN-SUM-10_advertiser", new FieldsDescriptor(fieldToType));
+      fieldToType.put("impressions", topBottomType);
+      expectedSecondCombinationAggregateNameToFD.put("TOPN-SUM-10_advertiser", new CompositeAggregatorFieldsDescriptor(fieldToType));
     }
     
-    Map<String, FieldsDescriptor> expectedThirdCombinationAggregateNameToFD = Maps.newHashMap();
+    Map<String, CompositeAggregatorFieldsDescriptor> expectedThirdCombinationAggregateNameToFD = Maps.newHashMap();
     {
       //TOPN-SUM-10_location
       Map<String, Type> fieldToType = Maps.newHashMap();
-      fieldToType.put("cost", Type.DOUBLE);
-      expectedThirdCombinationAggregateNameToFD.put("TOPN-SUM-10_location", new FieldsDescriptor(fieldToType));
+      fieldToType.put("cost", topBottomType);
+      expectedThirdCombinationAggregateNameToFD.put("TOPN-SUM-10_location", new CompositeAggregatorFieldsDescriptor(fieldToType));
     }
     {
       //TOPN-COUNT-10_location
       Map<String, Type> fieldToType = Maps.newHashMap();
-      fieldToType.put("cost", Type.DOUBLE);
-      expectedThirdCombinationAggregateNameToFD.put("TOPN-COUNT-10_location", new FieldsDescriptor(fieldToType));
+      fieldToType.put("cost", topBottomType);
+      expectedThirdCombinationAggregateNameToFD.put("TOPN-COUNT-10_location", new CompositeAggregatorFieldsDescriptor(fieldToType));
     }
     {
       //BOTTOMN-SUM-10_location
       Map<String, Type> fieldToType = Maps.newHashMap();
-      fieldToType.put("cost", Type.DOUBLE);
-      expectedThirdCombinationAggregateNameToFD.put("BOTTOMN-SUM-10_location", new FieldsDescriptor(fieldToType));
+      fieldToType.put("cost", topBottomType);
+      expectedThirdCombinationAggregateNameToFD.put("BOTTOMN-SUM-10_location", new CompositeAggregatorFieldsDescriptor(fieldToType));
     }
     {
       //BOTTOMN-AVG-10_location
       Map<String, Type> fieldToType = Maps.newHashMap();
-      fieldToType.put("cost", Type.DOUBLE);
-      expectedThirdCombinationAggregateNameToFD.put("BOTTOMN-AVG-10_location", new FieldsDescriptor(fieldToType));
+      fieldToType.put("cost", topBottomType);
+      expectedThirdCombinationAggregateNameToFD.put("BOTTOMN-AVG-10_location", new CompositeAggregatorFieldsDescriptor(fieldToType));
     }
    
     // put common
-    Map<String, FieldsDescriptor> commonAggregateNameToFD = Maps.newHashMap();
+    Map<String, CompositeAggregatorFieldsDescriptor> commonAggregateNameToFD = Maps.newHashMap();
     commonAggregateNameToFD.put("TOPN-SUM-10_location", expectedCommonAggregateNameToFD.get("TOPN-SUM-10_location"));
     commonAggregateNameToFD.put("BOTTOMN-AVG-20_location", expectedCommonAggregateNameToFD.get("BOTTOMN-AVG-20_location"));
     
-    List<Map<String, FieldsDescriptor>> expectedDdIDToAggregatorToDesc = Lists.newArrayListWithCapacity(8);
+    List<Map<String, CompositeAggregatorFieldsDescriptor>> expectedDdIDToAggregatorToDesc = Lists.newArrayListWithCapacity(8);
     {
       //first/second
       merge(expectedFirstCombinationAggregateNameToFD, commonAggregateNameToFD);
@@ -301,7 +304,7 @@ public class DimensionalCompositeSchemaTest
     
     //others are empty
     for(int i=6; i<expectedDdIDNum; ++i)
-      expectedDdIDToAggregatorToDesc.add(i, Collections.<String, FieldsDescriptor>emptyMap());
+      expectedDdIDToAggregatorToDesc.add(i, Collections.<String, CompositeAggregatorFieldsDescriptor>emptyMap());
     
     for(int index=0; index<expectedDdIDNum; ++index)
     {
@@ -456,20 +459,21 @@ public class DimensionalCompositeSchemaTest
    * @param right
    * @return
    */
-  protected Map<String, FieldsDescriptor> merge(Map<String, FieldsDescriptor> left, Map<String, FieldsDescriptor> right)
+  protected Map<String, CompositeAggregatorFieldsDescriptor> merge(Map<String, CompositeAggregatorFieldsDescriptor> left, 
+      Map<String, CompositeAggregatorFieldsDescriptor> right)
   {
-    for(Map.Entry<String, FieldsDescriptor> rightEntry : right.entrySet())
+    for(Map.Entry<String, CompositeAggregatorFieldsDescriptor> rightEntry : right.entrySet())
     {
       String rightKey = rightEntry.getKey();
       if(left.get(rightKey) == null)
         left.put(rightKey, rightEntry.getValue());
       else
       {
-        FieldsDescriptor leftFd = left.get(rightKey);
+        CompositeAggregatorFieldsDescriptor leftFd = left.get(rightKey);
         Map<String, Type> leftFieldToType = leftFd.getFieldToType();
         Map<String, Type> rightFieldToType = rightEntry.getValue().getFieldToType();
         leftFieldToType.putAll(rightFieldToType);
-        leftFd = new FieldsDescriptor(leftFieldToType);
+        leftFd = new CompositeAggregatorFieldsDescriptor(leftFieldToType);
         left.put(rightKey, leftFd);
       }
     }

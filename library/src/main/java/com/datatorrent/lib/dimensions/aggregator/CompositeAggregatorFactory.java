@@ -36,7 +36,7 @@ public interface CompositeAggregatorFactory
    * @param properties
    * @return
    */
-  public <T> AbstractCompositeAggregator<T> createCompositeAggregator(String aggregatorType, String embedAggregatorName, Map<String, Object> properties);
+  public <T> AbstractCompositeAggregator createCompositeAggregator(String aggregatorType, String embedAggregatorName, Map<String, Object> properties);
   
   /**
    * create composite aggregator based on composite aggregator name, the input validAggregatorName should be a valid composite aggregator name

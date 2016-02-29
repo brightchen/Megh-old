@@ -18,23 +18,23 @@ public class TopBottomAggregatorFactory extends AbstractCompositeAggregatorFacto
   public static final TopBottomAggregatorFactory defaultInstance = new TopBottomAggregatorFactory();
   
   @Override
-  public <T> AbstractTopBottomAggregator<T> createCompositeAggregator(String aggregatorType, String embedAggregatorName,
+  public <T> AbstractTopBottomAggregator createCompositeAggregator(String aggregatorType, String embedAggregatorName,
       Map<String, Object> properties)
   {
     return createTopBottomAggregator(aggregatorType, embedAggregatorName, getCount(properties), getSubCombinations(properties));
   }
   
-  public <T> AbstractTopBottomAggregator<T> createTopBottomAggregator(String aggregatorType, String embedAggregatorName,
+  public <T> AbstractTopBottomAggregator createTopBottomAggregator(String aggregatorType, String embedAggregatorName,
       int count, String[] subCombinations)
   {
-    AbstractTopBottomAggregator<T> aggregator = null;
+    AbstractTopBottomAggregator aggregator = null;
     if(AggregatorTopBottomType.TOPN == AggregatorTopBottomType.valueOf(aggregatorType))
     {
-      aggregator = new AggregatorTop<T>();
+      aggregator = new AggregatorTop();
     }
     if(AggregatorTopBottomType.BOTTOMN == AggregatorTopBottomType.valueOf(aggregatorType))
     {
-      aggregator = new AggregatorBottom<T>();
+      aggregator = new AggregatorBottom();
     }
     if(aggregator == null)
     {

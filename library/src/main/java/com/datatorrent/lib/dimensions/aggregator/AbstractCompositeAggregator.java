@@ -15,9 +15,8 @@ import com.datatorrent.lib.dimensions.AbstractDimensionsComputationFlexibleSingl
  * SimpleCompositAggregator is the aggregator which embed other aggregator
  *
  *
- * @param <T> the type of aggregator, could be OTFAggregator or IncrementalAggregator
  */
-public abstract class AbstractCompositeAggregator<T> implements CompositeAggregator
+public abstract class AbstractCompositeAggregator implements CompositeAggregator
 {
   private static final long serialVersionUID = 661710563764433621L;
 
@@ -41,7 +40,7 @@ public abstract class AbstractCompositeAggregator<T> implements CompositeAggrega
     this.dimensionsConversionContext = dimensionsConversionContext;
   }
 
-  public AbstractCompositeAggregator<T> withDimensionsConversionContext(DimensionsConversionContext dimensionsConversionContext)
+  public AbstractCompositeAggregator withDimensionsConversionContext(DimensionsConversionContext dimensionsConversionContext)
   {
     this.setDimensionsConversionContext(dimensionsConversionContext);
     return this;

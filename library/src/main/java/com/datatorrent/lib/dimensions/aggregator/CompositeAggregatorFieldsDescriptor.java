@@ -17,7 +17,7 @@ import com.datatorrent.lib.appdata.schemas.Type;
 /**
  * the super class FieldsDescriptor don't allow to modify/set serdes.
  * Create this class from walk around. 
- * NOTE: this class can't removed after FieldsDescriptor allow to modify/set serdes
+ * NOTE: this class can be removed after FieldsDescriptor allow to modify/set serdes
  *
  */
 public class CompositeAggregatorFieldsDescriptor extends FieldsDescriptor
@@ -79,5 +79,31 @@ public class CompositeAggregatorFieldsDescriptor extends FieldsDescriptor
     {
       DEFAULT_COMPOSITE_SERDES[index] = SerdeMapPrimitive.INSTANCE;
     }
+  }
+  
+
+  @Override
+  public boolean equals(Object obj)
+  {
+    if(obj == null) {
+      return false;
+    }
+    if(getClass() != obj.getClass()) {
+      return false;
+    }
+    final CompositeAggregatorFieldsDescriptor other = (CompositeAggregatorFieldsDescriptor)obj;
+    if(this.getFieldToType() != other.getFieldToType() && (this.getFieldToType() == null || !this.getFieldToType().equals(other.getFieldToType()))) {
+      return false;
+    }
+    if(this.getCompressedTypes() != other.getCompressedTypes() && (this.getCompressedTypes() == null || !this.getCompressedTypes().equals(other.getCompressedTypes()))) {
+      return false;
+    }
+    return true;
+  }
+
+  @Override
+  public String toString()
+  {
+    return "CompositeAggregatorFieldsDescriptor{" + "fieldToType=" + getFieldToType() + ", compressedTypes=" + getCompressedTypes() + '}';
   }
 }

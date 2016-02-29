@@ -1,6 +1,6 @@
 package com.datatorrent.lib.dimensions.aggregator;
 
-public class AggregatorBottom<T> extends AbstractTopBottomAggregator<T>
+public class AggregatorBottom extends AbstractTopBottomAggregator
 {
   @Override
   protected boolean shouldReplaceResultElement(int resultCompareToInput)

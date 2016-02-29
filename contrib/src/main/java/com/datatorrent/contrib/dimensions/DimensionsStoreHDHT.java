@@ -6,7 +6,6 @@ package com.datatorrent.contrib.dimensions;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,23 +33,19 @@ import com.datatorrent.contrib.hdht.AbstractSinglePortHDHTWriter;
 import com.datatorrent.lib.appdata.gpo.GPOByteArrayList;
 import com.datatorrent.lib.appdata.gpo.GPOMutable;
 import com.datatorrent.lib.appdata.gpo.GPOUtils;
-import com.datatorrent.lib.appdata.gpo.Serde;
-import com.datatorrent.lib.appdata.gpo.SerdeListPrimitive;
 import com.datatorrent.lib.appdata.schemas.Fields;
 import com.datatorrent.lib.appdata.schemas.FieldsDescriptor;
 import com.datatorrent.lib.appdata.schemas.Type;
 import com.datatorrent.lib.codec.KryoSerializableStreamCodec;
+import com.datatorrent.lib.dimensions.AbstractDimensionsComputationFlexibleSingleSchema.DimensionsConversionContext;
 import com.datatorrent.lib.dimensions.AggregationIdentifier;
 import com.datatorrent.lib.dimensions.DimensionsDescriptor;
-import com.datatorrent.lib.dimensions.AbstractDimensionsComputationFlexibleSingleSchema.DimensionsConversionContext;
 import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
 import com.datatorrent.lib.dimensions.DimensionsEvent.EventKey;
-import com.datatorrent.lib.dimensions.DimensionsEvent.InputEvent;
-import com.datatorrent.lib.dimensions.aggregator.IncrementalAggregator;
-import com.datatorrent.lib.dimensions.aggregator.OTFAggregator;
-import com.datatorrent.lib.dimensions.aggregator.AbstractCompositeAggregator;
 import com.datatorrent.lib.dimensions.aggregator.AbstractTopBottomAggregator;
 import com.datatorrent.lib.dimensions.aggregator.CompositeAggregator;
+import com.datatorrent.lib.dimensions.aggregator.IncrementalAggregator;
+import com.datatorrent.lib.dimensions.aggregator.OTFAggregator;
 import com.datatorrent.netlet.util.Slice;
 
 /**
@@ -618,10 +613,10 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
       return;
     
     embedIdentifierToEventKeys = Maps.newHashMap();
-    Map<Integer, AbstractTopBottomAggregator<Object>> topBottomAggregatorIdToInstance = getTopBottomAggregatorIdToInstance();
+    Map<Integer, AbstractTopBottomAggregator> topBottomAggregatorIdToInstance = getTopBottomAggregatorIdToInstance();
     Set<AggregationIdentifier> allIdentifiers = Sets.newHashSet();
     
-    for(Map.Entry<Integer, AbstractTopBottomAggregator<Object>> entry : topBottomAggregatorIdToInstance.entrySet())
+    for(Map.Entry<Integer, AbstractTopBottomAggregator> entry : topBottomAggregatorIdToInstance.entrySet())
     {
       allIdentifiers.addAll(getDependedIncrementalAggregationIdentifiers(entry.getValue()));
     }
@@ -652,7 +647,7 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
    * @param topBottomAggregator
    * @return
    */
-  protected abstract Set<AggregationIdentifier> getDependedIncrementalAggregationIdentifiers(AbstractTopBottomAggregator<?> topBottomAggregator);
+  protected abstract Set<AggregationIdentifier> getDependedIncrementalAggregationIdentifiers(AbstractTopBottomAggregator topBottomAggregator);
   
   /**
    * input: the aggregte of Incremental Aggregators from cache
@@ -660,7 +655,7 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
    */
   protected void handleTopBottomAggregators()
   {
-    Map<Integer, AbstractTopBottomAggregator<Object>> topBottomAggregatorIdToInstance = getTopBottomAggregatorIdToInstance();
+    Map<Integer, AbstractTopBottomAggregator> topBottomAggregatorIdToInstance = getTopBottomAggregatorIdToInstance();
     
     for(AbstractTopBottomAggregator aggregator : topBottomAggregatorIdToInstance.values())
     {
@@ -759,7 +754,7 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
    * @param embedEventKey
    * @return
    */
-  protected EventKey createCompositeEventKey(AbstractTopBottomAggregator<?> compositeAggregator, EventKey embedEventKey)
+  protected EventKey createCompositeEventKey(AbstractTopBottomAggregator compositeAggregator, EventKey embedEventKey)
   {
     return createCompositeEventKey(embedEventKey.getBucketID(), embedEventKey.getSchemaID(), 
         compositeAggregator.getDimensionDescriptorID(), compositeAggregator.getAggregatorID(),
@@ -962,13 +957,13 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
 //  }
   
   
-  protected abstract AbstractTopBottomAggregator<Object> getTopBottomAggregator(AggregationIdentifier aggregationIdentifier);
+  protected abstract AbstractTopBottomAggregator getTopBottomAggregator(AggregationIdentifier aggregationIdentifier);
 
   /**
    * get all composite aggregators
    * @return Map of aggregator id to top bottom aggregator
    */
-  protected abstract Map<Integer, AbstractTopBottomAggregator<Object>> getTopBottomAggregatorIdToInstance();
+  protected abstract Map<Integer, AbstractTopBottomAggregator> getTopBottomAggregatorIdToInstance();
  
   
   /**
@@ -979,7 +974,7 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
    * @param topBottomAggregator
    * @return
    */
-  protected Aggregate getEmbedValue(AbstractTopBottomAggregator<Object> topBottomAggregator)
+  protected Aggregate getEmbedValue(AbstractTopBottomAggregator topBottomAggregator)
   {
     
     //bright: TODO:

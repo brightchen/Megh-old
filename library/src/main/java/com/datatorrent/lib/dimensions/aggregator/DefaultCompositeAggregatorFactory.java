@@ -32,7 +32,7 @@ public class DefaultCompositeAggregatorFactory implements CompositeAggregatorFac
   }
 
   @Override
-  public <T> AbstractCompositeAggregator<T> createCompositeAggregator(String aggregatorType, String embedAggregatorName,
+  public <T> AbstractCompositeAggregator createCompositeAggregator(String aggregatorType, String embedAggregatorName,
       Map<String, Object> properties)
   {
     return findSpecificFactory(aggregatorType).createCompositeAggregator(aggregatorType, embedAggregatorName, properties);

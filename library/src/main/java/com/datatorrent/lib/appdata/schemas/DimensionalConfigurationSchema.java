@@ -1456,7 +1456,7 @@ public class DimensionalConfigurationSchema
       // for the embed aggregator, the value is composite's value; the key is composite's key combined with subCombination
       for(Map.Entry<String, Set<String>> aggregatorToValuesEntry : compositeAggregatorToValues.entrySet())
       {
-        AbstractTopBottomAggregator<Object> aggregator = getCompositeAggregatorByName(aggregatorToValuesEntry.getKey());
+        AbstractTopBottomAggregator aggregator = getCompositeAggregatorByName(aggregatorToValuesEntry.getKey());
         Set<String> subCombination = aggregator.getSubCombinations();
         addSubKeysAndAggregator(aggregatorToValuesEntry.getValue(), keys, subCombination, aggregator.getEmbedAggregatorName(), keysToCombinationId);
       }
@@ -1482,7 +1482,7 @@ public class DimensionalConfigurationSchema
     return aggregatorToValues;
   }
       
-  protected AbstractTopBottomAggregator<Object> getCompositeAggregatorByName(String compositeAggregatorName)
+  protected AbstractTopBottomAggregator getCompositeAggregatorByName(String compositeAggregatorName)
   {
     return aggregatorRegistry.getNameToTopBottomAggregator().get(compositeAggregatorName);
   }
@@ -1736,7 +1736,7 @@ public class DimensionalConfigurationSchema
     throw new IllegalArgumentException(aggregatorName + " is not a valid non-composit aggregator.");
   }
 
-  protected AbstractCompositeAggregator<Object> addCompositeAggregator(
+  protected AbstractCompositeAggregator addCompositeAggregator(
       String aggregatorType,
       Map<String, Set<String>> allValueToCompositeAggregator,
       Set<String> aggregateCompositeSet,
@@ -1751,7 +1751,7 @@ public class DimensionalConfigurationSchema
     }
     
     final String aggregatorName = compositeAggregatorFactory.getCompositeAggregatorName(aggregatorType, embededAggregatorName, properties);
-    final AbstractCompositeAggregator<Object> aggregator = compositeAggregatorFactory.createCompositeAggregator(aggregatorType, embededAggregatorName, properties);
+    final AbstractCompositeAggregator aggregator = compositeAggregatorFactory.createCompositeAggregator(aggregatorType, embededAggregatorName, properties);
     
     //Check for duplicate
     Set<String> aggregatorNames = allValueToCompositeAggregator.get(valueName);
@@ -1873,7 +1873,7 @@ public class DimensionalConfigurationSchema
           dimensionsDescriptorIDToCompositeAggregatorToAggregateDescriptor.get(index).entrySet()) {
         String aggregatorName = entry.getKey();
         FieldsDescriptor inputDescriptor = entry.getValue();
-        AbstractCompositeAggregator<?> compositeAggregator = aggregatorRegistry.getNameToTopBottomAggregator().get(
+        AbstractCompositeAggregator compositeAggregator = aggregatorRegistry.getNameToTopBottomAggregator().get(
             aggregatorName);
         
         //simple use ++ to assign aggregator id
@@ -1940,7 +1940,7 @@ public class DimensionalConfigurationSchema
       Map<String, FieldsDescriptor> compositeAggregatorNameToDescriptor = dimensionsDescriptorIDToCompositeAggregatorToAggregateDescriptor.get(index);
       for(String compositeAggregatorName : compositeAggregatorNameToDescriptor.keySet())
       {
-        AbstractTopBottomAggregator<Object> compositeAggregator = aggregatorRegistry.getNameToTopBottomAggregator().get(compositeAggregatorName);
+        AbstractTopBottomAggregator compositeAggregator = aggregatorRegistry.getNameToTopBottomAggregator().get(compositeAggregatorName);
         
         //set DimensionDescriptorID
         compositeAggregator.setDimensionDescriptorID(index);

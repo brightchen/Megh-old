@@ -319,96 +319,96 @@ public abstract class AbstractDimensionsComputationFlexibleSingleSchema<EVENT> i
     return aggregatorArray;
   }
 
-  
-  protected AbstractCompositeAggregator[] createCompositeAggregators()
-  {
-    //Num of compositeAggre aggregators
-    int numCompositeAggregators = 0;
-
-    FieldsDescriptor masterKeyFieldsDescriptor = configurationSchema.getKeyDescriptorWithTime();
-    List<FieldsDescriptor> keyFieldsDescriptors = configurationSchema.getDimensionsDescriptorIDToKeyDescriptor();
-
-    //Compute the number of aggregators to create
-    for (int dimensionsDescriptorID = 0;
-        dimensionsDescriptorID < configurationSchema.getDimensionsDescriptorIDToCompositeAggregatorIDs().size();
-        dimensionsDescriptorID++) {
-      IntArrayList aggIDList = configurationSchema.getDimensionsDescriptorIDToCompositeAggregatorIDs().get(
-          dimensionsDescriptorID);
-      numCompositeAggregators += aggIDList.size();
-    }
-
-    AbstractCompositeAggregator[] aggregatorArray = new AbstractCompositeAggregator[numCompositeAggregators];
-    int compositeAggregatorIndex = 0;
-
-    for (int dimensionsDescriptorID = 0;
-        dimensionsDescriptorID < keyFieldsDescriptors.size();
-        dimensionsDescriptorID++) {
-      //Create the conversion context for the conversion.
-      FieldsDescriptor keyFieldsDescriptor = keyFieldsDescriptors.get(dimensionsDescriptorID);
-      Int2ObjectMap<FieldsDescriptor> map = configurationSchema
-          .getDimensionsDescriptorIDToAggregatorIDToInputAggregatorDescriptor().get(dimensionsDescriptorID);
-      Int2ObjectMap<FieldsDescriptor> mapOutput = configurationSchema
-          .getDimensionsDescriptorIDToAggregatorIDToOutputAggregatorDescriptor().get(dimensionsDescriptorID);
-      IntArrayList aggIDList = configurationSchema
-          .getDimensionsDescriptorIDToCompositeAggregatorIDs().get(dimensionsDescriptorID);
-      DimensionsDescriptor dd = configurationSchema
-          .getDimensionsDescriptorIDToDimensionsDescriptor().get(dimensionsDescriptorID);
-
-      for (int aggIDIndex = 0;
-          aggIDIndex < aggIDList.size();
-          aggIDIndex++, compositeAggregatorIndex++) {
-        int aggID = aggIDList.get(aggIDIndex);
-
-        //bright: TODO: need to find the embed incremental aggregator
-        
-        DimensionsConversionContext conversionContext = new DimensionsConversionContext();
-        IndexSubset indexSubsetKey = GPOUtils.computeSubIndices(keyFieldsDescriptor, masterKeyFieldsDescriptor);
-        IndexSubset indexSubsetAggregate = GPOUtils
-            .computeSubIndices(configurationSchema.getDimensionsDescriptorIDToAggregatorIDToInputAggregatorDescriptor()
-            .get(dimensionsDescriptorID).get(aggID), configurationSchema.getInputValuesDescriptor());
-
-        conversionContext.schemaID = schemaID;
-        conversionContext.dimensionsDescriptorID = dimensionsDescriptorID;
-        conversionContext.aggregatorID = aggID;
-        conversionContext.customTimeBucketRegistry = configurationSchema.getCustomTimeBucketRegistry();
-        conversionContext.dd = dd;
-        conversionContext.keyDescriptor = keyFieldsDescriptor;
-        //conversionContext.aggregateDescriptor = map.get(aggID);
-        conversionContext.aggregateDescriptor = mapOutput.get(aggID);
-
-        {
-          List<String> fields = masterKeyFieldsDescriptor.getTypeToFields().get(
-              DimensionsDescriptor.DIMENSION_TIME_TYPE);
-
-          if (fields == null) {
-            conversionContext.inputTimestampIndex = -1;
-          } else {
-            conversionContext.inputTimestampIndex = fields.indexOf(DimensionsDescriptor.DIMENSION_TIME);
-          }
-        }
-
-        {
-          List<String> fields = keyFieldsDescriptor.getTypeToFields().get(
-              DimensionsDescriptor.DIMENSION_TIME_BUCKET_TYPE);
-
-          if (fields == null) {
-            conversionContext.outputTimebucketIndex = -1;
-          } else {
-            conversionContext.outputTimebucketIndex = fields.indexOf(DimensionsDescriptor.DIMENSION_TIME_BUCKET);
-          }
-        }
-
-        conversionContext.indexSubsetKeys = indexSubsetKey;
-        conversionContext.indexSubsetAggregates = indexSubsetAggregate;
-
-        AbstractCompositeAggregator<Object> aggregator = null; //aggregatorRegistry.getCompositeAggregatorIDToAggregator().get(aggID).clone();
-        aggregator.setDimensionsConversionContext(conversionContext);
-        aggregatorArray[compositeAggregatorIndex] = aggregator;
-      }
-    }
-
-    return aggregatorArray;
-  }
+//  
+//  protected AbstractCompositeAggregator[] createCompositeAggregators()
+//  {
+//    //Num of compositeAggre aggregators
+//    int numCompositeAggregators = 0;
+//
+//    FieldsDescriptor masterKeyFieldsDescriptor = configurationSchema.getKeyDescriptorWithTime();
+//    List<FieldsDescriptor> keyFieldsDescriptors = configurationSchema.getDimensionsDescriptorIDToKeyDescriptor();
+//
+//    //Compute the number of aggregators to create
+//    for (int dimensionsDescriptorID = 0;
+//        dimensionsDescriptorID < configurationSchema.getDimensionsDescriptorIDToCompositeAggregatorIDs().size();
+//        dimensionsDescriptorID++) {
+//      IntArrayList aggIDList = configurationSchema.getDimensionsDescriptorIDToCompositeAggregatorIDs().get(
+//          dimensionsDescriptorID);
+//      numCompositeAggregators += aggIDList.size();
+//    }
+//
+//    AbstractCompositeAggregator[] aggregatorArray = new AbstractCompositeAggregator[numCompositeAggregators];
+//    int compositeAggregatorIndex = 0;
+//
+//    for (int dimensionsDescriptorID = 0;
+//        dimensionsDescriptorID < keyFieldsDescriptors.size();
+//        dimensionsDescriptorID++) {
+//      //Create the conversion context for the conversion.
+//      FieldsDescriptor keyFieldsDescriptor = keyFieldsDescriptors.get(dimensionsDescriptorID);
+//      Int2ObjectMap<FieldsDescriptor> map = configurationSchema
+//          .getDimensionsDescriptorIDToAggregatorIDToInputAggregatorDescriptor().get(dimensionsDescriptorID);
+//      Int2ObjectMap<FieldsDescriptor> mapOutput = configurationSchema
+//          .getDimensionsDescriptorIDToAggregatorIDToOutputAggregatorDescriptor().get(dimensionsDescriptorID);
+//      IntArrayList aggIDList = configurationSchema
+//          .getDimensionsDescriptorIDToCompositeAggregatorIDs().get(dimensionsDescriptorID);
+//      DimensionsDescriptor dd = configurationSchema
+//          .getDimensionsDescriptorIDToDimensionsDescriptor().get(dimensionsDescriptorID);
+//
+//      for (int aggIDIndex = 0;
+//          aggIDIndex < aggIDList.size();
+//          aggIDIndex++, compositeAggregatorIndex++) {
+//        int aggID = aggIDList.get(aggIDIndex);
+//
+//        //bright: TODO: need to find the embed incremental aggregator
+//        
+//        DimensionsConversionContext conversionContext = new DimensionsConversionContext();
+//        IndexSubset indexSubsetKey = GPOUtils.computeSubIndices(keyFieldsDescriptor, masterKeyFieldsDescriptor);
+//        IndexSubset indexSubsetAggregate = GPOUtils
+//            .computeSubIndices(configurationSchema.getDimensionsDescriptorIDToAggregatorIDToInputAggregatorDescriptor()
+//            .get(dimensionsDescriptorID).get(aggID), configurationSchema.getInputValuesDescriptor());
+//
+//        conversionContext.schemaID = schemaID;
+//        conversionContext.dimensionsDescriptorID = dimensionsDescriptorID;
+//        conversionContext.aggregatorID = aggID;
+//        conversionContext.customTimeBucketRegistry = configurationSchema.getCustomTimeBucketRegistry();
+//        conversionContext.dd = dd;
+//        conversionContext.keyDescriptor = keyFieldsDescriptor;
+//        //conversionContext.aggregateDescriptor = map.get(aggID);
+//        conversionContext.aggregateDescriptor = mapOutput.get(aggID);
+//
+//        {
+//          List<String> fields = masterKeyFieldsDescriptor.getTypeToFields().get(
+//              DimensionsDescriptor.DIMENSION_TIME_TYPE);
+//
+//          if (fields == null) {
+//            conversionContext.inputTimestampIndex = -1;
+//          } else {
+//            conversionContext.inputTimestampIndex = fields.indexOf(DimensionsDescriptor.DIMENSION_TIME);
+//          }
+//        }
+//
+//        {
+//          List<String> fields = keyFieldsDescriptor.getTypeToFields().get(
+//              DimensionsDescriptor.DIMENSION_TIME_BUCKET_TYPE);
+//
+//          if (fields == null) {
+//            conversionContext.outputTimebucketIndex = -1;
+//          } else {
+//            conversionContext.outputTimebucketIndex = fields.indexOf(DimensionsDescriptor.DIMENSION_TIME_BUCKET);
+//          }
+//        }
+//
+//        conversionContext.indexSubsetKeys = indexSubsetKey;
+//        conversionContext.indexSubsetAggregates = indexSubsetAggregate;
+//
+//        AbstractCompositeAggregator aggregator = null; //aggregatorRegistry.getCompositeAggregatorIDToAggregator().get(aggID).clone();
+//        aggregator.setDimensionsConversionContext(conversionContext);
+//        aggregatorArray[compositeAggregatorIndex] = aggregator;
+//      }
+//    }
+//
+//    return aggregatorArray;
+//  }
   
   @Override
   public void beginWindow(long windowId)

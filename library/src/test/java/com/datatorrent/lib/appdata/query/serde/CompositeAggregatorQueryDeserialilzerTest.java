@@ -1,7 +1,5 @@
 package com.datatorrent.lib.appdata.query.serde;
 
-import java.util.HashSet;
-
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Rule;

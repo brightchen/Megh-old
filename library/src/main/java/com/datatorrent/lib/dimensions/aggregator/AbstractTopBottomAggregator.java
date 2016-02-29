@@ -19,24 +19,24 @@ import com.datatorrent.lib.appdata.schemas.Type;
 import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
 import com.datatorrent.lib.dimensions.DimensionsEvent.EventKey;
 
-public abstract class AbstractTopBottomAggregator<T> extends AbstractCompositeAggregator<T>
+public abstract class AbstractTopBottomAggregator extends AbstractCompositeAggregator
 {
   public static final String PROP_COUNT = "count";
   protected int count;
   protected SortedSet<String> subCombinations = Sets.newTreeSet();
   
-  public AbstractTopBottomAggregator<T> withEmbedAggregatorName(String embedAggregatorName)
+  public AbstractTopBottomAggregator withEmbedAggregatorName(String embedAggregatorName)
   {
     this.setEmbedAggregatorName(embedAggregatorName);
     return this;
   }
-  public AbstractTopBottomAggregator<T> withSubCombinations(String[] subCombinations)
+  public AbstractTopBottomAggregator withSubCombinations(String[] subCombinations)
   {
     this.setSubCombinations(subCombinations);
     return this;
   }
   
-  public AbstractTopBottomAggregator<T> withCount(int count)
+  public AbstractTopBottomAggregator withCount(int count)
   {
     this.setCount(count);
     return this;

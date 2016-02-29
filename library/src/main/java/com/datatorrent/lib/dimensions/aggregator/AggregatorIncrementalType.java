@@ -17,11 +17,6 @@ import com.google.common.collect.Maps;
  * @since 3.1.0
  */
 
-/**
- * @since 3.1.0
- */
-
-
 public enum AggregatorIncrementalType
 {
   SUM(new AggregatorSum()),

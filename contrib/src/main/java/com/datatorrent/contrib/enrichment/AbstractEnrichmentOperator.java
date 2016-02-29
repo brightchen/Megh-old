@@ -122,6 +122,10 @@ public abstract class AbstractEnrichmentOperator<INPUT, OUTPUT> extends BaseOper
     return store;
   }
 
+  public CacheManager getCacheManager() {
+    return cacheManager;
+  }
+
   public CacheStore getPrimaryCache()
   {
     return primaryCache;

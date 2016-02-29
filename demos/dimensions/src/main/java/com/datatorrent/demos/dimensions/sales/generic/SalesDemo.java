@@ -4,8 +4,6 @@
  */
 package com.datatorrent.demos.dimensions.sales.generic;
 
-import java.net.URI;
-
 import java.util.Map;
 
 import com.google.common.collect.Maps;
@@ -32,7 +30,6 @@ import com.datatorrent.api.Context;
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DAG;
 import com.datatorrent.api.DAG.Locality;
-import com.datatorrent.api.Operator;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
 
@@ -96,27 +93,16 @@ public class SalesDemo implements StreamingApplication
     store.setConfigurationSchemaJSON(eventSchema);
     store.setDimensionalSchemaStubJSON(dimensionalSchema);
 
-    Operator.OutputPort<String> queryPort;
-    Operator.InputPort<String> queryResultPort;
-
-    String gatewayAddress = dag.getValue(DAG.GATEWAY_CONNECT_ADDRESS);
-    URI uri = URI.create("ws://" + gatewayAddress + "/pubsub");
     PubSubWebSocketAppDataQuery wsIn = new PubSubWebSocketAppDataQuery();
-    wsIn.setUri(uri);
-    queryPort = wsIn.outputPort;
-
-    dag.addOperator("Query", wsIn);
-    dag.addStream("Query", queryPort, store.query).setLocality(Locality.CONTAINER_LOCAL);
+    store.setEmbeddableQueryInfoProvider(wsIn);
 
     PubSubWebSocketAppDataResult wsOut = dag.addOperator("QueryResult", new PubSubWebSocketAppDataResult());
-    wsOut.setUri(uri);
-    queryResultPort = wsOut.input;
 
     dag.addStream("InputStream", inputGenerator.getOutputPort(), converter.input);
     dag.addStream("EnrichmentStream", converter.outputMap, enrichmentOperator.inputPort);
     dag.addStream("ConvertStream", enrichmentOperator.outputPort, dimensions.input);
     dag.addStream("DimensionalData", dimensions.output, store.input);
-    dag.addStream("QueryResult", store.queryResult, queryResultPort).setLocality(Locality.CONTAINER_LOCAL);
+    dag.addStream("QueryResult", store.queryResult, wsOut.input).setLocality(Locality.CONTAINER_LOCAL);
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(SalesDemo.class);

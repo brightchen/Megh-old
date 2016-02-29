@@ -64,6 +64,11 @@ public class BucketManagerTest
     {
     }
 
+    @Override
+    public void bucketDeleted(long bucketKey)
+    {
+    }
+
   }
 
   @Test
@@ -146,6 +151,26 @@ public class BucketManagerTest
       else {
         Assert.assertNotNull(manager.getBucket(i));
       }
+    }
+  }
+
+  @Test
+  public void testBucketCollation() throws InterruptedException
+  {
+    manager.setCollateFilesForBucket(true);
+    for (int i = 1; i <= 10; i++) {
+      manager.newEvent(i, new DummyEvent(i, System.currentTimeMillis()));
+    }
+    manager.endWindow(0);
+    Assert.assertEquals(manager.bucketsToDelete.size(), 0);
+    for (int i = 1; i <= 10; i++) {
+      manager.newEvent(i, new DummyEvent(i * 2, System.currentTimeMillis()));
+    }
+    manager.endWindow(1);
+    Assert.assertEquals(manager.bucketsToDelete.size(), 10);
+
+    for (int i = 1; i <= 10; i++) {
+      Assert.assertEquals(manager.getBucket(i).countOfWrittenEvents(), 2);
     }
   }
 

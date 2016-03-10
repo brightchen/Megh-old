@@ -30,6 +30,7 @@ import com.datatorrent.lib.appdata.query.QueryExecutor;
 import com.datatorrent.lib.appdata.query.QueryManagerAsynchronous;
 import com.datatorrent.lib.appdata.query.SimpleQueueManager;
 import com.datatorrent.lib.appdata.query.serde.MessageDeserializerFactory;
+import com.datatorrent.lib.appdata.query.serde.MessageDeserializerManagementFactory;
 import com.datatorrent.lib.appdata.query.serde.MessageSerializerFactory;
 import com.datatorrent.lib.appdata.schemas.DataQueryDimensional;
 import com.datatorrent.lib.appdata.schemas.Message;
@@ -80,7 +81,7 @@ public abstract class AbstractAppDataDimensionStoreHDHT extends DimensionsStoreH
   /**
    * This is the factory used to deserializes queries.
    */
-  protected transient MessageDeserializerFactory queryDeserializerFactory;
+  protected transient MessageDeserializerManagementFactory queryDeserializerFactory;
   /**
    * This is the schema registry that holds all the schema information for the operator.
    */
@@ -143,7 +144,7 @@ public abstract class AbstractAppDataDimensionStoreHDHT extends DimensionsStoreH
       //Deserialize a query
       Message query;
       try {
-        query = queryDeserializerFactory.deserialize(s);
+        query = deserializeQuery(s);
       } catch (IOException ex) {
         LOG.error("error parsing query {}", s, ex);
         return;
@@ -208,7 +209,7 @@ public abstract class AbstractAppDataDimensionStoreHDHT extends DimensionsStoreH
 
     resultSerializerFactory = new MessageSerializerFactory(resultFormatter);
 
-    queryDeserializerFactory = new MessageDeserializerFactory(SchemaQuery.class, DataQueryDimensional.class);
+    queryDeserializerFactory = new MessageDeserializerManagementFactory(SchemaQuery.class, DataQueryDimensional.class);
     queryDeserializerFactory.setContext(DataQueryDimensional.class, schemaRegistry);
 
     dimensionsQueueManager = getDimensionsQueueManager();
@@ -324,6 +325,11 @@ public abstract class AbstractAppDataDimensionStoreHDHT extends DimensionsStoreH
     if (embeddableQueryInfoProvider != null) {
       embeddableQueryInfoProvider.deactivate();
     }
+  }
+  
+  protected Message deserializeQuery(String s) throws IOException
+  {
+    return queryDeserializerFactory.deserialize(s);
   }
 
   /**

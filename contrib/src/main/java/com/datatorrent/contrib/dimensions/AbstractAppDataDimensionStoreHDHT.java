@@ -97,9 +97,9 @@ public abstract class AbstractAppDataDimensionStoreHDHT extends DimensionsStoreH
    */
   private EmbeddableQueryInfoProvider<String> embeddableQueryInfoProvider;
 
-  private List<Message> dataMessages = Lists.newArrayList();
+  private transient List<Message> dataMessages = Lists.newArrayList();
 
-  private List<Message> schemaMessages = Lists.newArrayList();
+  private transient List<Message> schemaMessages = Lists.newArrayList();
 
   private transient boolean inWindow = false;
 

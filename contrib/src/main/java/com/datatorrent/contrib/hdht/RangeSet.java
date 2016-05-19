@@ -13,6 +13,8 @@ import java.util.TreeSet;
  * RangeSet maintains the set of Ranges.
  * This needs an element comparator and keeps the ranges in a TreeSet sorted
  * by start of the range. This supports add, contains, merge operations.
+ * 
+ * @since 3.3.0
  *
  * @param <T>
  */
@@ -152,7 +154,8 @@ class RangeSet<T> implements Iterable<Range<T>>
    * Get first point in the ranges.
    * @return
    */
-  public T getFirst() {
+  public T getFirst()
+  {
     return ranges.first().start;
   }
 
@@ -160,7 +163,8 @@ class RangeSet<T> implements Iterable<Range<T>>
    * Return the largest point in the range.
    * @return
    */
-  public T getLast() {
+  public T getLast()
+  {
     return ranges.last().end;
   }
 }

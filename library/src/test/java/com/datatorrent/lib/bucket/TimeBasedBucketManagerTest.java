@@ -17,13 +17,14 @@ package com.datatorrent.lib.bucket;
 
 import java.io.IOException;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
 import com.google.common.collect.Sets;
 
@@ -48,9 +49,9 @@ public class TimeBasedBucketManagerTest
   @Test
   public void testExpiration() throws InterruptedException
   {
-    DummyEvent event1 = new DummyEvent(1, manager.startOfBucketsInMillis + 10 * BUCKET_SPAN);
+    DummyEvent event1 = new DummyEvent(1, manager.startOfBuckets + 10 * BUCKET_SPAN);
     long bucket1 = manager.getBucketKeyFor(event1);
-    DummyEvent event2 = new DummyEvent(1, manager.startOfBucketsInMillis + (manager.noOfBuckets + 10) * BUCKET_SPAN);
+    DummyEvent event2 = new DummyEvent(1, manager.startOfBuckets + (manager.noOfBuckets + 10) * BUCKET_SPAN);
     long bucket2 = manager.getBucketKeyFor(event2);
     Assert.assertEquals("bucket index", bucket1 % manager.noOfBuckets, bucket2 % manager.noOfBuckets);
 
@@ -61,28 +62,12 @@ public class TimeBasedBucketManagerTest
     Assert.assertEquals("valid event", bucket2, rBucket2);
   }
 
-  @Test
-  public void testClone() throws CloneNotSupportedException, InterruptedException
-  {
-    AbstractOrderedBucketManager<DummyEvent> clonedManager = manager.clone();
-    Assert.assertNotNull(clonedManager);
-    Assert.assertNotNull(clonedManager.getBucketStore());
-    Assert.assertTrue(clonedManager.bucketStore.equals(manager.bucketStore));
-    Assert.assertTrue(clonedManager.writeEventKeysOnly==manager.writeEventKeysOnly);
-    Assert.assertTrue(clonedManager.noOfBuckets==manager.noOfBuckets);
-    Assert.assertTrue(clonedManager.noOfBucketsInMemory==manager.noOfBucketsInMemory);
-    Assert.assertTrue(clonedManager.maxNoOfBucketsInMemory==manager.maxNoOfBucketsInMemory);
-    Assert.assertTrue(clonedManager.millisPreventingBucketEviction== manager.millisPreventingBucketEviction);
-    Assert.assertTrue(clonedManager.committedWindow==manager.committedWindow);
-    Assert.assertTrue(clonedManager.getMaxTimesPerBuckets().length== manager.getMaxTimesPerBuckets().length);
-  }
-
   @BeforeClass
   public static void setup() throws Exception
   {
     applicationPath = OperatorContextTestHelper.getUniqueApplicationPath(APPLICATION_PATH_PREFIX);
     manager = new TestBucketManager<DummyEvent>();
-    manager.setBucketSpanInMillis(BUCKET_SPAN);
+    manager.setBucketSpan(BUCKET_SPAN);
     ExpirableHdfsBucketStore<DummyEvent> bucketStore = new ExpirableHdfsBucketStore<DummyEvent>();
     manager.setBucketStore(bucketStore);
     bucketStore.setConfiguration(0, applicationPath, Sets.newHashSet(0), 0);

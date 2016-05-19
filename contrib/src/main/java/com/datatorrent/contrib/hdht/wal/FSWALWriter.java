@@ -15,6 +15,8 @@ import com.datatorrent.netlet.util.Slice;
 /**
  * Write Log entries to HDFS compatible file systems.
  *
+ * @since 3.3.0
+ *
  * @param <T>
  */
 public class FSWALWriter<T> implements WALWriter<T>
@@ -52,6 +54,12 @@ public class FSWALWriter<T> implements WALWriter<T>
     out.writeInt(slice.length);
     out.write(slice.buffer, slice.offset, slice.length);
     return slice.length + 4;
+  }
+
+  @Override
+  public void append(byte[] byteBuffer, int length) throws IOException
+  {
+    out.write(byteBuffer, 0, length);
   }
 
   @Override

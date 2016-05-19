@@ -6,14 +6,21 @@ package com.datatorrent.lib.appdata.dimensions;
 
 import java.util.Map;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.google.common.collect.Maps;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.apache.apex.malhar.lib.dimensions.DimensionsDescriptor;
+import org.apache.apex.malhar.lib.dimensions.DimensionsEvent;
+import org.apache.apex.malhar.lib.dimensions.DimensionsEvent.Aggregate;
+import org.apache.apex.malhar.lib.dimensions.DimensionsEvent.EventKey;
+import org.apache.apex.malhar.lib.dimensions.aggregator.AggregatorIncrementalType;
+import org.apache.apex.malhar.lib.dimensions.aggregator.AggregatorRegistry;
+
+import com.esotericsoftware.kryo.Kryo;
+import com.google.common.collect.Maps;
 
 import com.datatorrent.lib.appdata.gpo.GPOMutable;
 import com.datatorrent.lib.appdata.schemas.DimensionalConfigurationSchema;
@@ -22,13 +29,8 @@ import com.datatorrent.lib.appdata.schemas.SchemaUtils;
 import com.datatorrent.lib.appdata.schemas.TimeBucket;
 import com.datatorrent.lib.dimensions.AbstractDimensionsComputationFlexibleSingleSchema;
 import com.datatorrent.lib.dimensions.DimensionsComputationFlexibleSingleSchemaMap;
-import com.datatorrent.lib.dimensions.DimensionsDescriptor;
-import com.datatorrent.lib.dimensions.DimensionsEvent;
-import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
-import com.datatorrent.lib.dimensions.DimensionsEvent.EventKey;
-import com.datatorrent.lib.dimensions.aggregator.AggregatorIncrementalType;
-import com.datatorrent.lib.dimensions.aggregator.AggregatorRegistry;
 import com.datatorrent.lib.testbench.CollectorTestSink;
+import com.datatorrent.lib.util.KryoCloneUtils;
 import com.datatorrent.lib.util.TestUtils;
 
 public class DimensionsComputationFlexibleSingleSchemaMapTest
@@ -47,35 +49,35 @@ public class DimensionsComputationFlexibleSingleSchemaMapTest
 
     int schemaID = AbstractDimensionsComputationFlexibleSingleSchema.DEFAULT_SCHEMA_ID;
     int dimensionsDescriptorID = 0;
-    int aggregatorID = AggregatorRegistry.DEFAULT_AGGREGATOR_REGISTRY.
-                       getIncrementalAggregatorNameToID().
-                       get(AggregatorIncrementalType.SUM.name());
+    int aggregatorID = AggregatorRegistry.DEFAULT_AGGREGATOR_REGISTRY
+        .getIncrementalAggregatorNameToID().get(AggregatorIncrementalType.SUM.name());
 
     String eventSchema = SchemaUtils.jarResourceFileToString("adsGenericEventSimple.json");
     DimensionalConfigurationSchema schema = new DimensionalConfigurationSchema(eventSchema,
-                                                               AggregatorRegistry.DEFAULT_AGGREGATOR_REGISTRY);
+        AggregatorRegistry.DEFAULT_AGGREGATOR_REGISTRY);
 
     FieldsDescriptor keyFD = schema.getDimensionsDescriptorIDToKeyDescriptor().get(0);
-    FieldsDescriptor valueFD = schema.getDimensionsDescriptorIDToAggregatorIDToInputAggregatorDescriptor().get(0).get(aggregatorID);
+    FieldsDescriptor valueFD = schema.getDimensionsDescriptorIDToAggregatorIDToInputAggregatorDescriptor()
+        .get(0).get(aggregatorID);
 
     GPOMutable keyGPO = new GPOMutable(keyFD);
     keyGPO.setField("publisher", "google");
     keyGPO.setField(DimensionsDescriptor.DIMENSION_TIME,
-                    TimeBucket.MINUTE.roundDown(300));
+        TimeBucket.MINUTE.roundDown(300));
     keyGPO.setField(DimensionsDescriptor.DIMENSION_TIME_BUCKET,
-                    TimeBucket.MINUTE.ordinal());
+        TimeBucket.MINUTE.ordinal());
 
     EventKey eventKey = new EventKey(0,
-                                     schemaID,
-                                     dimensionsDescriptorID,
-                                     aggregatorID,
-                                     keyGPO);
+        schemaID,
+        dimensionsDescriptorID,
+        aggregatorID,
+        keyGPO);
 
     GPOMutable valueGPO = new GPOMutable(valueFD);
-    valueGPO.setField("clicks", ((Long) ai1.get("clicks")) + ((Long) ai2.get("clicks")));
-    valueGPO.setField("impressions", ((Long) ai1.get("impressions")) + ((Long) ai2.get("impressions")));
-    valueGPO.setField("revenue", ((Double) ai1.get("revenue")) + ((Double) ai2.get("revenue")));
-    valueGPO.setField("cost", ((Double) ai1.get("cost")) + ((Double) ai2.get("cost")));
+    valueGPO.setField("clicks", ((Long)ai1.get("clicks")) + ((Long)ai2.get("clicks")));
+    valueGPO.setField("impressions", ((Long)ai1.get("impressions")) + ((Long)ai2.get("impressions")));
+    valueGPO.setField("revenue", ((Double)ai1.get("revenue")) + ((Double)ai2.get("revenue")));
+    valueGPO.setField("cost", ((Double)ai1.get("cost")) + ((Double)ai2.get("cost")));
 
     Aggregate expectedAE = new Aggregate(eventKey, valueGPO);
 
@@ -86,7 +88,7 @@ public class DimensionsComputationFlexibleSingleSchemaMapTest
     TestUtils.setSink(dimensions.output, sink);
 
     DimensionsComputationFlexibleSingleSchemaMap dimensionsClone =
-    TestUtils.clone(new Kryo(), dimensions);
+        KryoCloneUtils.cloneObject(new Kryo(), dimensions);
 
     dimensions.setup(null);
 
@@ -100,9 +102,10 @@ public class DimensionsComputationFlexibleSingleSchemaMapTest
     LOG.debug("Expected keys: {}", expectedAE.getKeys());
     LOG.debug("Actual keys  : {}", keyGPO);
     LOG.debug("expected: {} {} {}", schemaID, dimensionsDescriptorID, aggregatorID);
-    LOG.debug("actual  : {} {} {}", sink.collectedTuples.get(0).getEventKey().getSchemaID(),
-                                    sink.collectedTuples.get(0).getEventKey().getDimensionDescriptorID(),
-                                    sink.collectedTuples.get(0).getEventKey().getAggregatorID());
+    LOG.debug("actual  : {} {} {}",
+        sink.collectedTuples.get(0).getEventKey().getSchemaID(),
+        sink.collectedTuples.get(0).getEventKey().getDimensionDescriptorID(),
+        sink.collectedTuples.get(0).getEventKey().getAggregatorID());
 
     LOG.debug("{}", expectedAE.getAggregates().equals(sink.collectedTuples.get(0).getAggregates()));
     LOG.debug("{}", expectedAE.getEventKey().equals(sink.collectedTuples.get(0).getEventKey()));

@@ -20,6 +20,8 @@ import com.datatorrent.netlet.util.Slice;
 
 /**
  * Class defining data type stored in Write Ahead Log. Also a serializer for them.
+ *
+ * @since 3.3.0
  */
 class HDHTLogEntry
 {
@@ -43,15 +45,17 @@ class HDHTLogEntry
     }
   }
 
-  ;
-
   /**
    * Marker interface for entry in log.
    */
   interface HDHTWalEntry
   {
     int getType();
+
+    long getBucket();
+
     void writeObject(DataOutputStream dos) throws IOException;
+
     void readObject(DataInputStream bb) throws IOException;
   }
 
@@ -62,11 +66,13 @@ class HDHTLogEntry
   {
     public byte[] val;
     Slice key;
+    long bucketKey;
 
-    public PutEntry(Slice key, byte[] val)
+    public PutEntry(long buckeyKey, Slice key, byte[] val)
     {
       this.key = key;
       this.val = val;
+      this.bucketKey = buckeyKey;
     }
 
     private PutEntry()
@@ -80,12 +86,14 @@ class HDHTLogEntry
       return "PutEntry{" +
         "val=" + Arrays.toString(val) +
         ", key=" + key +
+        ", bucketKey=" + bucketKey +
         '}';
     }
 
     @Override
     public void writeObject(DataOutputStream dos) throws IOException
     {
+      dos.writeLong(bucketKey);
       dos.writeInt(key.length);
       dos.write(key.buffer, key.offset, key.length);
       dos.writeInt(val.length);
@@ -95,6 +103,7 @@ class HDHTLogEntry
     @Override
     public void readObject(DataInputStream dis) throws IOException
     {
+      bucketKey = dis.readLong();
       int keyLen = dis.readInt();
       byte[] keyBytes = new byte[keyLen];
       dis.readFully(keyBytes);
@@ -109,6 +118,12 @@ class HDHTLogEntry
     {
       return HDHTEntryType.PUT.ordinal();
     }
+
+    @Override
+    public long getBucket()
+    {
+      return bucketKey;
+    }
   }
 
   /**
@@ -117,10 +132,12 @@ class HDHTLogEntry
   static class DeleteEntry implements HDHTWalEntry
   {
     Slice key;
+    long bucketKey;
 
-    public DeleteEntry(Slice key)
+    public DeleteEntry(long bucketKey, Slice key)
     {
       this.key = key;
+      this.bucketKey = bucketKey;
     }
 
     private DeleteEntry()
@@ -133,12 +150,14 @@ class HDHTLogEntry
     {
       return "DeleteEntry{" +
         "key=" + key +
+        ", bucketKey=" + bucketKey +
         '}';
     }
 
     @Override
     public void writeObject(DataOutputStream dos) throws IOException
     {
+      dos.writeLong(bucketKey);
       dos.writeInt(key.length);
       dos.write(key.buffer, key.offset, key.length);
     }
@@ -146,6 +165,7 @@ class HDHTLogEntry
     @Override
     public void readObject(DataInputStream dis) throws IOException
     {
+      bucketKey = dis.readLong();
       int keyLen = dis.readInt();
       byte[] bytes = new byte[keyLen];
       dis.readFully(bytes);
@@ -157,6 +177,12 @@ class HDHTLogEntry
     {
       return HDHTEntryType.DELETE.ordinal();
     }
+
+    @Override
+    public long getBucket()
+    {
+      return bucketKey;
+    }
   }
 
   /**
@@ -166,11 +192,13 @@ class HDHTLogEntry
   {
     public Slice startKey;
     public Slice endKey;
+    public long bucketKey;
 
-    public PurgeEntry(Slice startKey, Slice endKey)
+    public PurgeEntry(long bucketKey, Slice startKey, Slice endKey)
     {
       this.startKey = startKey;
       this.endKey = endKey;
+      this.bucketKey = bucketKey;
     }
 
     private PurgeEntry()
@@ -190,6 +218,7 @@ class HDHTLogEntry
     @Override
     public void writeObject(DataOutputStream dos) throws IOException
     {
+      dos.writeLong(bucketKey);
       dos.writeInt(startKey.length);
       dos.write(startKey.buffer, startKey.offset, startKey.length);
       dos.writeInt(endKey.length);
@@ -199,6 +228,7 @@ class HDHTLogEntry
     @Override
     public void readObject(DataInputStream dis) throws IOException
     {
+      bucketKey = dis.readLong();
       int startKeyLen = dis.readInt();
       byte[] startKeyBytes = new byte[startKeyLen];
       dis.readFully(startKeyBytes);
@@ -213,6 +243,12 @@ class HDHTLogEntry
     public int getType()
     {
       return HDHTEntryType.PURGE.ordinal();
+    }
+
+    @Override
+    public long getBucket()
+    {
+      return bucketKey;
     }
   }
 
@@ -262,6 +298,7 @@ class HDHTLogEntry
           case PURGE:
             entry = new PurgeEntry();
             break;
+          default:
         }
         entry.readObject(dis);
         return entry;

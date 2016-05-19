@@ -15,22 +15,14 @@
  */
 package com.datatorrent.lib.dedup;
 
-import com.datatorrent.api.Context;
-import com.datatorrent.api.DAG;
-import com.datatorrent.lib.bucket.*;
-import com.datatorrent.lib.helper.OperatorContextTestHelper;
-import com.datatorrent.lib.testbench.CollectorTestSink;
-import com.datatorrent.lib.util.TestUtils;
-import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Exchanger;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
+
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -38,14 +30,33 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+
+import com.google.common.collect.Lists;
+
+import com.datatorrent.api.Context;
+import com.datatorrent.api.Context.OperatorContext;
+import com.datatorrent.api.DAG;
+import com.datatorrent.lib.bucket.AbstractBucket;
+import com.datatorrent.lib.bucket.ExpirableHdfsBucketStore;
+import com.datatorrent.lib.bucket.HdfsBucketStore;
+import com.datatorrent.lib.bucket.NonOperationalBucketStore;
+import com.datatorrent.lib.bucket.TimeBasedBucketManagerPOJOImpl;
+import com.datatorrent.lib.helper.OperatorContextTestHelper;
+import com.datatorrent.lib.testbench.CollectorTestSink;
+import com.datatorrent.lib.util.TestUtils;
+import com.datatorrent.stram.engine.PortContext;
+
 public class DeduperPOJOTest
 {
   private static final Logger logger = LoggerFactory.getLogger(DeduperPOJOTest.class);
 
-  private final static String APPLICATION_PATH_PREFIX = "target/DeduperPOJOTest";
-  private final static String APP_ID = "DeduperPOJOTest";
-  private final static int OPERATOR_ID = 0;
-  private final static Exchanger<Long> eventBucketExchanger = new Exchanger<Long>();
+  private static final String APPLICATION_PATH_PREFIX = "target/DeduperPOJOTest";
+  private static final String APP_ID = "DeduperPOJOTest";
+  private static final int OPERATOR_ID = 0;
+  private static final Exchanger<Long> eventBucketExchanger = new Exchanger<Long>();
 
   private static class DummyDeduper extends DeduperPOJOImpl
   {
@@ -55,9 +66,9 @@ public class DeduperPOJOTest
       boolean stateless = context.getValue(Context.OperatorContext.STATELESS);
       if (stateless) {
         bucketManager.setBucketStore(new NonOperationalBucketStore<Object>());
-      }
-      else {
-        ((HdfsBucketStore<Object>)bucketManager.getBucketStore()).setConfiguration(context.getId(), context.getValue(DAG.APPLICATION_PATH), partitionKeys, partitionMask);
+      } else {
+        ((HdfsBucketStore<Object>)bucketManager.getBucketStore()).setConfiguration(context.getId(),
+            context.getValue(DAG.APPLICATION_PATH), partitionKeys, partitionMask);
       }
       super.setup(context);
     }
@@ -68,8 +79,7 @@ public class DeduperPOJOTest
       try {
         super.bucketLoaded(bucket);
         eventBucketExchanger.exchange(bucket.bucketKey);
-      }
-      catch (InterruptedException e) {
+      } catch (InterruptedException e) {
         throw new RuntimeException(e);
       }
     }
@@ -89,11 +99,15 @@ public class DeduperPOJOTest
     }
     events.add(new InnerObj(5, calendar.getTimeInMillis()));
 
-    com.datatorrent.api.Attribute.AttributeMap.DefaultAttributeMap attributes = new com.datatorrent.api.Attribute.AttributeMap.DefaultAttributeMap();
+    com.datatorrent.api.Attribute.AttributeMap.DefaultAttributeMap attributes =
+        new com.datatorrent.api.Attribute.AttributeMap.DefaultAttributeMap();
     attributes.put(DAG.APPLICATION_ID, APP_ID);
     attributes.put(DAG.APPLICATION_PATH, applicationPath);
-
-    deduper.setup(new OperatorContextTestHelper.TestIdOperatorContext(OPERATOR_ID, attributes));
+    attributes.put(DAG.InputPortMeta.TUPLE_CLASS, InnerObj.class);
+    OperatorContext context = new OperatorContextTestHelper.TestIdOperatorContext(OPERATOR_ID, attributes);
+    deduper.setup(context);
+    deduper.input.setup(new PortContext(attributes, context));
+    deduper.activate(context);
     CollectorTestSink<InnerObj> collectorTestSink = new CollectorTestSink<InnerObj>();
     TestUtils.setSink(deduper.output, collectorTestSink);
 
@@ -118,8 +132,7 @@ public class DeduperPOJOTest
     //Test the sliding window
     try {
       Thread.sleep(1500);
-    }
-    catch (InterruptedException e) {
+    } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
     deduper.handleIdleTime();
@@ -146,11 +159,9 @@ public class DeduperPOJOTest
     }
     try {
       eventBucketExchanger.exchange(null, 1, TimeUnit.SECONDS);
-    }
-    catch (InterruptedException e) {
+    } catch (InterruptedException e) {
       throw new RuntimeException(e);
-    }
-    catch (TimeoutException e) {
+    } catch (TimeoutException e) {
       logger.debug("Timeout Happened");
     }
   }
@@ -167,7 +178,7 @@ public class DeduperPOJOTest
     TimeBasedBucketManagerPOJOImpl timeManager = new TimeBasedBucketManagerPOJOImpl();
     timeManager.setKeyExpression("getKey()");
     timeManager.setTimeExpression("getTime()");
-    timeManager.setBucketSpanInMillis(1200000);
+    timeManager.setBucketSpan(1200);
     timeManager.setMillisPreventingBucketEviction(1200000);
     timeManager.setBucketStore(bucketStore);
     deduper.setBucketManager(timeManager);
@@ -180,8 +191,7 @@ public class DeduperPOJOTest
     try {
       FileSystem fs = FileSystem.newInstance(root.toUri(), new Configuration());
       fs.delete(root, true);
-    }
-    catch (IOException e) {
+    } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
@@ -210,7 +220,7 @@ public class DeduperPOJOTest
     {
     }
 
-    private Long time;
+    private Date time;
     private int key;
 
     public int getKey()
@@ -225,16 +235,16 @@ public class DeduperPOJOTest
 
     private InnerObj(int i, long timeInMillis)
     {
-      time = timeInMillis;
+      time = new Date(timeInMillis);
       key = i;
     }
 
-    public Long getTime()
+    public Date getTime()
     {
       return time;
     }
 
-    public void setTime(Long time)
+    public void setTime(Date time)
     {
       this.time = time;
     }

@@ -23,6 +23,8 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.lang.mutable.MutableLong;
 
+import com.datatorrent.api.Context;
+import com.datatorrent.api.Operator.ActivationListener;
 import com.datatorrent.api.Operator.CheckpointListener;
 import com.datatorrent.lib.counters.BasicCounters;
 
@@ -37,20 +39,23 @@ import com.datatorrent.lib.counters.BasicCounters;
  * Loading of buckets and saving new bucket events to storage is triggered by the Operator. Typically an Operator would:
  * <ol>
  * <li>fetch the bucket key of an event by calling {@link #getBucketKeyFor(Bucketable)}.</li>
- * <li>invoke {@link #getBucket(long)}. If this returns null or events from disk are not loaded then the operator can ask
- * the manager to load the bucket by calling {@link BucketManager#loadBucketData(long)}. This is not a blocking call.<br/>
+ * <li>invoke {@link #getBucket(long)}. If this returns null or events from disk are not loaded then the operator can
+ * ask the manager to load the bucket by calling {@link BucketManager#loadBucketData(long)}. This is not a blocking
+ * call.<br/>
  * </li>
  * <li>
- * Once the manager loads a bucket, it informs {@link BucketManager.Listener} by calling {@link BucketManager.Listener#bucketLoaded(Bucket)}.<br/>
- * If there were some buckets that were off-loaded during the process {@link BucketManager.Listener#bucketOffLoaded(long)}
- * callback is triggered.
+ * Once the manager loads a bucket, it informs {@link BucketManager.Listener} by calling
+ * {@link BucketManager.Listener#bucketLoaded(Bucket)}.<br/>
+ * If there were some buckets that were off-loaded during the process
+ * {@link BucketManager.Listener#bucketOffLoaded(long)} callback is triggered.
  * </li>
  * <li>
  * The operator could then add new events to a bucket by invoking {@link #newEvent(long, Bucketable)}. These events are
  * maintained in a check-pointed state.
  * </li>
  * <li>
- * To ensure that at any given point of time all the load requests are completed, the operator can trigger {@link #blockUntilAllRequestsServiced()}.
+ * To ensure that at any given point of time all the load requests are completed, the operator can trigger
+ * {@link #blockUntilAllRequestsServiced()}.
  * </li>
  * <li>
  * The operator triggers {@link #endWindow(long)} which tells the manager to persist un-written data.
@@ -61,7 +66,7 @@ import com.datatorrent.lib.counters.BasicCounters;
  * @param <T> event type
  * @since 0.9.4
  */
-public interface BucketManager<T> extends Cloneable, CheckpointListener
+public interface BucketManager<T> extends Cloneable, CheckpointListener, ActivationListener<Context>
 {
   void setBucketStore(@Nonnull BucketStore<T> bucketStore);
 
@@ -170,7 +175,8 @@ public interface BucketManager<T> extends Cloneable, CheckpointListener
    * @param partitionKeysToManagers mapping of partition keys to {@link BucketManager}s of new partitions.
    * @param partitionMask           partition mask to find which partition an event belongs to.
    */
-  void definePartitions(List<BucketManager<T>> oldManagers, Map<Integer, BucketManager<T>> partitionKeysToManagers, int partitionMask);
+  void definePartitions(List<BucketManager<T>> oldManagers,
+      Map<Integer, BucketManager<T>> partitionKeysToManagers, int partitionMask);
 
   /**
    * Callback interface for {@link BucketManager} for load and off-load operations.

@@ -8,6 +8,8 @@ import java.io.IOException;
 
 /**
  * WAL writer interface.
+ * @since 3.3.0
+ *
  */
 public interface WALWriter<T> extends Cloneable
 {
@@ -22,6 +24,14 @@ public interface WALWriter<T> extends Cloneable
    * Write an entry to the WAL, this operation need not flush the data.
    */
   int append(T entry) throws IOException;
+  
+  /**
+   * Write specified number of bytes to WAL with at the end.
+   * @param byteBuffer
+   * @param length
+   * @throws IOException
+   */
+  void append(byte[] byteBuffer, int length) throws IOException;
 
   /**
    * Flush data to persistent storage.
@@ -38,4 +48,5 @@ public interface WALWriter<T> extends Cloneable
    * @return The log size
    */
   long getSize();
+
 }

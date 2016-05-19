@@ -7,15 +7,20 @@ package com.datatorrent.contrib.hdht.wal;
 import java.io.Closeable;
 import java.io.IOException;
 
+/**
+ *
+ * @since 3.3.0
+ */
+
 public interface WALReader<T> extends Closeable
 {
   /**
    * Close WAL after read.
    *
-   * @param offset seek offset.
    * @throws IOException
    */
-  @Override void close() throws IOException;
+  @Override
+  void close() throws IOException;
 
    /**
    * Seek to middle of the WAL. This is used primarily during recovery,

@@ -5,12 +5,12 @@
   <parent>
     <groupId>org.apache.apex</groupId>
     <artifactId>malhar</artifactId>
-    <version>3.3.0-incubating</version>
+    <version>3.4.0-SNAPSHOT</version>
   </parent>
 
   <groupId>com.datatorrent</groupId>
   <artifactId>dt-megh</artifactId>
-  <version>3.3.0-SNAPSHOT</version>
+  <version>3.4.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Megh</name>
   <description>Megh proprietary operator libraries</description>
@@ -19,8 +19,19 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <semver.plugin.skip>false</semver.plugin.skip>
-    <malhar.version>3.3.0-incubating</malhar.version>
+    <malhar.version>3.4.0-SNAPSHOT</malhar.version>
+    <checkstyle.console>true</checkstyle.console>
   </properties>
+
+  <!--remove this once checkstyle is enabled by default in malhar -->
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
 
   <profiles>
     <profile>
@@ -34,7 +45,6 @@
           <plugin>
             <groupId>com.github.siom79.japicmp</groupId>
             <artifactId>japicmp-maven-plugin</artifactId>
-            <version>0.5.3</version>
             <configuration>
               <oldVersion>
                 <dependency>
@@ -57,19 +67,18 @@
                 <includeSynthetic>false</includeSynthetic>
                 <ignoreMissingClasses>true</ignoreMissingClasses>
                 <excludes>
-                  <exclude>@org.apache.hadoop.classification.InterfaceStability.Evolving</exclude>
-                  <exclude>@org.apache.hadoop.classification.InterfaceStability.Unstable</exclude>
+                  <exclude>@org.apache.hadoop.classification.InterfaceStability$Evolving</exclude>
+                  <exclude>@org.apache.hadoop.classification.InterfaceStability$Unstable</exclude>
                   <exclude>*ExternalizableSerializer#read(com.esotericsoftware.kryo.Kryo,com.esotericsoftware.kryo.io.Input, java.lang.Class)</exclude>
                   <exclude>*#B(java.lang.String)</exclude>
                   <exclude>*#G(java.lang.String)</exclude>
                   <exclude>*#h(java.lang.String)</exclude>
-                  <!--Following exclusion should be removed once japi plugin is fixed. Currently exclusion based
-                  on annotation isn't working as expected-->
-                  <exclude>com.datatorrent.lib.appdata</exclude>
-                  <exclude>com.datatorrent.lib.bucket</exclude>
-                  <exclude>com.datatorrent.lib.dimensions</exclude>
                   <exclude>com.datatorrent.contrib.hdht</exclude>
-                  <exclude>*POJO*</exclude>
+                  <!--Following exclusion should be removed in the next release-->
+                  <exclude>com.datatorrent.lib.dedup</exclude>
+                  <exclude>com.datatorrent.contrib.dimensions</exclude>
+                  <exclude>com.datatorrent.lib.statistics</exclude>
+                  <exclude>com.datatorrent.lib.security</exclude>
                 </excludes>
               </parameter>
               <skip>${semver.plugin.skip}</skip>
@@ -197,7 +206,6 @@
   <modules>
     <module>library</module>
     <module>contrib</module>
-    <module>demos</module>
     <module>flume</module>
     <module>modules</module>
     <module>apps</module>

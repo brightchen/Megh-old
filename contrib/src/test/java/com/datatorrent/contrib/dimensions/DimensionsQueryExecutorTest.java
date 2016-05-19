@@ -16,12 +16,15 @@ import org.junit.rules.TestWatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.apex.malhar.lib.dimensions.DimensionsEvent.Aggregate;
+import org.apache.apex.malhar.lib.dimensions.DimensionsEvent.EventKey;
 import org.apache.commons.lang3.mutable.MutableLong;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import com.datatorrent.api.Attribute.AttributeMap.DefaultAttributeMap;
 import com.datatorrent.contrib.dimensions.AppDataSingleSchemaDimensionStoreHDHTTest.InterruptClear;
 import com.datatorrent.contrib.dimensions.AppDataSingleSchemaDimensionStoreHDHTTest.StoreFSTestWatcher;
 import com.datatorrent.contrib.hdht.HDHTReader.HDSQuery;
@@ -35,8 +38,7 @@ import com.datatorrent.lib.appdata.schemas.FieldsAggregatable;
 import com.datatorrent.lib.appdata.schemas.FieldsDescriptor;
 import com.datatorrent.lib.appdata.schemas.SchemaUtils;
 import com.datatorrent.lib.appdata.schemas.TimeBucket;
-import com.datatorrent.lib.dimensions.DimensionsEvent.Aggregate;
-import com.datatorrent.lib.dimensions.DimensionsEvent.EventKey;
+import com.datatorrent.lib.helper.OperatorContextTestHelper;
 import com.datatorrent.lib.util.TestUtils.TestInfo;
 import com.datatorrent.netlet.util.Slice;
 
@@ -87,7 +89,7 @@ public class DimensionsQueryExecutorTest
     store.setFlushIntervalCount(1);
     store.setFlushSize(0);
 
-    store.setup(null);
+    store.setup(new OperatorContextTestHelper.TestIdOperatorContext(1, new DefaultAttributeMap()));
 
     DimensionalConfigurationSchema eventSchema = store.configurationSchema;
     DimensionsQueryExecutor dqe = new DimensionsQueryExecutor(store, store.schemaRegistry);
@@ -101,12 +103,12 @@ public class DimensionsQueryExecutorTest
 
     for (int rollingCounter = 0;; currentTime += TimeUnit.MINUTES.toMillis(1L)) {
       Aggregate aggregate = AppDataSingleSchemaDimensionStoreHDHTTest.createEvent(eventSchema,
-                                                                                  publisher,
-                                                                                  advertiser,
-                                                                                  currentTime,
-                                                                                  TimeBucket.MINUTE,
-                                                                                  impressions,
-                                                                                  cost);
+          publisher,
+          advertiser,
+          currentTime,
+          TimeBucket.MINUTE,
+          impressions,
+          cost);
 
       store.input.put(aggregate);
 
@@ -139,13 +141,13 @@ public class DimensionsQueryExecutorTest
     FieldsAggregatable fieldsAggregatable = new FieldsAggregatable(fieldToAggregators);
 
     DataQueryDimensional query = new DataQueryDimensional("1",
-                                                          DataQueryDimensional.TYPE,
-                                                          currentTime,
-                                                          currentTime,
-                                                          TimeBucket.MINUTE,
-                                                          keys,
-                                                          fieldsAggregatable,
-                                                          true);
+        DataQueryDimensional.TYPE,
+        currentTime,
+        currentTime,
+        TimeBucket.MINUTE,
+        keys,
+        fieldsAggregatable,
+        true);
     query.setSlidingAggregateSize(rollingCount);
 
     DataResultDimensional drd = (DataResultDimensional)dqe.executeQuery(query, queryMeta, new MutableLong(1L));
@@ -178,7 +180,7 @@ public class DimensionsQueryExecutorTest
     store.setFlushIntervalCount(1);
     store.setFlushSize(0);
 
-    store.setup(null);
+    store.setup(new OperatorContextTestHelper.TestIdOperatorContext(1, new DefaultAttributeMap()));
 
     DimensionalConfigurationSchema eventSchema = store.configurationSchema;
     DimensionsQueryExecutor dqe = new DimensionsQueryExecutor(store, store.schemaRegistry);
@@ -196,12 +198,12 @@ public class DimensionsQueryExecutorTest
     for (String publisher : publishers) {
       for (String advertiser : advertisers) {
         Aggregate aggregate = AppDataSingleSchemaDimensionStoreHDHTTest.createEvent(eventSchema,
-                                                                                    publisher,
-                                                                                    advertiser,
-                                                                                    currentTime,
-                                                                                    TimeBucket.MINUTE,
-                                                                                    impressions,
-                                                                                    cost);
+            publisher,
+            advertiser,
+            currentTime,
+            TimeBucket.MINUTE,
+            impressions,
+            cost);
 
         store.input.put(aggregate);
 
@@ -233,14 +235,14 @@ public class DimensionsQueryExecutorTest
     FieldsAggregatable fieldsAggregatable = new FieldsAggregatable(fieldToAggregators);
 
     DataQueryDimensional query = new DataQueryDimensional("1",
-                                                          DataQueryDimensional.TYPE,
-                                                          currentTime,
-                                                          currentTime,
-                                                          new CustomTimeBucket(TimeBucket.MINUTE),
-                                                          fdKey,
-                                                          keyToValues,
-                                                          fieldsAggregatable,
-                                                          true);
+        DataQueryDimensional.TYPE,
+        currentTime,
+        currentTime,
+        new CustomTimeBucket(TimeBucket.MINUTE),
+        fdKey,
+        keyToValues,
+        fieldsAggregatable,
+        true);
 
     DataResultDimensional drd = (DataResultDimensional)dqe.executeQuery(query, queryMeta, new MutableLong(1L));
 

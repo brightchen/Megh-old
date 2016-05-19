@@ -12,13 +12,20 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.apex.malhar.lib.dimensions.DimensionsDescriptor;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import com.datatorrent.lib.appdata.gpo.GPOMutable;
 import com.datatorrent.lib.appdata.schemas.DataQueryDimensionalExpander;
 import com.datatorrent.lib.appdata.schemas.FieldsDescriptor;
-import com.datatorrent.lib.dimensions.DimensionsDescriptor;
+
+
+/**
+ *
+ * @since 3.3.0
+ */
 
 public class SimpleDataQueryDimensionalExpander implements DataQueryDimensionalExpander
 {

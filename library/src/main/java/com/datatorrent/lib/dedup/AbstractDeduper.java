@@ -46,10 +46,12 @@ import com.google.common.collect.Sets;
 import com.datatorrent.api.AutoMetric;
 import com.datatorrent.api.Context;
 import com.datatorrent.api.Context.OperatorContext;
+import com.datatorrent.api.Context.PortContext;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.DefaultPartition;
 import com.datatorrent.api.Operator;
+import com.datatorrent.api.Operator.ActivationListener;
 import com.datatorrent.api.Partitioner;
 import com.datatorrent.api.Stats;
 import com.datatorrent.api.StatsListener;
@@ -104,7 +106,7 @@ import com.datatorrent.netlet.util.DTThrowable;
 @OperatorAnnotation(checkpointableWithinAppWindow = false)
 public abstract class AbstractDeduper<INPUT, OUTPUT>
     implements Operator, BucketManager.Listener<INPUT>, Operator.IdleTimeHandler,
-    Partitioner<AbstractDeduper<INPUT, OUTPUT>>
+    Partitioner<AbstractDeduper<INPUT, OUTPUT>>, ActivationListener<Context>
 {
   /**
    * The input port on which events are received.
@@ -112,6 +114,11 @@ public abstract class AbstractDeduper<INPUT, OUTPUT>
   @InputPortFieldAnnotation(optional = true)
   public final transient DefaultInputPort<INPUT> input = new DefaultInputPort<INPUT>()
   {
+    public void setup(Context.PortContext context)
+    {
+      pojoClass = context.getAttributes().get(PortContext.TUPLE_CLASS);
+    }
+
     @Override
     public final void process(INPUT tuple)
     {
@@ -157,6 +164,7 @@ public abstract class AbstractDeduper<INPUT, OUTPUT>
   private transient long currentWindow;
   @Min(1)
   private int partitionCount = 1;
+  private Class<?> pojoClass;
 
   // Deduper Auto Metrics
   @AutoMetric
@@ -209,6 +217,18 @@ public abstract class AbstractDeduper<INPUT, OUTPUT>
   }
 
   @Override
+  public void activate(Context context)
+  {
+    ((AbstractBucketManager<INPUT>)bucketManager).setPojoClass(pojoClass);
+    bucketManager.activate(context);
+  }
+
+  @Override
+  public void deactivate()
+  {
+  }
+
+  @Override
   public void teardown()
   {
     bucketManager.shutdownService();
@@ -231,8 +251,6 @@ public abstract class AbstractDeduper<INPUT, OUTPUT>
     ((AbstractBucketManager<INPUT>)bucketManager).setEventsInMemory(0);
     ((AbstractBucketManager<INPUT>)bucketManager).setEvictedBuckets(0);
     ((AbstractBucketManager<INPUT>)bucketManager).setEventsCommittedLastWindow(0);
-    ((AbstractBucketManager<INPUT>)bucketManager).setStartOfBuckets(0);
-    ((AbstractBucketManager<INPUT>)bucketManager).setEndOfBuckets(0);
   }
 
   /**
@@ -799,6 +817,21 @@ public abstract class AbstractDeduper<INPUT, OUTPUT>
   {
     return ((AbstractBucketManager<INPUT>)bucketManager).getStartOfBuckets();
   }
+
+  public Class<?> getPojoClass()
+  {
+    return pojoClass;
+  }
+
+  /**
+   * Sets the class of the incoming POJO
+   * @param pojoClass
+   */
+  public void setPojoClass(Class<?> pojoClass)
+  {
+    this.pojoClass = pojoClass;
+  }
+
 
   /**
    * Enum for holding all possible values for a decision for a tuple

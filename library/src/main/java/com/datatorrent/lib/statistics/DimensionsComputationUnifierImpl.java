@@ -20,11 +20,14 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.validation.constraints.NotNull;
 
+import org.apache.apex.malhar.lib.dimensions.aggregator.AggregateEvent;
+import org.apache.apex.malhar.lib.dimensions.aggregator.AggregateEvent.Aggregator;
+
 import com.google.common.collect.Maps;
 
-import com.datatorrent.common.util.BaseOperator;
 import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.Operator;
+import com.datatorrent.common.util.BaseOperator;
 
 /**
  * A {@link Unifier} implementation for {@link DimensionsComputation}.<br/>
@@ -35,10 +38,11 @@ import com.datatorrent.api.Operator;
  * @param <EVENT>
  * @since 0.9.4
  */
-public class DimensionsComputationUnifierImpl<EVENT, AGGREGATE extends DimensionsComputation.AggregateEvent> extends BaseOperator implements Operator.Unifier<AGGREGATE>
+public class DimensionsComputationUnifierImpl<EVENT, AGGREGATE extends AggregateEvent> extends
+    BaseOperator implements Operator.Unifier<AGGREGATE>
 {
   @NotNull
-  private DimensionsComputation.Aggregator<EVENT, AGGREGATE>[] aggregators;
+  private Aggregator<EVENT, AGGREGATE>[] aggregators;
   @NotNull
   private final Map<AGGREGATE, AGGREGATE> aggregates;
 
@@ -59,7 +63,7 @@ public class DimensionsComputationUnifierImpl<EVENT, AGGREGATE extends Dimension
    *
    * @param aggregators
    */
-  public void setAggregators(@Nonnull DimensionsComputation.Aggregator<EVENT, AGGREGATE>[] aggregators)
+  public void setAggregators(@Nonnull Aggregator<EVENT, AGGREGATE>[] aggregators)
   {
     this.aggregators = aggregators;
   }
@@ -70,8 +74,7 @@ public class DimensionsComputationUnifierImpl<EVENT, AGGREGATE extends Dimension
     AGGREGATE destination = aggregates.get(tuple);
     if (destination == null) {
       aggregates.put(tuple, tuple);
-    }
-    else {
+    } else {
       int aggregatorIndex = tuple.getAggregatorIndex();
       aggregators[aggregatorIndex].aggregate(destination, tuple);
     }

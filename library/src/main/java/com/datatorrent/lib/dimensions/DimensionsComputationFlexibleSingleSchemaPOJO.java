@@ -6,10 +6,11 @@ package com.datatorrent.lib.dimensions;
 
 import java.util.Map;
 
+import org.apache.apex.malhar.lib.dimensions.DimensionsEvent.InputEvent;
+
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.lib.appdata.gpo.GPOGetters;
 import com.datatorrent.lib.appdata.gpo.GPOUtils;
-import com.datatorrent.lib.dimensions.DimensionsEvent.InputEvent;
 
 /**
  * <p>
@@ -64,6 +65,10 @@ public class DimensionsComputationFlexibleSingleSchemaPOJO
   public void setup(OperatorContext context)
   {
     super.setup(context);
+    
+    //get keyToExpression and valueToExpression from schema and merge
+    keyToExpression = mergeMap(keyToExpression, configurationSchema.getKeyToExpression());
+    aggregateToExpression = mergeMap(aggregateToExpression, configurationSchema.getValueToExpression());
   }
 
   @Override
@@ -121,5 +126,27 @@ public class DimensionsComputationFlexibleSingleSchemaPOJO
   public void setAggregateToExpression(Map<String, String> aggregateToExpression)
   {
     this.aggregateToExpression = aggregateToExpression;
+  }
+  
+  /**
+   * merge
+   * @param destMap
+   * @param srcMap
+   * @return
+   */
+  public static <K, V> Map<K, V> mergeMap(Map<K, V> destMap, Map<K, V> srcMap)
+  {
+    if (srcMap == null) {
+      return destMap;
+    }
+    if (destMap == null) {
+      return srcMap;
+    }
+    for (Map.Entry<K, V> srcEntry : srcMap.entrySet()) {
+      if (destMap.get(srcEntry.getKey()) == null) {
+        destMap.put(srcEntry.getKey(), srcEntry.getValue());
+      }
+    }
+    return destMap;
   }
 }

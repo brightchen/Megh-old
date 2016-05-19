@@ -18,7 +18,7 @@ package com.datatorrent.lib.bucket;
 /**
  * @since 2.1.0
  */
-public class TimeBasedBucketManagerImpl<T extends Event & Bucketable> extends AbstractOrderedBucketManager<T>
+public class TimeBasedBucketManagerImpl<T extends Event & Bucketable> extends AbstractTimeBasedBucketManager<T>
 {
   @Override
   protected Bucket<T> createBucket(long bucketKey)
@@ -29,7 +29,7 @@ public class TimeBasedBucketManagerImpl<T extends Event & Bucketable> extends Ab
   @Override
   protected long getTime(T event)
   {
-   return  event.getTime();
+    return  event.getTime();
   }
 
 }

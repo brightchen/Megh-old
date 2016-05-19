@@ -6,16 +6,24 @@ package com.datatorrent.contrib.dimensions;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.apex.malhar.lib.dimensions.aggregator.AbstractTopBottomAggregator;
+import org.apache.apex.malhar.lib.dimensions.aggregator.AggregatorRegistry;
+import org.apache.apex.malhar.lib.dimensions.aggregator.CompositeAggregator;
+import org.apache.apex.malhar.lib.dimensions.aggregator.IncrementalAggregator;
+import org.apache.apex.malhar.lib.dimensions.aggregator.OTFAggregator;
 import org.apache.commons.lang3.mutable.MutableLong;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import com.datatorrent.api.Context;
 import com.datatorrent.api.Context.OperatorContext;
@@ -38,8 +46,8 @@ import com.datatorrent.lib.appdata.schemas.ResultFormatter;
 import com.datatorrent.lib.appdata.schemas.SchemaQuery;
 import com.datatorrent.lib.appdata.schemas.SchemaRegistry;
 import com.datatorrent.lib.appdata.schemas.SchemaResult;
-import com.datatorrent.lib.dimensions.aggregator.AggregatorRegistry;
-import com.datatorrent.lib.dimensions.aggregator.IncrementalAggregator;
+import com.datatorrent.lib.dimensions.AggregationIdentifier;
+import com.datatorrent.lib.util.time.WindowUtils;
 
 /**
  * This is a base class for App Data enabled Dimensions Stores. This class holds all the template code required
@@ -106,6 +114,8 @@ public abstract class AbstractAppDataDimensionStoreHDHT extends DimensionsStoreH
    */
   private Unifier<String> queryResultUnifier;
 
+  protected long responseDelayMillis;
+  
   public void setQueryResultUnifier(Unifier<String> queryResultUnifier)
   {
     this.queryResultUnifier = queryResultUnifier;
@@ -202,6 +212,9 @@ public abstract class AbstractAppDataDimensionStoreHDHT extends DimensionsStoreH
   {
     super.setup(context);
 
+    // responseDelayMillis should initialized before build aggregatorRegistry
+    responseDelayMillis = WindowUtils.getAppWindowDurationMs(context);
+    
     aggregatorRegistry.setup();
 
     schemaRegistry = getSchemaRegistry();
@@ -226,7 +239,8 @@ public abstract class AbstractAppDataDimensionStoreHDHT extends DimensionsStoreH
                                                      resultSerializerFactory,
                                                      Thread.currentThread());
 
-
+    
+    
     dimensionsQueueManager.setup(context);
     queryProcessor.setup(context);
 
@@ -351,7 +365,13 @@ public abstract class AbstractAppDataDimensionStoreHDHT extends DimensionsStoreH
   }
 
   @Override
-  protected int getAggregatorID(String aggregatorName)
+  protected CompositeAggregator getCompositeAggregator(int aggregatorID)
+  {
+    return aggregatorRegistry.getTopBottomAggregatorIDToAggregator().get(aggregatorID);
+  }
+  
+  @Override
+  protected int getIncrementalAggregatorID(String aggregatorName)
   {
     return aggregatorRegistry.getIncrementalAggregatorNameToID().get(aggregatorName);
   }
@@ -403,6 +423,72 @@ public abstract class AbstractAppDataDimensionStoreHDHT extends DimensionsStoreH
   public void setEmbeddableQueryInfoProvider(EmbeddableQueryInfoProvider<String> embeddableQueryInfoProvider)
   {
     this.embeddableQueryInfoProvider = embeddableQueryInfoProvider;
+  }
+
+  /**
+   * get all composite aggregators
+   * 
+   * @return Map of aggregator id to top bottom aggregator
+   */
+  @Override
+  protected Map<Integer, AbstractTopBottomAggregator> getTopBottomAggregatorIdToInstance()
+  {
+    return this.aggregatorRegistry.getTopBottomAggregatorIDToAggregator();
+  }
+
+  @Override
+  protected List<String> getOTFChildrenAggregatorNames(String oftAggregatorName)
+  {
+    return aggregatorRegistry.getOTFAggregatorToIncrementalAggregators().get(oftAggregatorName);
+  }
+
+  @Override
+  protected boolean isIncrementalAggregator(String aggregatorName)
+  {
+    return getAggregatorRegistry().isIncrementalAggregator(aggregatorName);
+  }
+
+  @Override
+  protected OTFAggregator getOTFAggregatorByName(String otfAggregatorName)
+  {
+    return getAggregatorRegistry().getNameToOTFAggregators().get(otfAggregatorName);
+  }
+
+  /**
+   * in case of embed is OTF aggregator, get identifier for incremental
+   * aggregators
+   * 
+   * @param topBottomAggregator
+   * @return
+   */
+  @Override
+  protected Set<AggregationIdentifier> getDependedIncrementalAggregationIdentifiers(
+      AbstractTopBottomAggregator topBottomAggregator)
+  {
+    String embedAggregatorName = topBottomAggregator.getEmbedAggregatorName();
+    Set<AggregationIdentifier> identifiers = Sets.newHashSet();
+    if (isIncrementalAggregator(embedAggregatorName)) {
+      addIdentifiers(identifiers, topBottomAggregator.getSchemaID(), topBottomAggregator.getEmbedAggregatorDdIds(),
+          this.getIncrementalAggregatorID(embedAggregatorName));
+      return identifiers;
+    }
+
+    //must OTF aggregator
+    List<String> dependedAggregatorNames = getOTFChildrenAggregatorNames(topBottomAggregator.getEmbedAggregatorName());
+    for (String dependedAggregatorName : dependedAggregatorNames) {
+      addIdentifiers(identifiers, topBottomAggregator.getSchemaID(), topBottomAggregator.getEmbedAggregatorDdIds(),
+          getIncrementalAggregatorID(dependedAggregatorName));
+    }
+
+    return identifiers;
+  }
+
+  protected void addIdentifiers(Set<AggregationIdentifier> identifiers, int schemaID, Set<Integer> ddids,
+      int aggregatorID)
+  {
+    for (int ddid : ddids) {
+      identifiers.add(new AggregationIdentifier(schemaID, ddid, aggregatorID));
+    }
   }
 
   /**

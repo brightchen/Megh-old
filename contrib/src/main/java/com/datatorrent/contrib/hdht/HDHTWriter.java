@@ -25,7 +25,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -35,21 +38,27 @@ import javax.validation.constraints.Min;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.apache.commons.io.IOUtils;
 
 import com.esotericsoftware.kryo.io.Output;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import com.datatorrent.api.Context;
 import com.datatorrent.api.Context.OperatorContext;
+import com.datatorrent.api.DAG;
 import com.datatorrent.api.Operator;
 import com.datatorrent.api.Operator.CheckpointListener;
 import com.datatorrent.common.util.NameableThreadFactory;
+import com.datatorrent.contrib.hdht.HDHTWalManager.PreviousWALDetails;
+import com.datatorrent.contrib.hdht.HDHTWalManager.WalPosition;
+import com.datatorrent.lib.fileaccess.FileAccess;
 import com.datatorrent.lib.fileaccess.FileAccess.FileReader;
 import com.datatorrent.lib.fileaccess.FileAccess.FileWriter;
+import com.datatorrent.lib.fileaccess.FileAccessFSImpl;
+import com.datatorrent.lib.fileaccess.TFileImpl;
 import com.datatorrent.netlet.util.Slice;
 
 /**
@@ -70,25 +79,36 @@ import com.datatorrent.netlet.util.Slice;
  */
 public class HDHTWriter extends HDHTReader implements CheckpointListener, Operator, HDHT.Writer
 {
-
+  private FileAccess walStore;
+  private final String WAL_FILES_LOCATION = "/WAL/";
   private final transient HashMap<Long, BucketMeta> metaCache = Maps.newHashMap();
   private long currentWindowId;
-  private transient long lastFlushWindowId;
   private final transient HashMap<Long, Bucket> buckets = Maps.newHashMap();
+  // After buckets are reorganized on dynamic repartitioning, this map maintains which Wal to look up during recovery for each bucketKey
+  public Map<Long, PreviousWALDetails> parentWalMetaDataMap = Maps.newHashMap();
+  public HashMap<Long, HDHTWalManager.WalPosition> walPositions = Maps.newLinkedHashMap();
+  public HDHTWalManager.WalPosition committedWalPosition;
+  public List<PreviousWALDetails> parentWals = new LinkedList<>();
+  public Set<PreviousWALDetails> alreadyCopiedWals = new HashSet<>();
+
   @VisibleForTesting
   protected transient ExecutorService writeExecutor;
-  private volatile transient Throwable writerError;
+  private transient volatile Throwable writerError;
+  protected Set<Long> bucketKeys = Sets.newHashSet();
+  protected WalPosition minimumRecoveryWalPosition = new WalPosition(0, 0);
 
   private int maxFileSize = 128 * 1024 * 1024; // 128m
   private int maxWalFileSize = 64 * 1024 * 1024;
   private int flushSize = 1000000;
   private int flushIntervalCount = 120;
 
-  private final HashMap<Long, WalMeta> walMeta = Maps.newHashMap();
   private transient OperatorContext context;
 
   static final byte[] DELETED = {};
-
+  private transient HDHTWalManager wal;
+  protected WalMeta singleWalMeta = new WalMeta();
+  private long walKey = 0;
+  private transient boolean bucketsRecovered = false;
   /**
    * Size limit for data files. Files are rolled once the limit has been exceeded. The final size of a file can be
    * larger than the limit by the size of the last/single entry written to it.
@@ -119,6 +139,9 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
   public void setMaxWalFileSize(int maxWalFileSize)
   {
     this.maxWalFileSize = maxWalFileSize;
+    if (this.wal != null) {
+      this.wal.setMaxWalFileSize(maxWalFileSize);
+    }
   }
 
   /**
@@ -212,6 +235,7 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
   private Bucket getBucket(long bucketKey) throws IOException
   {
     Bucket bucket = this.buckets.get(bucketKey);
+    bucketKeys.add(bucketKey);
     if (bucket == null) {
       LOG.debug("Opening bucket {}", bucketKey);
       bucket = new Bucket(keyComparator);
@@ -220,25 +244,38 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
 
       BucketMeta bmeta = getMeta(bucketKey);
       WalMeta wmeta = getWalMeta(bucketKey);
-      bucket.wal = new HDHTWalManager(this.store, bucketKey, wmeta.cpWalPosition);
-      bucket.wal.setMaxWalFileSize(maxWalFileSize);
+      LOG.info("walStart {} walEnd {} windowId {} committedWid {} currentWid {}",
+          bmeta.recoveryStartWalPosition, wmeta.cpWalPosition, wmeta.windowId, bmeta.committedWid, currentWindowId);
       BucketIOStats ioStats = getOrCretaStats(bucketKey);
       if (ioStats != null) {
-        bucket.wal.restoreStats(ioStats);
+        this.wal.restoreStats(ioStats);
       }
-      LOG.debug("walStart {} walEnd {} windowId {} committedWid {} currentWid {}",
-          bmeta.recoveryStartWalPosition, wmeta.cpWalPosition, wmeta.windowId, bmeta.committedWid, currentWindowId);
 
       // bmeta.componentLSN is data which is committed to disks.
       // wmeta.windowId windowId till which data is available in WAL.
-      if (bmeta.committedWid < wmeta.windowId && wmeta.windowId != 0) {
-        LOG.debug("Recovery for bucket {}", bucketKey);
+      if (!bucketsRecovered && bmeta.committedWid < wmeta.windowId && wmeta.windowId != 0) {
+        LOG.debug("Recovery for buckets {}", bucketKeys);
+
         // Add tuples from recovery start till recovery end.
-        bucket.wal.runRecovery(new HDHTWalManager.RecoveryContext(bucket.committedWriteCache, keyComparator, bmeta.recoveryStartWalPosition, wmeta.cpWalPosition));
+
+        Map<Long, WriteCache> bucketMap = Maps.newHashMap();
+
+        for (Long bucketKeyEntry : bucketKeys) {
+          Bucket bucketEntry = buckets.get(bucketKeyEntry);
+          if (bucketEntry == null) {
+            bucketEntry = new Bucket(keyComparator);
+            bucketEntry.bucketKey = bucketKeyEntry;
+            this.buckets.put(bucketKeyEntry, bucketEntry);
+          }
+          bucketMap.put(bucketKeyEntry, bucketEntry.committedWriteCache);
+        }
+        this.wal.runRecovery(new HDHTWalManager.RecoveryContext(bucketMap, keyComparator, minimumRecoveryWalPosition, wmeta.cpWalPosition));
+
         // After recovery data from WAL is added to committedCache, update location of WAL till data present in
         // committed cache.
-        bucket.committedWalPosition = wmeta.cpWalPosition;
-        bucket.walPositions.put(wmeta.windowId, wmeta.cpWalPosition);
+        this.committedWalPosition = wmeta.cpWalPosition;
+        this.walPositions.put(wmeta.windowId, wmeta.cpWalPosition);
+        bucketsRecovered = true;
       }
     }
     return bucket;
@@ -299,7 +336,7 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
   public void put(long bucketKey, Slice key, byte[] value) throws IOException
   {
     Bucket bucket = getBucket(bucketKey);
-    bucket.wal.append(key, value);
+    this.wal.append(bucketKey, key, value);
     bucket.writeCache.put(key, value);
     updateQueryResultCache(bucketKey, key, value);
   }
@@ -357,12 +394,14 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
       /* If this file falls out of the last purge end value, then break
          as next files will be outside of purge range too.
        */
-      if (keyComparator.compare(fmeta.startKey, last) > 0)
+      if (keyComparator.compare(fmeta.startKey, last) > 0) {
         break;
+      }
       Range<Slice> frange = new Range<>(fmeta.startKey, getEndKey(bucket.bucketKey, fmeta, frozen.getPurges()));
       RangeSet<Slice> rset = frozen.getPurges().getOverlappingRanges(frange);
-      if (rset.isEmpty())
+      if (rset.isEmpty()) {
         continue;
+      }
 
       writeFileWithPurge(bucket, fmeta, rset, filesToDelete, bucketMetaCopy);
     }
@@ -382,7 +421,8 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
    * @param bmeta bucket metadata.
    * @throws IOException
    */
-  private void writeFileWithPurge(Bucket bucket, BucketFileMeta meta, RangeSet<Slice> rset, HashSet<String> filesToDelete, BucketMeta bmeta) throws IOException
+  private void writeFileWithPurge(Bucket bucket, BucketFileMeta meta, RangeSet<Slice> rset,
+      HashSet<String> filesToDelete, BucketMeta bmeta) throws IOException
   {
     LOG.debug("Writing file because of purge operation {}", meta);
 
@@ -417,7 +457,8 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
    * @return data as a map.
    * @throws IOException
    */
-  private TreeMap<Slice, Slice> readDataExcludingPurge(Bucket bucket, BucketFileMeta meta, RangeSet<Slice> rset) throws IOException
+  private TreeMap<Slice, Slice> readDataExcludingPurge(Bucket bucket, BucketFileMeta meta,
+      RangeSet<Slice> rset) throws IOException
   {
     FileReader reader = store.getReader(bucket.bucketKey, meta.name);
     TreeMap<Slice, Slice> fileData = new TreeMap<>(keyComparator);
@@ -435,11 +476,17 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
       /* need to check valid at every stage, because next wraps around the file
        * and starts reading from start of the file. */
       valid = reader.seek(range.end);
-      if (!valid) break;
+      if (!valid) {
+        break;
+      }
       valid = reader.next(key, value); // this will read end key, we want to exclude this key.
-      if (!valid) break;
+      if (!valid) {
+        break;
+      }
       valid = reader.next(key, value); // go past the end key.
-      if (!valid) break;
+      if (!valid) {
+        break;
+      }
     }
     while (valid) {
       fileData.put(new Slice(key.buffer, key.offset, key.length), new Slice(value.buffer));
@@ -529,7 +576,8 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
       writeFile(bucket, bucketMetaCopy, fileData);
     }
 
-    LOG.debug("Files written {} files read {}", ioStats.filesWroteInCurrentWriteCycle, ioStats.filesReadInCurrentWriteCycle);
+    LOG.debug("Files written {} files read {}", ioStats.filesWroteInCurrentWriteCycle,
+        ioStats.filesReadInCurrentWriteCycle);
     // flush meta data for new files
     try {
       LOG.debug("Writing {} with {} file entries", FNAME_META, bucketMetaCopy.files.size());
@@ -559,8 +607,16 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
     bucket.frozenWriteCache.clear();
 
     // cleanup WAL files which are not needed anymore.
-    bucket.wal.cleanup(bucketMetaCopy.recoveryStartWalPosition.fileId);
-
+    minimumRecoveryWalPosition = bucketMetaCopy.recoveryStartWalPosition;
+    for (Long bucketId : this.bucketKeys) {
+      BucketMeta meta = getMeta(bucketId);
+      if (meta.recoveryStartWalPosition.fileId < minimumRecoveryWalPosition.fileId || 
+          (meta.recoveryStartWalPosition.fileId == minimumRecoveryWalPosition.fileId && 
+          meta.recoveryStartWalPosition.offset < minimumRecoveryWalPosition.offset)) {
+        minimumRecoveryWalPosition = meta.recoveryStartWalPosition;
+      }
+    }
+    this.wal.cleanup(minimumRecoveryWalPosition.fileId);
     ioStats.filesReadInCurrentWriteCycle = 0;
     ioStats.filesWroteInCurrentWriteCycle = 0;
   }
@@ -569,17 +625,55 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
   public void setup(OperatorContext context)
   {
     super.setup(context);
+    if (context != null) {
+      setWalKey(context.getId());
+    }
     writeExecutor = Executors.newSingleThreadScheduledExecutor(new NameableThreadFactory(this.getClass().getSimpleName() + "-Writer"));
+
     this.context = context;
+    if (this.walStore == null) {
+      // if WAL location is not specified, by default it would be placed under <HDHT Location>/WAL/ if HDHT location is known
+      // Otherwise default location is under <Application Path>/WAL/
+      this.walStore = new TFileImpl.DTFileImpl();
+      if (this.store instanceof FileAccessFSImpl) {
+        ((FileAccessFSImpl)this.walStore).setBasePath(((FileAccessFSImpl)this.store).getBasePath() + WAL_FILES_LOCATION);
+      } else {
+        ((FileAccessFSImpl)this.walStore).setBasePath(context.getValue(DAG.APPLICATION_PATH) + WAL_FILES_LOCATION);
+      }
+    }
+    this.walStore.init();
+
+    if (!this.parentWals.isEmpty()) {
+      if (this.parentWals.size() == 1) {
+        PreviousWALDetails parentWal = parentWals.iterator().next();
+        this.singleWalMeta = new WalMeta(parentWal.getWindowId(), parentWal.getEndPosition());
+      } else {
+        this.singleWalMeta.cpWalPosition = new WalPosition(0, 0);
+      }
+    }
+    this.wal = new HDHTWalManager(this.walStore, getWalKey(), this.singleWalMeta.cpWalPosition);
+    this.wal.setMaxWalFileSize(maxWalFileSize);
+
+    if (!this.parentWals.isEmpty()) {
+      resetBucketMeta();
+      if (this.parentWals.size() == 1) {
+        // Copy the WAL files as is from parent WAL
+        this.walPositions = parentWals.iterator().next().walPositions;
+        this.wal.copyPreviousWalFiles(parentWals, alreadyCopiedWals);
+        alreadyCopiedWals.addAll(parentWals);
+        parentWals.clear();
+      } else {
+        mergeParentWalFilesByWindow();
+      }
+    }
   }
 
   @Override
   public void teardown()
   {
-    for (Bucket bucket : this.buckets.values()) {
-      IOUtils.closeQuietly(bucket.wal);
-    }
+    IOUtils.closeQuietly(this.wal);
     writeExecutor.shutdown();
+    IOUtils.closeQuietly(this.walStore);
     super.teardown();
   }
 
@@ -594,17 +688,14 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
   public void endWindow()
   {
     super.endWindow();
-    for (final Bucket bucket : this.buckets.values()) {
-      try {
-        if (bucket.wal != null) {
-          bucket.wal.endWindow(currentWindowId);
-          WalMeta walMeta = getWalMeta(bucket.bucketKey);
-          walMeta.cpWalPosition = bucket.wal.getCurrentPosition();
-          walMeta.windowId = currentWindowId;
-        }
-      } catch (IOException e) {
-        throw new RuntimeException("Failed to flush WAL", e);
+    try {
+      if (this.wal != null) {
+        this.wal.endWindow(currentWindowId);
+        singleWalMeta.cpWalPosition = this.wal.getCurrentPosition();
+        singleWalMeta.windowId = currentWindowId;
       }
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to flush WAL", e);
     }
 
     // propagate writer exceptions
@@ -620,12 +711,7 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
 
   private WalMeta getWalMeta(long bucketKey)
   {
-    WalMeta meta = walMeta.get(bucketKey);
-    if (meta == null) {
-      meta = new WalMeta();
-      walMeta.put(bucketKey, meta);
-    }
-    return meta;
+    return singleWalMeta;
   }
 
   @Override
@@ -634,10 +720,10 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
     for (final Bucket bucket : this.buckets.values()) {
       if (!bucket.writeCache.isEmpty()) {
         bucket.checkpointedWriteCache.put(windowId, bucket.writeCache);
-        bucket.walPositions.put(windowId, bucket.wal.getCurrentPosition());
         bucket.writeCache = new WriteCache(new DefaultKeyComparator());
       }
     }
+    this.walPositions.put(windowId, this.wal.getCurrentPosition());
   }
 
   /**
@@ -656,35 +742,51 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
     return bm;
   }
 
+  private void resetBucketMeta()
+  {
+    for (Long bucketKey : bucketKeys) {
+      metaCache.put(bucketKey, new BucketMeta(keyComparator));
+    }
+  }
+
   @Override
   public void committed(long committedWindowId)
   {
+    // Remove stale parent files if not already removed
+    if (!alreadyCopiedWals.isEmpty()) {
+      this.wal.deletePreviousWalFiles(alreadyCopiedWals);
+      alreadyCopiedWals.clear();
+    }
     for (final Bucket bucket : this.buckets.values()) {
-      for (Iterator<Map.Entry<Long, WriteCache>> cpIter = bucket.checkpointedWriteCache.entrySet().iterator(); cpIter.hasNext();) {
+      for (Iterator<Map.Entry<Long, WriteCache>> cpIter = bucket.checkpointedWriteCache.entrySet().iterator();
+          cpIter.hasNext();) {
         Map.Entry<Long, WriteCache> checkpointEntry = cpIter.next();
         if (checkpointEntry.getKey() <= committedWindowId) {
           bucket.committedWriteCache.merge(checkpointEntry.getValue());
           cpIter.remove();
         }
       }
-      for (Iterator<Map.Entry<Long, HDHTWalManager.WalPosition>> wpIter = bucket.walPositions.entrySet().iterator(); wpIter.hasNext();) {
+
+      for (Iterator<Map.Entry<Long, HDHTWalManager.WalPosition>> wpIter = this.walPositions.entrySet().iterator(); wpIter.hasNext();) {
         Map.Entry<Long, HDHTWalManager.WalPosition> entry = wpIter.next();
         if (entry.getKey() <= committedWindowId) {
-          bucket.committedWalPosition = entry.getValue();
+          this.committedWalPosition = entry.getValue();
           wpIter.remove();
         }
       }
 
-      if ((bucket.committedWriteCache.size() > this.flushSize || currentWindowId - lastFlushWindowId > flushIntervalCount) && !bucket.committedWriteCache.isEmpty()) {
+      if ((bucket.committedWriteCache.size() > this.flushSize || currentWindowId - bucket.lastFlushWindowId > flushIntervalCount) && !bucket.committedWriteCache.isEmpty()) {
         // ensure previous flush completed
         if (bucket.frozenWriteCache.isEmpty()) {
           bucket.frozenWriteCache = bucket.committedWriteCache;
           bucket.committedWriteCache = new WriteCache(keyComparator);
-          bucket.recoveryStartWalPosition = bucket.committedWalPosition;
+          bucket.recoveryStartWalPosition = this.committedWalPosition;
           bucket.committedLSN = committedWindowId;
 
-          LOG.debug("Flushing data for bucket {} committedWid {} recoveryStartWalPosition {}", bucket.bucketKey, bucket.committedLSN, bucket.recoveryStartWalPosition);
-          Runnable flushRunnable = new Runnable() {
+          LOG.debug("Flushing data for bucket {} committedWid {} recoveryStartWalPosition {}",
+              bucket.bucketKey, bucket.committedLSN, bucket.recoveryStartWalPosition);
+          Runnable flushRunnable = new Runnable()
+          {
             @Override
             public void run()
             {
@@ -697,7 +799,7 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
             }
           };
           this.writeExecutor.execute(flushRunnable);
-          lastFlushWindowId = committedWindowId;
+          bucket.lastFlushWindowId = committedWindowId;
         }
       }
     }
@@ -710,20 +812,19 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
 
   private static class Bucket
   {
+    private long lastFlushWindowId;
     private long bucketKey;
     // keys that were modified and written to WAL, but not yet persisted, by checkpoint
     private WriteCache writeCache = new WriteCache(new DefaultKeyComparator());
     private final LinkedHashMap<Long, WriteCache> checkpointedWriteCache = Maps.newLinkedHashMap();
-    public HashMap<Long, HDHTWalManager.WalPosition> walPositions = Maps.newLinkedHashMap();
     private WriteCache committedWriteCache = new WriteCache(new DefaultKeyComparator());
     // keys that are being flushed to data files
     private WriteCache frozenWriteCache = new WriteCache(new DefaultKeyComparator());
-    private HDHTWalManager wal;
     private long committedLSN;
     public HDHTWalManager.WalPosition recoveryStartWalPosition;
-    public HDHTWalManager.WalPosition committedWalPosition;
 
-    public Bucket(Comparator<Slice> cmp) {
+    public Bucket(Comparator<Slice> cmp)
+    {
       writeCache = new WriteCache(cmp);
       committedWriteCache = new WriteCache(cmp);
       frozenWriteCache = new WriteCache(cmp);
@@ -733,9 +834,7 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
   @VisibleForTesting
   protected void forceWal() throws IOException
   {
-    for (Bucket bucket : buckets.values()) {
-      bucket.wal.close();
-    }
+    this.wal.close();
   }
 
   @VisibleForTesting
@@ -755,7 +854,7 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
   private static final Logger LOG = LoggerFactory.getLogger(HDHTWriter.class);
 
   /* Holds current file Id for WAL and current recoveryEndWalOffset for WAL */
-  private static class WalMeta
+  static class WalMeta
   {
     /* The current WAL file and recoveryEndWalOffset */
     // Window Id which is written to the WAL.
@@ -763,6 +862,16 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
 
     // Checkpointed WAL position.
     HDHTWalManager.WalPosition cpWalPosition;
+
+    public WalMeta(long windowId, WalPosition walPosition)
+    {
+      this.windowId = windowId;
+      this.cpWalPosition = walPosition;
+    }
+
+    public WalMeta()
+    {
+    }
   }
 
   @JsonSerialize
@@ -803,7 +912,8 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
     /* Number of bytes read during data read */
     public long dataBytesRead;
 
-    @Override public String toString()
+    @Override
+    public String toString()
     {
       return "BucketIOStats{" +
           "walBytesWritten=" + walBytesWritten +
@@ -828,11 +938,10 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
 
   private void updateStats()
   {
-    for(Bucket bucket : buckets.values())
-    {
+    for (Bucket bucket : buckets.values()) {
       BucketIOStats ioStats = getOrCretaStats(bucket.bucketKey);
       /* fill in stats for WAL */
-      HDHTWalManager.WalStats walStats = bucket.wal.getCounters();
+      HDHTWalManager.WalStats walStats = this.wal.getCounters();
       ioStats.walBytesWritten = walStats.totalBytes;
       ioStats.walFlushCount = walStats.flushCounts;
       ioStats.walFlushTime = walStats.flushDuration;
@@ -843,7 +952,8 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
   }
 
   @JsonSerialize
-  public static class AggregatedBucketIOStats implements Serializable {
+  public static class AggregatedBucketIOStats implements Serializable
+  {
     private static final long serialVersionUID = 201412091454L;
     public BucketIOStats globalStats = new BucketIOStats();
     /* Individual bucket stats */
@@ -854,15 +964,14 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
   {
     private static final long serialVersionUID = 201412091454L;
 
-    @Override public Object aggregate(Collection<?> countersList)
+    @Override
+    public Object aggregate(Collection<?> countersList)
     {
       AggregatedBucketIOStats aggStats = new AggregatedBucketIOStats();
-      for(Object o : countersList)
-      {
+      for (Object o : countersList) {
         @SuppressWarnings("unchecked")
         Map<Long, BucketIOStats> statMap = (Map<Long, BucketIOStats>)o;
-        for(Long bId : statMap.keySet())
-        {
+        for (Long bId : statMap.keySet()) {
           BucketIOStats stats = statMap.get(bId);
           aggStats.globalStats.walBytesWritten += stats.walBytesWritten;
           aggStats.globalStats.walFlushCount += stats.walFlushCount;
@@ -908,7 +1017,7 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
   public void purge(long bucketKey, Slice start, Slice end) throws IOException
   {
     Bucket bucket = getBucket(bucketKey);
-    bucket.wal.append(new HDHTLogEntry.PurgeEntry(start, end));
+    this.wal.append(new HDHTLogEntry.PurgeEntry(bucketKey, start, end));
     bucket.writeCache.purge(start, end);
   }
 
@@ -956,4 +1065,54 @@ public class HDHTWriter extends HDHTReader implements CheckpointListener, Operat
     return key;
   }
 
+  public FileAccess getWalStore()
+  {
+    return walStore;
+  }
+
+  public void setWalStore(FileAccess walStore)
+  {
+    this.walStore = walStore;
+  }
+
+  /**
+   * Merge multiple parent WAL files into single WAL file by copying parent WAL entries ordered by Window Ids
+   */
+  public void mergeParentWalFilesByWindow()
+  {
+    try {
+      // Copy all the WAL file contents which are committed and removed from checkpointed window Position states
+      // Order of window ID need not be maintained for already committed WAL. So copy by appending.
+      for (PreviousWALDetails parentWal : parentWals) {
+        if (parentWal.getCommittedWalPosition() != null) {
+          this.wal.copyWALFiles(parentWal.getStartPosition(), parentWal.getCommittedWalPosition(), parentWal.getWalKey());
+        }
+      }
+      for (Long bucketKey : bucketKeys) {
+        BucketMeta meta = metaCache.get(bucketKey);
+        meta.recoveryStartWalPosition = this.wal.getCurrentPosition();
+      }
+      // Copy remaining checkpointed window positions ordered by windowId
+      this.wal.mergeWalFiles(parentWals, walPositions);
+      this.forceWal();
+      this.wal.writer = null;
+      alreadyCopiedWals.addAll(parentWals);
+      parentWals.clear();
+      singleWalMeta.cpWalPosition = this.wal.getCurrentPosition();
+      // Reset WAL recovery position to beginning of WAL files
+      minimumRecoveryWalPosition = new WalPosition(0, 0);
+    } catch (Exception e) {
+      throw Throwables.propagate(e);
+    }
+  }
+
+  public long getWalKey()
+  {
+    return walKey;
+  }
+
+  public void setWalKey(long walKey)
+  {
+    this.walKey = walKey;
+  }
 }

@@ -603,14 +603,16 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
 
     embedIdentifierToEventKeys = Maps.newHashMap();
     Map<Integer, AbstractTopBottomAggregator> topBottomAggregatorIdToInstance = getTopBottomAggregatorIdToInstance();
-    Set<AggregationIdentifier> allIdentifiers = Sets.newHashSet();
+    if (topBottomAggregatorIdToInstance != null) {
+      Set<AggregationIdentifier> allIdentifiers = Sets.newHashSet();
 
-    for (Map.Entry<Integer, AbstractTopBottomAggregator> entry : topBottomAggregatorIdToInstance.entrySet()) {
-      allIdentifiers.addAll(getDependedIncrementalAggregationIdentifiers(entry.getValue()));
-    }
+      for (Map.Entry<Integer, AbstractTopBottomAggregator> entry : topBottomAggregatorIdToInstance.entrySet()) {
+        allIdentifiers.addAll(getDependedIncrementalAggregationIdentifiers(entry.getValue()));
+      }
 
-    for (AggregationIdentifier identifier : allIdentifiers) {
-      embedIdentifierToEventKeys.put(identifier, Sets.<EventKey>newHashSet());
+      for (AggregationIdentifier identifier : allIdentifiers) {
+        embedIdentifierToEventKeys.put(identifier, Sets.<EventKey>newHashSet());
+      }
     }
   }
 
@@ -643,7 +645,10 @@ public abstract class DimensionsStoreHDHT extends AbstractSinglePortHDHTWriter<A
   protected void handleTopBottomAggregators()
   {
     Map<Integer, AbstractTopBottomAggregator> topBottomAggregatorIdToInstance = getTopBottomAggregatorIdToInstance();
-
+    if (topBottomAggregatorIdToInstance == null) {
+      return;
+    }
+    
     for (AbstractTopBottomAggregator aggregator : topBottomAggregatorIdToInstance.values()) {
       Set<AggregationIdentifier> embedAggregatorIdentifiers = getDependedIncrementalAggregationIdentifiers(aggregator);
       String embedAggregatorName = aggregator.getEmbedAggregatorName();

@@ -15,10 +15,7 @@
  */
 package com.datatorrent.lib.dedup;
 
-import java.io.ByteArrayOutputStream;
 import java.io.Serializable;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +24,6 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
@@ -35,9 +31,6 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.commons.lang.mutable.MutableLong;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -49,12 +42,11 @@ import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.Context.PortContext;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.DefaultOutputPort;
-import com.datatorrent.api.DefaultPartition;
 import com.datatorrent.api.Operator;
 import com.datatorrent.api.Operator.ActivationListener;
-import com.datatorrent.api.Partitioner;
 import com.datatorrent.api.Stats;
 import com.datatorrent.api.StatsListener;
+import com.datatorrent.api.StreamCodec;
 import com.datatorrent.api.annotation.InputPortFieldAnnotation;
 import com.datatorrent.api.annotation.OperatorAnnotation;
 import com.datatorrent.lib.bucket.AbstractBucket;
@@ -106,7 +98,7 @@ import com.datatorrent.netlet.util.DTThrowable;
 @OperatorAnnotation(checkpointableWithinAppWindow = false)
 public abstract class AbstractDeduper<INPUT, OUTPUT>
     implements Operator, BucketManager.Listener<INPUT>, Operator.IdleTimeHandler,
-    Partitioner<AbstractDeduper<INPUT, OUTPUT>>, ActivationListener<Context>
+    ActivationListener<Context>
 {
   /**
    * The input port on which events are received.
@@ -123,6 +115,12 @@ public abstract class AbstractDeduper<INPUT, OUTPUT>
     public final void process(INPUT tuple)
     {
       processTuple(tuple);
+    }
+
+    @Override
+    public com.datatorrent.api.StreamCodec<INPUT> getStreamCodec()
+    {
+      return getDeduperStreamCodec();
     }
   };
   /**
@@ -162,8 +160,6 @@ public abstract class AbstractDeduper<INPUT, OUTPUT>
   private transient OperatorContext context;
   protected BasicCounters<MutableLong> counters;
   private transient long currentWindow;
-  @Min(1)
-  private int partitionCount = 1;
   private Class<?> pojoClass;
 
   // Deduper Auto Metrics
@@ -184,16 +180,6 @@ public abstract class AbstractDeduper<INPUT, OUTPUT>
 
     fetchedBuckets = new LinkedBlockingQueue<AbstractBucket<INPUT>>();
     counters = new BasicCounters<MutableLong>(MutableLong.class);
-  }
-
-  public void setPartitionCount(int partitionCount)
-  {
-    this.partitionCount = partitionCount;
-  }
-
-  public int getPartitionCount()
-  {
-    return partitionCount;
   }
 
   @Override
@@ -301,7 +287,7 @@ public abstract class AbstractDeduper<INPUT, OUTPUT>
   protected void processExpired(INPUT tuple)
   {
     expiredEvents++;
-    expired.emit(convert(tuple));
+    emitExpired(convert(tuple));
   }
 
   /**
@@ -312,7 +298,7 @@ public abstract class AbstractDeduper<INPUT, OUTPUT>
   protected void processError(INPUT tuple)
   {
     errorEvents++;
-    error.emit(convert(tuple));
+    emitError(convert(tuple));
   }
 
   /**
@@ -354,7 +340,7 @@ public abstract class AbstractDeduper<INPUT, OUTPUT>
       recordDecision(tuple, Decision.DUPLICATE);
     } else {
       duplicateEvents++;
-      duplicates.emit(tuple);
+      emitDuplicate(tuple);
     }
   }
 
@@ -372,7 +358,7 @@ public abstract class AbstractDeduper<INPUT, OUTPUT>
       recordDecision(tuple, Decision.UNIQUE);
     } else {
       uniqueEvents++;
-      output.emit(convert(tuple));
+      emitOutput(convert(tuple));
     }
   }
 
@@ -500,22 +486,22 @@ public abstract class AbstractDeduper<INPUT, OUTPUT>
       switch (td.getValue()) {
         case UNIQUE:
           uniqueEvents++;
-          output.emit(convert(td.getKey()));
+          emitOutput(convert(td.getKey()));
           entries.remove();
           break;
         case DUPLICATE:
           duplicateEvents++;
-          duplicates.emit(td.getKey());
+          emitDuplicate(td.getKey());
           entries.remove();
           break;
         case EXPIRED:
           expiredEvents++;
-          expired.emit(convert(td.getKey()));
+          emitExpired(convert(td.getKey()));
           entries.remove();
           break;
         case ERROR:
           errorEvents++;
-          error.emit(convert(td.getKey()));
+          emitError(convert(td.getKey()));
           entries.remove();
           break;
         default:
@@ -553,112 +539,6 @@ public abstract class AbstractDeduper<INPUT, OUTPUT>
   {
   }
 
-  @Override
-  public void partitioned(Map<Integer, Partition<AbstractDeduper<INPUT, OUTPUT>>> partitions)
-  {
-  }
-
-  @Override
-  @SuppressWarnings({"BroadCatchBlock", "TooBroadCatch", "UseSpecificCatch", "deprecation"})
-  public Collection<Partition<AbstractDeduper<INPUT, OUTPUT>>> definePartitions(
-      Collection<Partition<AbstractDeduper<INPUT, OUTPUT>>> partitions, PartitioningContext context)
-  {
-    final int finalCapacity = DefaultPartition.getRequiredPartitionCount(context, this.partitionCount);
-
-    //Collect the state here
-    List<BucketManager<INPUT>> oldStorageManagers = Lists.newArrayList();
-
-    Map<Long, List<INPUT>> allWaitingEvents = Maps.newHashMap();
-
-    for (Partition<AbstractDeduper<INPUT, OUTPUT>> partition : partitions) {
-      //collect all bucketStorageManagers
-      oldStorageManagers.add(partition.getPartitionedInstance().bucketManager);
-
-      //collect all waiting events
-      for (Map.Entry<Long, List<INPUT>> awaitingList : partition.getPartitionedInstance().waitingEvents.entrySet()) {
-        if (awaitingList.getValue().size() > 0) {
-          List<INPUT> existingList = allWaitingEvents.get(awaitingList.getKey());
-          if (existingList == null) {
-            existingList = Lists.newArrayList();
-            allWaitingEvents.put(awaitingList.getKey(), existingList);
-          }
-          existingList.addAll(awaitingList.getValue());
-        }
-      }
-      partition.getPartitionedInstance().waitingEvents.clear();
-    }
-
-    partitions.clear();
-
-    Collection<Partition<AbstractDeduper<INPUT, OUTPUT>>> newPartitions = Lists.newArrayListWithCapacity(finalCapacity);
-    Map<Integer, BucketManager<INPUT>> partitionKeyToStorageManagers = Maps.newHashMap();
-
-    for (int i = 0; i < finalCapacity; i++) {
-      try {
-        Kryo kryo = new Kryo();
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        Output output = new Output(bos);
-        kryo.writeObject(output, this);
-        output.close();
-        Input lInput = new Input(bos.toByteArray());
-
-        @SuppressWarnings("unchecked")
-        AbstractDeduper<INPUT, OUTPUT> deduper = (AbstractDeduper<INPUT, OUTPUT>)kryo.readObject(lInput,
-            this.getClass());
-        DefaultPartition<AbstractDeduper<INPUT, OUTPUT>> partition = new DefaultPartition<>(deduper);
-        newPartitions.add(partition);
-      } catch (Throwable cause) {
-        DTThrowable.rethrow(cause);
-      }
-    }
-
-    DefaultPartition.assignPartitionKeys(Collections.unmodifiableCollection(newPartitions), input);
-    int lPartitionMask = newPartitions.iterator().next().getPartitionKeys().get(input).mask;
-
-    //transfer the state here
-    for (Partition<AbstractDeduper<INPUT, OUTPUT>> deduperPartition : newPartitions) {
-      AbstractDeduper<INPUT, OUTPUT> deduperInstance = deduperPartition.getPartitionedInstance();
-
-      deduperInstance.partitionKeys = deduperPartition.getPartitionKeys().get(input).partitions;
-      deduperInstance.partitionMask = lPartitionMask;
-      logger.debug("partitions {},{}", deduperInstance.partitionKeys, deduperInstance.partitionMask);
-      try {
-        deduperInstance.bucketManager = bucketManager.clone();
-      } catch (CloneNotSupportedException ex) {
-        if ((deduperInstance.bucketManager = bucketManager.cloneWithProperties()) == null) {
-          DTThrowable.rethrow(ex);
-        } else {
-          logger.warn("Please use clone method of bucketManager instead of cloneWithProperties");
-        }
-      }
-
-      for (int partitionKey : deduperInstance.partitionKeys) {
-        partitionKeyToStorageManagers.put(partitionKey, deduperInstance.bucketManager);
-      }
-
-      //distribute waiting events
-      for (long bucketKey : allWaitingEvents.keySet()) {
-        for (Iterator<INPUT> iterator = allWaitingEvents.get(bucketKey).iterator(); iterator.hasNext();) {
-          INPUT event = iterator.next();
-          int partitionKey = getEventKey(event).hashCode() & lPartitionMask;
-
-          if (deduperInstance.partitionKeys.contains(partitionKey)) {
-            List<INPUT> existingList = deduperInstance.waitingEvents.get(bucketKey);
-            if (existingList == null) {
-              existingList = Lists.newArrayList();
-              deduperInstance.waitingEvents.put(bucketKey, existingList);
-            }
-            existingList.add(event);
-            iterator.remove();
-          }
-        }
-      }
-    }
-    //let storage manager and subclasses distribute state as well
-    bucketManager.definePartitions(oldStorageManagers, partitionKeyToStorageManagers, lPartitionMask);
-    return newPartitions;
-  }
-
   /**
    * Sets the bucket manager.
    *
@@ -683,6 +563,31 @@ public abstract class AbstractDeduper<INPUT, OUTPUT>
   protected abstract OUTPUT convert(INPUT input);
 
   protected abstract Object getEventKey(INPUT event);
+
+  protected void emitOutput(OUTPUT event)
+  {
+    output.emit(event);
+  }
+
+  protected void emitDuplicate(INPUT event)
+  {
+    duplicates.emit(event);
+  }
+
+  protected void emitExpired(OUTPUT event)
+  {
+    expired.emit(event);
+  }
+
+  protected void emitError(OUTPUT event)
+  {
+    error.emit(event);
+  }
+
+  protected StreamCodec<INPUT> getDeduperStreamCodec()
+  {
+    return null;
+  }
 
   @Override
   public boolean equals(Object o)
@@ -822,16 +727,6 @@ public abstract class AbstractDeduper<INPUT, OUTPUT>
   {
     return pojoClass;
   }
-
-  /**
-   * Sets the class of the incoming POJO
-   * @param pojoClass
-   */
-  public void setPojoClass(Class<?> pojoClass)
-  {
-    this.pojoClass = pojoClass;
-  }
-
 
   /**
    * Enum for holding all possible values for a decision for a tuple
